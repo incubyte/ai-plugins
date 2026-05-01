@@ -20,6 +20,11 @@
       "description": "End-to-end product discovery flow that produces a structured PRD"
     },
     {
+      "name": "jira-issue-triage",
+      "source": "./jira-issue-triage",
+      "description": "End-to-end Jira issue triage subagent across all archetypes (Bug, Incident, Feature, Task, Spike)"
+    },
+    {
       "name": "ralph-wiggum",
       "source": {
         "source": "github",

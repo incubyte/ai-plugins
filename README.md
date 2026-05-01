@@ -49,6 +49,18 @@ Take a raw product idea through ten guided phases and walk away with a structure
 
 Entry point: `/discovery:start`
 
+### [Jira Issue Triage](jira-issue-triage/) — End-to-End Jira Triage Subagent
+
+Paste any Jira ticket URL (Bug, Incident, Feature, Task, or Spike) and the agent triages it end-to-end: assigns to you, transitions to investigating, runs the matching investigation skill, drafts the assessment comment, refines title and description, applies the triaged label, and DMs a one-line summary on Slack.
+
+- Archetype-aware workflow (Bug, Incident, Feature, Task, Spike)
+- Bundles four skills: `issue-investigator`, `requirements-investigator`, `jira-ticket-refiner`, `prose-style`
+- `/jira-issue-triage:setup` wizard for first-time configuration
+- Phase 3 confirmation gate — preview every change before it lands in Jira
+- Graceful degradation when Slack or Datadog MCP servers are missing
+
+Entry point: paste a Jira URL and ask the agent to triage it (subagent: `jira-issue-triage`)
+
 ## Install
 
 ```bash
@@ -59,6 +71,7 @@ Entry point: `/discovery:start`
 /plugin install bee@incubyte-plugins
 /plugin install learn@incubyte-plugins
 /plugin install discovery@incubyte-plugins
+/plugin install jira-issue-triage@incubyte-plugins
 ```
 
 ## License

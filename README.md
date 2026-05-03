@@ -26,6 +26,17 @@ Learn any technology by building real projects. Claude guides you step-by-step â
 
 Entry point: `/learn:start`
 
+### [Second Brain](second-brain/) â€” Personal Knowledge Wiki
+
+Builds a compounding wiki from raw documents. Drop articles into `clippings/`, ingest them into an Obsidian-compatible wiki with cross-references, then query your knowledge base with synthesized answers and citations.
+
+- Parallel ingestion with delta detection
+- Structured pages: concepts, entities, summaries
+- Obsidian-compatible `[[wikilinks]]` and YAML frontmatter
+- Presentation generation from answers
+
+Entry point: `/second-brain:ingest`
+
 ## Install
 
 ```bash

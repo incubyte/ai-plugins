@@ -53,37 +53,19 @@ Don't ask "how will you handle errors?" Ask "The codebase uses a `Result<T, AppE
 
 Don't ask "where will this code live?" Ask "The project uses feature folders under `src/features/`. I see `src/features/orders/` and `src/features/users/` already. Will this go in a new feature folder, or extend an existing one?"
 
-Don't ask "how will you test this?" Ask "Tests are co-located in `__tests__/` folders using Vitest with `vi.fn()` for mocking. The integration tests use a Postgres test container. Which of those patterns applies here?"
-
-### Challenge architecture mismatches
-
-If the user's plan introduces a pattern that doesn't exist in the codebase, surface it:
-- "You're proposing an event bus, but the codebase is synchronous request-response today. Are you ready to introduce that pattern, or is there a simpler way?"
-- "The plan calls for a repository abstraction, but existing code talks to Prisma directly. Is the abstraction worth the overhead for this feature?"
-
-### Surface integration friction
-
-Use your knowledge of the change area to find where the plan connects to existing code:
-- "Your new endpoint will need auth. The existing endpoints use `requireAuth` middleware from `middleware/auth.ts`. Will you use the same, or does this need different auth logic?"
-- "I see `src/features/orders/order.service.ts` already has a `calculateTotal` method. Your plan mentions calculating totals differently — is this intentional?"
-
-### Catch convention violations
-
-If the plan contradicts project conventions (from CLAUDE.md or observed patterns):
-- "CLAUDE.md says to use Zod for request validation. Your plan mentions manual validation. Intentional?"
-- "The project uses kebab-case for file names. Your plan mentions `OrderService.ts` — should that be `order-service.ts`?"
+You've internalized the codebase context. Every question you ask should reflect that. If the plan proposes something that aligns with existing patterns, move on. If it proposes something that contradicts, extends, duplicates, or ignores what's already there — that's where you dig in. Don't follow a checklist. Use your understanding of the codebase the way a senior engineer who's worked on this project for a year would.
 
 ### One question at a time — always via AskUserQuestion
 
-Same as plain grill-me. Ask ONE question per message. Stay on a branch until resolved. Go deep before going wide.
+Ask ONE question per message. Stay on a branch until resolved. Go deep before going wide.
 
 ### Escalate on hand-waving
 
-Same as plain grill-me. Push once, then call it out. But now you can be more specific: "You've been vague about how this integrates with the existing auth system — and that's a non-trivial integration point. Let's slow down."
+If the user gives a vague answer, rephrase and push once. If they hand-wave the same area twice, call it out directly. You have the codebase context to be specific about why the vague area matters.
 
 ### When you find a gap — offer to brainstorm
 
-Same as plain grill-me. Load the `brainstorming` skill and run a focused mini-brainstorm. But ground the options in what the codebase supports: "Option A follows the existing pattern. Option B introduces a new pattern but gives us X."
+Load the `brainstorming` skill and run a focused mini-brainstorm. Ground the options in what the codebase actually supports.
 
 ### Build context incrementally
 
@@ -94,16 +76,6 @@ cat >> .claude/bee-context.local.md << 'GRILLME_EOF'
 - **[Topic]**: [Decision made and rationale]
 GRILLME_EOF
 ```
-
-## What makes this different from plain grill-me
-
-| Plain grill-me | Grill-me with context |
-|---|---|
-| "How will you handle errors?" | "The codebase uses `Result<T, AppError>`. Will you follow that?" |
-| "Where will this code live?" | "Existing features live in `src/features/`. New folder or extend?" |
-| "How will you test this?" | "Tests use Vitest with co-located `__tests__/`. Integration tests use PG containers." |
-| Abstract architecture questions | "You're introducing a pattern that doesn't exist here yet. Worth it?" |
-| Doesn't know about existing code | "There's already a `calculateTotal` in orders. Your plan duplicates it." |
 
 ## Tone
 

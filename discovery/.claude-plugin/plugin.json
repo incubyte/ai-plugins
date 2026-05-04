@@ -1,0 +1,9 @@
+{
+  "name": "discovery",
+  "version": "0.2.0",
+  "description": "End-to-end product discovery flow that produces a structured PRD.",
+  "author": {
+    "name": "Incubyte"
+  },
+  "license": "Apache-2.0"
+}

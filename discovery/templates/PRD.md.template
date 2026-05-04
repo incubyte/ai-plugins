@@ -1,0 +1,295 @@
+# PRD: <Product Name>
+
+**Author:** <name>  
+**Date:** <YYYY-MM-DD>  
+**Status:** draft | in-review | approved  
+**Discovery state:** `discovery-state.md`
+
+---
+
+## Problem Statement
+
+*(Locked at the end of discovery Phase 1. This is the foundation for all decisions below.)*
+
+<2-3 paragraphs integrating JTBD framing, research input, and user segmentation.>
+
+---
+
+## Business Goals
+
+1. <specific business goal with measurable target>
+2. <specific business goal with measurable target>
+3. <specific business goal with measurable target>
+
+---
+
+## User Goals
+
+Each goal format:
+*"As a [role], I want to [action/state] so that [outcome] — measured by [signal]."*
+
+1. **As a <role>**, I want to <action/state> so that <outcome> — measured by <signal>. *(MVP | post-MVP)*
+2. **As a <role>**, I want to <action/state> so that <outcome> — measured by <signal>. *(MVP | post-MVP)*
+3. **As a <role>**, I want to <action/state> so that <outcome> — measured by <signal>. *(MVP | post-MVP)*
+
+---
+
+## Non-Goals
+
+Explicitly out of scope. Use one of: **Out of MVP**, **Out for foreseeable future**, **Out forever**.
+
+- **<Specific capability>** — <classification>; out because <rationale>. Reconsider if <evidence threshold>.
+- **<Specific capability>** — <classification>; out because <rationale>. Reconsider if <evidence threshold>.
+- **<Specific capability>** — <classification>; out because <rationale>. Reconsider if <evidence threshold>.
+
+---
+
+## User Segmentation
+
+| Segment | Description | Characteristics | Needs |
+|---|---|---|---|
+| <segment> | <who they are> | <behavior/profile> | <what they need from product> |
+| <segment> | <who they are> | <behavior/profile> | <what they need from product> |
+| <segment> | <who they are> | <behavior/profile> | <what they need from product> |
+
+---
+
+## Feature Modules and User Flows
+
+*(Match the style of your standard: module first, then its user flow.)*
+
+### Module 1: <Name>
+**Purpose:** <what this module enables>
+
+**User flow:**
+1. <step>
+2. <step>
+3. <step>
+4. <step>
+
+**Key behavior notes:**
+- <decision point>
+- <validation/recovery behavior>
+
+### Module 2: <Name>
+**Purpose:** <what this module enables>
+
+**User flow:**
+1. <step>
+2. <step>
+3. <step>
+4. <step>
+
+**Key behavior notes:**
+- <decision point>
+- <validation/recovery behavior>
+
+<Repeat for 2-5 modules total.>
+
+---
+
+## User Journeys and Edge Cases
+
+### Happy path
+
+```mermaid
+flowchart TD
+  A[Discovery] --> B[Signup]
+  B --> C[Onboarding]
+  C --> D[Core action]
+  D --> E[Aha moment]
+  E --> F[Recurring use]
+```
+
+### Abandonment path
+
+```mermaid
+<flowchart>
+```
+
+### Error path
+
+```mermaid
+<flowchart>
+```
+
+### Retry path
+
+```mermaid
+<flowchart>
+```
+
+### Power-user limit path
+
+```mermaid
+<flowchart>
+```
+
+### Error states inventory
+
+| Action | Failure mode | User sees | Recovery |
+|---|---|---|---|
+| <action> | <failure> | <message> | <recovery> |
+| <action> | <failure> | <message> | <recovery> |
+
+---
+
+## Low-Fidelity Mockups
+
+*(Required in PRD. Include at least 3 textual mockups with annotations.)*
+
+### Mockup: <Screen name>
+
+```
+<rich ASCII or Mermaid textual mockup>
+```
+
+**Interactions:**
+- <element> -> <behavior>
+- <element> -> <behavior>
+
+**Content notes:**
+- <microcopy/validation detail>
+- <business logic note>
+
+**State variations:**
+- Empty: <description>
+- Loading: <description>
+- Error: <description>
+- Role/tier variation: <description>
+
+### Cross-screen flow: <name>
+
+```mermaid
+sequenceDiagram
+  <interaction sequence>
+```
+
+<Repeat until at least 3 key screens are covered.>
+
+---
+
+## Epics, Features, and Functional Requirements
+
+### Epic E1: <Name>
+<One-sentence description.>
+
+| Feature | MVP? | Maps to journey step |
+|---|---|---|
+| F1.1: <feature> | MVP | <journey step> |
+| F1.2: <feature> | MVP | <journey step> |
+| F1.3: <feature> | post-MVP | <journey step> |
+
+**Functional requirements:**
+- FR-1.1.1: The system shall <observable behavior> when <condition>. *(MVP | post-MVP; maps to <journey step>)*
+- FR-1.2.1: The system shall <observable behavior> when <condition>. *(MVP | post-MVP; maps to <journey step>)*
+
+### Epic E2: <Name>
+<One-sentence description.>
+
+| Feature | MVP? | Maps to journey step |
+|---|---|---|
+| F2.1: <feature> | MVP | <journey step> |
+| F2.2: <feature> | post-MVP | <journey step> |
+
+**Functional requirements:**
+- FR-2.1.1: The system shall <observable behavior> when <condition>. *(MVP | post-MVP; maps to <journey step>)*
+
+---
+
+## Technical Specifications
+
+| Component | Description | Responsible Team | Why It Is Needed |
+|---|---|---|---|
+| <component> | <what it does> | <team> | <value/rationale> |
+| <component> | <what it does> | <team> | <value/rationale> |
+| <component> | <what it does> | <team> | <value/rationale> |
+
+---
+
+## Technical Overview
+
+<One short paragraph: architecture style, key dependencies, data handling, major risks.>
+
+```mermaid
+flowchart LR
+  Browser[Web App] -->|HTTPS| API[Backend API]
+  API --> DB[(Database)]
+  API --> Storage[Object Storage]
+  API --> External[External Services]
+```
+
+---
+
+## Out of Scope
+
+- <item that will not be addressed in this PRD release>
+- <item that will not be addressed in this PRD release>
+- <item that will not be addressed in this PRD release>
+
+---
+
+## Metrics
+
+| Metric | Target | Rationale |
+|---|---|---|
+| <metric> | <target> | <why this matters> |
+| <metric> | <target> | <why this matters> |
+| <metric> | <target> | <why this matters> |
+
+---
+
+## Competitive Analysis
+
+| Competitor | Capability | Strength | Gap/Weakness |
+|---|---|---|---|
+| <name> | <capability> | <strength> | <gap> |
+| <name> | <capability> | <strength> | <gap> |
+| <name> | <capability> | <strength> | <gap> |
+
+**Positioning gap:** <where this product wins and why now>
+
+---
+
+## Market Sizing (TAM / SAM / SOM)
+
+*(Optional; include only if user opts in and data quality is acceptable.)*
+
+- **TAM:** <value and methodology>
+- **SAM:** <value and methodology>
+- **SOM:** <value and methodology>
+
+---
+
+## Paths Not Taken
+
+*(Optional; include only if user opts in.)*
+
+| Alternative | Why Rejected | What Would Change Decision |
+|---|---|---|
+| <alternative> | <reason> | <evidence threshold> |
+| <alternative> | <reason> | <evidence threshold> |
+
+---
+
+## Risks and Open Questions
+
+### Risks
+- <risk> — <impact> — <mitigation>
+- <risk> — <impact> — <mitigation>
+
+### Open Questions
+- <unresolved question>
+- <unresolved question>
+
+---
+
+## Appendix
+
+### Sources
+- `discovery-state.md`
+- <research links>
+- <external references>
+
+### Revision Log
+- <date>: revised <section> — <reason>

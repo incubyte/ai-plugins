@@ -12,7 +12,12 @@
     {
       "name": "learn",
       "source": "./learn",
-      "description": "Learn any technology by building real projects — Claude guides step-by-step, you write every line of code"
+      "description": "Learn any technology by building real projects \u2014 Claude guides step-by-step, you write every line of code"
+    },
+    {
+      "name": "discovery",
+      "source": "./discovery",
+      "description": "End-to-end product discovery flow that produces a structured PRD"
     },
     {
       "name": "ralph-wiggum",

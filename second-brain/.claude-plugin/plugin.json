@@ -1,0 +1,9 @@
+{
+  "name": "second-brain",
+  "description": "A personal knowledge base that builds a compounding wiki from raw documents. Ingest sources, ask questions, and maintain a structured Obsidian-compatible wiki with cross-references and citations.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Incubyte"
+  },
+  "license": "Proprietary"
+}

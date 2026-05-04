@@ -28,15 +28,16 @@ The config file moves from `.claude/jira-bug-triage.config.json` to `.claude/jir
 
 ### Bundled skills
 
-The agent calls three skills during the workflow. All three ship bundled with this plugin and install automatically.
+The agent calls four skills during the workflow. All four ship bundled with this plugin and install automatically.
 
 | Skill name | Phase | Used for | Status |
 |-----------|-------|----------|--------|
 | `issue-investigator` | Phase 1 (Bug, Incident) | Slack/Jira/Confluence/Datadog/code investigation with evidence tags | Bundled, ready to use |
 | `requirements-investigator` | Phase 1 (Feature, Task, Spike) | Slack/Jira/Confluence search for prior decisions, design refs, scope; per-archetype report templates | Bundled, ready to use |
 | `jira-ticket-refiner` | Phase 5 (any archetype) | Title and description rewrite. Already archetype-aware (Bug, Feature, Task, Incident, Spike). | Bundled, ready to use |
+| `prose-style` | Phase 2.5 + Phase 5 (any archetype) | Writing-rule application: strips em dashes, opener phrases, LLM vocabulary, bullet sprawl. Runs at Phase 2.5 on the assessment/scope comment draft and any reporter follow-up (so the user sees a styled version at the Phase 3 confirmation gate), and at Phase 5 on the refined title and description after `jira-ticket-refiner`. | Bundled, ready to use |
 
-The `prose-style` skill (writing-rule application) is planned as a separate plugin in the same marketplace. Until it ships, the agent uses an inline fallback that enforces the same writing rules and warns you once at the start of Phase 5.
+The agent body retains short defensive fallbacks for all four bundled skills. They fire only on rare runtime load failures (corrupted install, mid-session uninstall, etc.) and never need user attention in normal operation.
 
 ## Quick start
 
@@ -225,12 +226,12 @@ The workflow runs a generic core for every archetype. Five phases gate on the de
 | Phase 0 | Fetch ticket, run skip-label check, detect archetype, assign to you, transition to investigating. | All |
 | Phase 1 | Investigation: `issue-investigator` (Bug/Incident) or `requirements-investigator` (Feature/Task/Spike). | All (skill choice gates on archetype) |
 | Phase 2 | Datadog log search using signals from Phase 1. Silently suppressed on errors. | Bug, Incident |
-| Phase 2.5 | Decide whether reporter follow-up is warranted (missing data / clarification / fix verification or relevance check). Form severity recommendation (Bug/Incident) or scope summary (Feature/Task/Spike). | All |
+| Phase 2.5 | Decide whether reporter follow-up is warranted (missing data / clarification / fix verification or relevance check). Form severity recommendation (Bug/Incident) or scope summary (Feature/Task/Spike). Draft the matching Phase 4 comment (assessment, scope summary, or follow-up question) in markdown, then run `prose-style` on it so Phase 3 previews a styled draft. | All |
 | Phase 3 | **Hard pause.** Show findings, archetype detection, and proposed updates. Wait for your approval. | All |
-| Phase 4a | Severity assessment comment (ADF). | Bug, Incident |
-| Phase 4b | Scope or AC summary comment (ADF). Optionally writes to `scope_summary_field_name` if configured. | Feature, Task, Spike |
-| Phase 4c | Follow-up question tagging reporter or EM. Replaces Phase 4a or 4b. | All (only when follow_up_needed) |
-| Phase 5 | Refine ticket via `jira-ticket-refiner`. Update title and description. | All |
+| Phase 4a | Convert the Phase 2.5 cleaned draft to ADF and post the severity assessment comment. | Bug, Incident |
+| Phase 4b | Convert the Phase 2.5 cleaned draft to ADF and post the scope or AC summary comment. Optionally writes to `scope_summary_field_name` if configured. | Feature, Task, Spike |
+| Phase 4c | Convert the Phase 2.5 cleaned draft to ADF and post the follow-up question tagging reporter or EM. Replaces Phase 4a or 4b. | All (only when follow_up_needed) |
+| Phase 5 | Refine ticket via `jira-ticket-refiner`, then run `prose-style` on the refined title + description, then preview and update. | All |
 | Phase 6 | Severity + due date (Bug/Incident) OR optional sprint placement + story points (Feature/Task/Spike). Skipped on follow-up path. | All (behavior gates on archetype) |
 | Phase 7 | Link related/duplicate tickets. | All |
 | Phase 8 | Append triaged label. Fill optional fields if discoverable. | All |

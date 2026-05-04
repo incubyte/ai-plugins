@@ -1,6 +1,7 @@
 ---
 description: First-time setup wizard for jira-issue-triage. Walks through configuration questions and writes .claude/jira-issue-triage.config.json.
 argument-hint: (no args)
+allowed-tools: Read, Write, AskUserQuestion, mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources, mcp__plugin_atlassian_atlassian__atlassianUserInfo
 ---
 
 # jira-issue-triage Setup Wizard
@@ -13,7 +14,7 @@ Walk the user through eight configuration questions and write the result to `.cl
 
 Read `.claude/jira-issue-triage.config.json` if it exists. Also check `.claude/jira-bug-triage.config.json` (the legacy path used by the v0.3.0 plugin).
 
-- **New-path config exists:** Read it, show the current contents to the user as pretty-printed JSON, then ask via `AskQuestion`: "Overwrite the existing config?" Options: `Yes, walk through the wizard again`, `No, keep current and exit`. On "No", exit cleanly.
+- **New-path config exists:** Read it, show the current contents to the user as pretty-printed JSON, then ask via `AskUserQuestion`: "Overwrite the existing config?" Options: `Yes, walk through the wizard again`, `No, keep current and exit`. On "No", exit cleanly.
 - **Only the legacy file exists:** Read it, show the contents, and tell the user: "The legacy file works for now but the new path `.claude/jira-issue-triage.config.json` is preferred. The wizard will write the new path; you can delete the legacy file once the new one is written." Continue to step 2.
 - **Neither exists:** Continue to step 2.
 
@@ -28,7 +29,7 @@ Best-effort auto-discovery to suggest defaults. Failures are non-fatal; fall bac
 
 ### 3. Walk through the eight wizard questions
 
-Ask one at a time. Use `AskQuestion` for multiple-choice answers. Use plain free-text prompts for names, emails, labels, and channel names. Confirm each answer before moving to the next question.
+Ask one at a time. Use `AskUserQuestion` for multiple-choice answers. Use plain free-text prompts for names, emails, labels, and channel names. Confirm each answer before moving to the next question.
 
 #### Q1: Default project key
 
@@ -42,7 +43,7 @@ Default: `infer`. Validate that the answer is either `infer` or a non-empty alph
 
 #### Q2: Severity field name
 
-Use `AskQuestion`:
+Use `AskUserQuestion`:
 
 > Which Jira field holds the severity for bug tickets?
 
@@ -83,7 +84,7 @@ Three free-text prompts in sequence:
 
 #### Q6: Severity scheme
 
-Use `AskQuestion`:
+Use `AskUserQuestion`:
 
 > Which severity scheme do you want to use?
 
@@ -94,7 +95,7 @@ Options:
 
 On "5-tier", use the static 5-tier scheme that strictly extends the 3-tier defaults so users do not get surprise SLA changes when they switch tiers: `Sev-1` (7 days, escalate), `Sev-1.5` (7 days, escalate), `Sev-2` (14 days), `Sev-2.5` (30 days), `Sev-3` (90 days). This matches the 5-tier example in the plugin README.
 
-On "Custom", walk through each level: ask for the level name, the `due_offset_days` integer, and via `AskQuestion` whether `escalate_immediately` is `Yes` or `No`. Loop until the user types `done` for the level name.
+On "Custom", walk through each level: ask for the level name, the `due_offset_days` integer, and via `AskUserQuestion` whether `escalate_immediately` is `Yes` or `No`. Loop until the user types `done` for the level name.
 
 #### Q7: Escalation
 
@@ -110,7 +111,7 @@ Parse the contact strings into `{ "name": "Alice Kumar", "email": "alice@example
 
 #### Q8: Save?
 
-Show the assembled config as pretty-printed JSON with sorted top-level keys. Use `AskQuestion`:
+Show the assembled config as pretty-printed JSON with sorted top-level keys. Use `AskUserQuestion`:
 
 > Save this config to `.claude/jira-issue-triage.config.json`?
 

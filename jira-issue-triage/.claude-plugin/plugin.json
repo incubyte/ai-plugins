@@ -1,7 +1,7 @@
 {
   "name": "jira-issue-triage",
-  "version": "1.0.0",
-  "description": "End-to-end Jira issue triage subagent across all archetypes (Bug, Incident, Feature, Task, Spike). Bundles three skills (issue-investigator for Bug/Incident, requirements-investigator for Feature/Task/Spike, jira-ticket-refiner for any archetype) and ships a /jira-issue-triage:setup wizard.",
+  "version": "1.1.0",
+  "description": "End-to-end Jira issue triage subagent across all archetypes (Bug, Incident, Feature, Task, Spike). Bundles four skills (issue-investigator for Bug/Incident, requirements-investigator for Feature/Task/Spike, jira-ticket-refiner for any archetype, prose-style for writing-rule application) and ships a /jira-issue-triage:setup wizard.",
   "author": {
     "name": "Taha Bikanerwala",
     "url": "https://github.com/TahaBikanerwala"

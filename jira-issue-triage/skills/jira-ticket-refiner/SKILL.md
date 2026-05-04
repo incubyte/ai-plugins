@@ -16,7 +16,7 @@ This skill modifies Jira. It updates the ticket's description and title (the `fi
 
 The skill works two ways. When a user pastes a ticket key and asks to refine it, run end to end. When the `jira-issue-triage` agent calls this skill in Phase 5, treat the agent's already-fetched payload and investigation findings as the source data and skip the fetch step.
 
-- **One confirmation gate.** Always preview the rewrite before calling `editJiraIssue`. The user must approve.
+- **One confirmation gate.** Always preview the rewrite before calling `editJiraIssue`. The user must approve. **Exception:** when the calling context passes `skip_preview: true` (the `jira-issue-triage` agent does this in Phase 5 because the agent already captured user approval at Phase 3 and renders its own informational preview before writing), produce the refined title and description, hand them back to the caller, and skip Step 7's preview-and-`editJiraIssue` entirely. The caller owns the write in that mode.
 - **Read-then-write.** Refuse to write before reading the description, comments, and (when relevant) changelog.
 - **Strict superset.** The refined ticket contains every fact from the original. Restructure, rewrite, and re-tag, never truncate.
 - **No solution prescription.** The skill structures information. It does not invent fixes, recommend roadmap, or editorialize on causes that are not in the ticket.

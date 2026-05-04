@@ -61,6 +61,13 @@ The default config (used as the merge target for parsed values, and as-is when t
   "story_points_field_name": null,
   "non_bug_transitions": {
     "ready": null
+  },
+  "archetype_assignment_after_triage": {
+    "Bug": "unassign",
+    "Incident": "self",
+    "Feature": "self",
+    "Task": "self",
+    "Spike": "self"
   }
 }
 ```
@@ -68,6 +75,8 @@ The default config (used as the merge target for parsed values, and as-is when t
 When `primary_contact` or `fallback_contact` is set, supply an object with `name` and `email`: e.g., `{ "name": "Alice Kumar", "email": "alice@example.com" }`. The agent resolves Jira `accountId` (via `lookupJiraAccountId` using the email) and Slack `user_id` (via `slack_search_users` using the email) once per session and caches both. `slack_channel` is a string like `#bug-triage`.
 
 The four trailing optional fields (`scope_summary_field_name`, `sprint_field_name`, `story_points_field_name`, `non_bug_transitions.ready`) are all null by default. When null, the agent skips the steps that reference them. Documented in the plugin README's Advanced Configuration section.
+
+`archetype_assignment_after_triage` controls Phase 9's assignee behavior per archetype. Valid values per archetype: `"unassign"` (return to the team pool by setting `assignee` to null) or `"self"` (leave the running user assigned, since Phase 0 already assigned them). The defaults match the 1.2.0 behavior: Bug routes back to the pool; Incident, Feature, Task, and Spike stay with the triager. Override per archetype when your team uses a different rule (for example, Sev-1 incidents auto-routing to on-call: set `"Incident": "unassign"` and have your on-call rotation pick the ticket up).
 
 ### Auto-Discovery
 
@@ -225,7 +234,7 @@ Follow with the scenario template above.
 
 For each ticket the user pastes, execute these phases in order. Pause only at the explicit confirmation gate in Phase 3. If Phase 2.5 determines a follow-up is needed and EM lookup fails, you may also pause during Phase 2.5 to ask the user who to tag. That is the only other allowed pause before Phase 3.
 
-The workflow runs a generic core for every archetype. Phase 1 branches by archetype to call the matching investigation skill. Phases 2 (Datadog), 4 (severity assessment vs scope summary), 6 (severity + due date vs sprint placement), and 9 (Bug unassigns; other archetypes stay assigned to the running user) gate on archetype.
+The workflow runs a generic core for every archetype. Phase 1 branches by archetype to call the matching investigation skill. Phases 2 (Datadog), 4 (severity assessment vs scope summary), 6 (severity + due date vs sprint placement), and 9 (assignment per `archetype_assignment_after_triage` config; Bug defaults to unassign, others to self) gate on archetype.
 
 ---
 
@@ -346,16 +355,25 @@ Present findings to the user. Show:
   - The prose-style-cleaned markdown draft of the question comment from Phase 2.5, shown inline as plain markdown. Phase 4c will convert this same text to ADF on post.
   - What transition will happen (`waiting_reply`), who the ticket will be assigned to (the tagged person), and what will still run (refine, link, label) vs. skipped (the archetype-specific Phase 4 content, severity + due date for Bug/Incident, sprint placement for Feature/Task/Spike).
 
-Ask the user via `AskUserQuestion`. Each write the agent is about to make is its own decision; the user can approve some and skip others. Pose these as separate questions so each gets an explicit yes or no:
+Ask the user via `AskUserQuestion`. The decisions are independent (each gates a different write), so put them in one panel as a multi-question call. `AskUserQuestion` accepts up to 4 questions per panel; pick the ones that apply to this run and batch them into a single call so the user sees all the decisions side by side instead of clicking through sequential modals.
 
-1. **Does this data look correct?** (Yes / No, request changes.) If No, adjust and re-present before asking the rest.
-2. **Post the proposed Phase 4 comment?** (Yes, post / No, skip the comment.) Caches the answer as `approved_post_comment`.
-3. **Refine the title and description in Phase 5?** (Yes, refine and update / No, leave the title and description as-is.) Caches the answer as `approved_refine_description`.
-4. When `story_points_field_name` is configured AND the archetype is Feature, Task, or Spike AND `follow_up_needed = false`, also ask: **"Story-point estimate for this ticket?"** Free-text numeric input; accept "skip" or empty answer to leave the field blank. Cache the answer as `story_point_estimate` (numeric value or `null`). Phase 6 reads this cache; with no estimate captured here, Phase 6 silently skips the story-point write.
-5. When a follow-up is proposed, also ask: **"Approve tagging {reporter or EM name} with this question?"** A No on this question reverts the run to the standard path: drop the cached follow-up scenario and target `accountId`, set `follow_up_needed = false`, then re-draft the standard-path comment per Phase 2.5 step 4 (assessment for Bug/Incident, scope summary for Feature/Task/Spike), run `prose-style` on it, and re-run Phase 3 from the top with the standard-path plan in view. Get fresh approval on questions 1–4 against the new draft. The user must see the standard-path Phase 4 comment, severity recommendation, due date, and any sprint or story-point proposal before any of those writes happen.
-6. When the archetype detection is non-obvious (issue type and content disagree), also ask: **"Detected archetype is {X}; is that right?"** If No, take the corrected archetype, redo Phase 2.5 against it, and re-present the gate.
+**Pre-gate (separate call, only when applicable).** Run BEFORE the main panel:
 
-Each question is its own `AskUserQuestion` call; do not chain them into one prompt. Wait for every answer before continuing. If the user requests changes to the draft text or the proposed updates, adjust and re-present the affected questions only.
+- **When the archetype detection is non-obvious** (issue type and content disagree): ask **"Detected archetype is {X}; is that right?"** as a standalone `AskUserQuestion` call. If the user picks a different archetype, redo Phase 2.5 against the correction and re-enter Phase 3. The pre-gate runs first because the archetype changes the draft content for the main panel.
+
+**Main panel (one `AskUserQuestion` call with up to 4 questions in `questions[]`).** Always include questions 1 and 2; include 3 and 4 only when their preconditions hold. If all four apply, the panel has 4 side-by-side questions. If only the standard path applies, the panel has 2.
+
+1. **Post the proposed Phase 4 comment?** Options: `Yes, post it`, `No, skip the comment`. The "Other" channel lets the user say "post it after these edits: ...". Cache the answer as `approved_post_comment` (boolean) and any free-text feedback as `comment_change_request`.
+2. **Refine the title and description?** Options: `Yes, refine and write`, `No, leave as-is`. The "Other" channel lets the user say "refine but skip the title" or similar. Cache the answer as `approved_refine_description` (boolean) and any free-text as `refine_change_request`. The user is approving the refinement up front; Phase 5 will render the cleaned output inline before writing but does not ask again. If the user wants a second checkpoint they say so via "Other" here ("yes refine but show me before writing").
+3. **(Conditional)** When `story_points_field_name` is configured AND the archetype is Feature, Task, or Spike AND `follow_up_needed = false`: **"Story-point estimate?"** Options: `1`, `2`, `3`, `5`, `8`, `13`, `Skip` (a Fibonacci-ish set covers most teams; "Other" accepts any number). Cache the numeric answer as `story_point_estimate` or `null` on Skip. Phase 6 reads this cache; if no estimate was captured, Phase 6 silently skips the story-point write.
+4. **(Conditional)** When a follow-up is proposed: **"Approve tagging {reporter or EM name} with this question?"** Options: `Yes, tag {name}`, `No, switch to standard path`. Cache as `approved_followup_tag`.
+
+If the user feedback (the free-text "Other" channels on questions 1 and 2) requests changes, adjust the affected draft, regenerate prose-style, and re-present the same panel. Loop until the user's free-text channels are empty or the user explicitly approves the latest draft.
+
+**After the main panel returns:**
+
+- If `approved_followup_tag = false` (the user said No to tagging): the run downgrades to the standard path. Drop the cached follow-up scenario and target `accountId`, flip `follow_up_needed = false`, re-draft the standard-path comment per Phase 2.5 step 4, run `prose-style` on it, and re-enter Phase 3 with the standard-path plan in view. Build a fresh main panel against the new draft. The user must see the standard-path Phase 4 comment, severity recommendation, due date, and any sprint or story-point proposal before any of those writes happen.
+- Otherwise the gate is closed and the run continues with the cached flags.
 
 After approval, branch by `follow_up_needed` and the cached approval flags:
 - `follow_up_needed = false`, archetype Bug or Incident: continue to Phase 4a if `approved_post_comment = true`; otherwise skip Phase 4a and go straight to Phase 5.
@@ -481,9 +499,9 @@ This phase runs two skills in sequence. First, invoke `jira-ticket-refiner` via 
 **Fallback (when `prose-style` is not installed):** apply at minimum these rules to the refined title + description before previewing: no em dashes, no spaced hyphens as separators, no LLM vocabulary (delve, leverage, robust, seamlessly, comprehensive, nuanced, elevate, foster, paradigm, ecosystem, holistic, innovative, synergy, empower, facilitate), lead with the answer, no opener phrases, no trailing summaries on short sections, prose over bullet lists when content flows naturally as sentences.
 
 Steps:
-1. Build the refined title and description (`jira-ticket-refiner` invocation, or its fallback above).
+1. Build the refined title and description (`jira-ticket-refiner` invocation, or its fallback above). When invoking the skill from this phase, pass `skip_preview: true` in the calling context so the skill's own Step 7 preview-and-confirm is suppressed; the agent owns the user-facing surface for the run, and the skill should treat the agent-owned approval at Phase 3 as the gate.
 2. Invoke the `prose-style` skill via the `Skill` tool, passing the refined title and description from step 1 as input. Replace the title and description with the cleaned versions returned by the skill (or run the inline fallback rule list above when the skill does not load).
-3. Preview the cleaned refined title + description to the user as inline markdown (not wrapped in an outer code fence). Get approval.
+3. Render the cleaned refined title + description to the user as inline markdown (not wrapped in an outer code fence). This is **informational, not a question** — Phase 3 already captured the user's approval to refine. The render gives the user a chance to interrupt (Ctrl+C) if something looks egregiously wrong before the write happens. Do not call `AskUserQuestion` here. Frame the output with one line above the render: "Writing the following to `{TICKET-KEY}` (interrupt within a few seconds to abort):". After rendering, proceed immediately to step 4.
 4. Update via `editJiraIssue` with `contentFormat: "markdown"`.
 5. If a "Bug Description" custom field was discoverable in prerequisites, write the same content to that field as raw ADF (`type: "doc"`, `version: 1`) in a separate `editJiraIssue` call. Some Jira instances reject markdown for that field type. If the field doesn't exist, skip this step silently.
 
@@ -552,12 +570,14 @@ Use one `editJiraIssue` call when possible.
 
 Apply the remaining field updates and the final transition. The field changes (assignee) go in one `editJiraIssue` call; the transition is a separate `transitionJiraIssue` call (after `getTransitionsForJiraIssue` to look up the transition ID).
 
-1. **Assignee:**
-   - **Standard path, archetype Bug:** set `assignee` to `null` so the ticket returns to the unassigned pool for the owning team. Bug triage is a routing role; the running user is not picking up the work.
-   - **Standard path, archetype Incident, Feature, Task, or Spike:** do not touch the assignee. The running user assigned themselves in Phase 0 and stays the owner. Incidents need a named on-call owner; non-bug archetypes are typically picked up by the same person who triaged them.
-   - **Follow-up path (`follow_up_needed = true`, any archetype):** Phase 4c already assigned the ticket to the tagged person; do not touch the assignee in this phase.
+1. **Assignee:** read the rule from `archetype_assignment_after_triage[<archetype>]` in the resolved config. Default rules: `Bug = "unassign"`, `Incident = "self"`, `Feature = "self"`, `Task = "self"`, `Spike = "self"`. Apply the rule:
+   - **Standard path, rule = `"unassign"`:** set `assignee` to `null` via `editJiraIssue` so the ticket returns to the unassigned pool for the owning team. Cache the assignment outcome for Phase 10 as `unassigned`.
+   - **Standard path, rule = `"self"`:** do not touch the assignee. The running user assigned themselves in Phase 0 and stays the owner. Cache the assignment outcome for Phase 10 as `kept assigned to you`.
+   - **Follow-up path (`follow_up_needed = true`, any archetype):** Phase 4c already assigned the ticket to the tagged person; do not touch the assignee in this phase. The Phase 10 outcome row covers the follow-up case directly and does not read the cached assignment outcome.
 
    Do not touch `priority` in any case (unless `priority` is the configured severity field).
+
+   The default values match the 1.2.0 behavior: Bug routes back to the team pool (bug triage is a routing role); Incident, Feature, Task, and Spike stay with the triager (typical owner for those archetypes). Teams whose Sev-1 incidents auto-route to on-call should set `"Incident": "unassign"` in their config and rely on their on-call rotation to pick up the unassigned ticket. Teams that want bug-fix ownership to stay with the triager should set `"Bug": "self"`.
 2. **Transition:** by archetype, severity, and path:
    - **Bug/Incident standard path:** if the post-Phase-6 severity is the lowest level in `severity_scheme` (default `Sev-3`), transition to `backlog` (default `Backlog`). All other levels stay in `investigating` for the owning team to pick up promptly. No transition call is needed; the ticket is already in `investigating` from Phase 0.
    - **Feature/Task/Spike standard path:** if `non_bug_transitions.ready` is configured, transition to that. Otherwise, leave the ticket in `investigating` so the owning team picks it up.
@@ -577,13 +597,11 @@ Pick the outcome that matches what you did:
 
 | Situation | Message |
 |-----------|---------|
-| Bug, lowest severity triaged | `Moved to {backlog transition} after triaging, unassigned` |
-| Bug, higher severity triaged | `Triaged, staying in {investigating transition} ({SevN}), unassigned` |
-| Incident, lowest severity triaged | `Moved to {backlog transition} after triaging, kept assigned to you` |
-| Incident, higher severity triaged | `Triaged, staying in {investigating transition} ({SevN}), kept assigned to you` |
-| Feature/Task/Spike, no follow-up | `Triaged, staying in {investigating transition} ({Feature, Task, or Spike}), kept assigned to you` |
-| Feature/Task/Spike, sprint placement applied | `Triaged and added to active sprint, staying in {investigating transition}, kept assigned to you` |
-| Feature/Task/Spike, ready transition configured | `Triaged and moved to {non_bug_transitions.ready}, kept assigned to you` |
+| Bug/Incident, lowest severity triaged | `Moved to {backlog transition} after triaging, {assignment outcome}` |
+| Bug/Incident, higher severity triaged | `Triaged, staying in {investigating transition} ({SevN}), {assignment outcome}` |
+| Feature/Task/Spike, no follow-up | `Triaged, staying in {investigating transition} ({Feature, Task, or Spike}), {assignment outcome}` |
+| Feature/Task/Spike, sprint placement applied | `Triaged and added to active sprint, staying in {investigating transition}, {assignment outcome}` |
+| Feature/Task/Spike, ready transition configured | `Triaged and moved to {non_bug_transitions.ready}, {assignment outcome}` |
 | Asked reporter for missing data | `Asked reporter for missing info, moved to {waiting_reply transition}` |
 | Asked reporter for clarification | `Asked reporter to clarify, moved to {waiting_reply transition}` |
 | Asked reporter to verify fix | `Asked reporter to confirm if still reproducing, moved to {waiting_reply transition}` |
@@ -597,6 +615,8 @@ Pick the outcome that matches what you did:
 | Default-config first run (any archetype, any path) | (append) `Triaged with default config; run /jira-issue-triage:setup any time to customize.` |
 
 The "Severity changed" line should only appear when the severity field was updated. Never mention `priority` unless it was the configured severity field. Combine multiple outcomes on one line when they apply (e.g., `Changed severity from Sev-2 to Sev-3. Moved to Backlog after triaging`).
+
+`{assignment outcome}` resolves to the value cached at Phase 9 step 1 (`unassigned` when the archetype rule was `"unassign"`, `kept assigned to you` when the rule was `"self"`). On the follow-up path the assignment outcome is implicit in the "Asked reporter / Asked EM" rows and the placeholder is not used.
 
 **Escalation routing.** If the recommendation's level is marked `escalate_immediately: true` in `severity_scheme`:
 

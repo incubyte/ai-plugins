@@ -41,9 +41,24 @@ These override the default flow when they conflict with it.
 2. **Make assumptions explicit.** Phase 1 ends with an assumptions inventory. Risky assumptions become the PRD's risks section.
 3. **User research beats PM intuition.** If the user has interviews, support tickets, sales calls — pull from those before the user's own framing.
 4. **Push back on vague metrics.** "Users will love it" gets rewritten into measurable, baselined, time-bound, falsifiable form.
-5. **Reconcile scope and timeline.** A 30-feature PRD with a 6-week timeline is named as a contradiction before delivery.
+5. **Reconcile scope and priorities.** If the MVP scope is too broad, force a cut before delivery.
 6. **Document what you didn't do.** Paths not taken belong in the PRD. Prevents teams re-litigating settled decisions.
 7. **Map every feature to a journey step.** Functional requirements that don't trace to a journey are scope creep.
+8. **Use structured question UX.** Use the `AskQuestion` tool (askuserquestions) for discovery prompts whenever options can be enumerated. Do not default to adding "something else" and "chat about this" to every question; only add an open option when strictly necessary after trying specific, decision-ready options first.
+
+### AskQuestion UX Rules (Mandatory)
+
+Poor question UX kills completion. Keep interaction crisp so users do not abandon the Q&A.
+
+1. **Default to `AskQuestion` for selectable prompts.** If the user is choosing role, context, trigger, prioritization, or path selection, use `AskQuestion` instead of open chat.
+2. **Offer concrete options first.** Provide the most likely 3-7 options based on phase context.
+3. **Do not always include generic catch-alls.** Never auto-append "something else" and "chat about this" on every question.
+4. **Escalate to open input only when needed.** Add an open option only if:
+   - the decision space is genuinely unknown, or
+   - the user says none of the options fit.
+5. **Use progressive fallback.** First ask with concrete options; if the user is not represented, follow up with a targeted open question.
+6. **Keep batches tight.** Ask 1-3 related questions at a time to minimize fatigue.
+7. **Handle free-text needs explicitly.** For questions requiring nuanced narrative (for example, the one-sentence product description or detailed rationale), ask directly in chat rather than forcing awkward multiple-choice.
 
 ---
 
@@ -56,7 +71,7 @@ Phase 2:  Competition          → Competitive landscape + kill gate
 Phase 3:  User Journeys        → Happy + edge + error + abandonment paths
 Phase 4:  Wireframes           → Structural screen sketches
 Phase 5:  Low-Fi Mockups       → Annotated mockups with interaction notes
-Phase 6:  Epics & Features     → Hierarchy mapped to journey steps
+Phase 6:  Epics + Functional Requirements → Hierarchy mapped to journey steps with testable requirements
 Phase 7:  Technical Overview   → One paragraph + arch diagram
 Phase 8:  Metrics Framework    → North-star, primary, secondary with rationale
 Phase 9:  GTM                  → ICP, buyer persona, positioning, pricing, channels, marketing+sales
@@ -102,7 +117,7 @@ This is **revision mode** — see "Revision Mode" near the end of this skill.
 - [ ] Phase 3: User Journeys
 - [ ] Phase 4: Wireframes
 - [ ] Phase 5: Low-Fi Mockups
-- [ ] Phase 6: Epics & Features
+- [ ] Phase 6: Epics + Functional Requirements
 - [ ] Phase 7: Technical Overview
 - [ ] Phase 8: Metrics Framework
 - [ ] Phase 9: GTM
@@ -115,11 +130,11 @@ This is **revision mode** — see "Revision Mode" near the end of this skill.
 ## Phase 3 — Journeys (paths captured)
 ## Phase 4 — Wireframes
 ## Phase 5 — Mockups
-## Phase 6 — Epics & Features (with journey mapping)
+## Phase 6 — Epics + Functional Requirements (with journey mapping)
 ## Phase 7 — Technical Overview
 ## Phase 8 — Metrics Framework
 ## Phase 9 — GTM
-## Phase 10 — PRD Assembly (incl. paths not taken)
+## Phase 10 — PRD Assembly
 
 ## Decisions log
 - <date>: <decision> — <reason>
@@ -518,13 +533,13 @@ sequenceDiagram
 ```
 
 ### Checkpoint
-Show all mockups with annotations + cross-screen flows. Ask: *"Do these mockups capture the interactions correctly? Anything missing or wrong?"* Update state.
+Show all mockups with annotations + cross-screen flows. Confirm these are PRD-ready textual mockups (ASCII/Mermaid) that can be pasted directly into the final PRD without redesign. Ask: *"Do these mockups capture the interactions correctly? Anything missing or wrong?"* Update state.
 
 ---
 
-## Phase 6 — Epics, Features, and Mapping
+## Phase 6 — Epics, Features, and Functional Requirements
 
-Goal: produce a hierarchical breakdown — epics → features — with each feature mapped to specific journey steps.
+Goal: produce a build-ready breakdown — epics → features → functional requirements — with each requirement mapped to specific journey steps.
 
 ### 6.1 — Identify epics
 An **epic** is a major area of functionality, typically delivered across multiple sprints. Group functionality into 3-7 epics. Examples for an essay-grading product:
@@ -545,25 +560,43 @@ For each epic, list 3-7 features. A **feature** is a discrete capability that ca
 - F2.4: Batch status tracking
 - F2.5: Batch deletion
 
-### 6.3 — Map each feature to journey steps
-Every feature must map to at least one journey step. Format as a table:
+### 6.3 — Define functional requirements beside each feature
+For each feature, write 1-3 functional requirements that are specific and testable. Keep them concise and implementation-agnostic.
 
-| Feature | Maps to journey step |
-|---|---|
-| F2.1: Drag-drop batch upload | Happy path step 5 ("Upload first batch") |
-| F2.2: Format support | Happy path step 5; Error path "unsupported format" |
-| F2.3: Batch metadata | Happy path step 5; Power-user path "find old batch" |
+Required format:
+- `FR-<epic>.<feature>.<n>: The system shall <observable behavior> when <condition>.`
 
-If a feature doesn't map to any journey step → either (a) add a journey step you missed, or (b) cut the feature. Features without journey grounding are scope creep.
+Example:
+- `FR-2.1.1: The system shall accept drag-drop uploads of up to 10 files when each file is PDF, DOCX, or JPG and under 10 MB.`
+- `FR-2.1.2: The system shall show inline validation errors when any file exceeds limits or unsupported formats are included.`
 
-### 6.4 — MVP vs. post-MVP
-Tag each feature as **MVP** or **post-MVP**. The MVP set should:
+### 6.4 — Map each requirement to journey steps
+Every functional requirement must map to at least one journey step. Format as a table:
+
+| Feature | Functional requirement | Maps to journey step |
+|---|---|---|
+| F2.1: Drag-drop batch upload | FR-2.1.1 upload allowed formats/limits | Happy path step 5 ("Upload first batch") |
+| F2.1: Drag-drop batch upload | FR-2.1.2 inline validation feedback | Error path "unsupported format" |
+| F2.3: Batch metadata | FR-2.3.1 save title/grade level/prompt | Happy path step 5; Power-user path "find old batch" |
+
+If a requirement doesn't map to any journey step → either (a) add a journey step you missed, or (b) cut/defer the requirement. Requirements without journey grounding are scope creep.
+
+### 6.5 — MVP vs. post-MVP
+Tag each feature and requirement as **MVP** or **post-MVP**. The MVP set should:
 - Cover the happy path end-to-end
 - Cover at least the critical edge paths
 - Total no more than ~60-70% of all features (otherwise the MVP isn't an MVP)
 
+### 6.6 — Capture paths-not-taken candidates
+As part of this phase, log alternatives considered and rejected (for example: epic boundaries, feature cuts, requirement variants). These entries are compiled later into the optional PRD "Paths Not Taken" section.
+
+For each candidate, capture:
+- What alternative was considered
+- Why it was rejected
+- What evidence would change the decision
+
 ### Checkpoint
-Show epic list, features per epic, mapping table, MVP vs. post-MVP split. Ask: *"Are the epics correct? Do all features trace to journeys? Is the MVP cut realistic?"* Update state.
+Show epic list, features per epic, requirement set, mapping table, MVP vs. post-MVP split, and paths-not-taken candidates captured so far. Ask: *"Are the epics and requirements correct? Do all MVP requirements trace to journeys? Is the MVP cut realistic?"* Update state.
 
 ---
 
@@ -756,17 +789,17 @@ Show ICP, buyer persona, positioning (product + brand), pricing, channels, motio
 
 ## Phase 10 — PRD Assembly
 
-Goal: produce the deliverable. Compile everything; add paths-not-taken; reconcile timeline; offer optional TAM/SAM/SOM.
+Goal: produce the deliverable. Compile everything; optionally include paths-not-taken from prior phases; offer optional TAM/SAM/SOM.
 
 ### 10.1 — Pull from prior phases
-Read `discovery-state.md`. Read `references/templates/PRD.md.template`. Pull all answers and decisions.
+Read `discovery-state.md`. Read `templates/PRD.md.template`. Pull all answers and decisions.
 
 ### 10.2 — Paths not taken (optional)
-Ask the user: *"Do you want to include a 'Paths Not Taken' section in the PRD? It documents alternatives we considered and rejected — high value for downstream readers because it prevents teams from re-litigating decisions, but takes a few minutes to gather. Include or skip?"*
+Ask the user: *"Do you want to include a 'Paths Not Taken' section in the PRD? We already captured alternatives during discovery; this step compiles them into a concise section. Include or skip?"*
 
 **If skip:** don't include the section. Move on to 10.3.
 
-**If include:** prompt the user with specific examples to surface alternatives:
+**If include:** compile captured alternatives first, then fill any gaps with prompts:
 - Phase 1: Were there other primary user segments considered?
 - Phase 2: Were there market positioning approaches we discarded?
 - Phase 6: Are there features we considered that are now in post-MVP or cut entirely?
@@ -777,34 +810,9 @@ For each path not taken, capture:
 - Why it was rejected (with one-sentence rationale)
 - What evidence would change the decision
 
-This becomes a dedicated section in the PRD.
+This becomes a dedicated section in the PRD. Keep it concise: 3-7 strongest alternatives max.
 
-### 10.3 — Timeline reconciliation (non-optional)
-Compare functional requirements (Phase 6 MVP set) against stated timeline (Phase 1.7).
-
-Heuristic:
-- 1-3 features + simple integrations → 4-6 weeks feasible
-- 4-8 features + moderate complexity → 8-12 weeks
-- 9-15 features → 3-6 months
-- 16+ features → multi-phase roadmap
-
-If mismatched, name it directly:
-
-```
-## Timeline-vs-Scope Reconciliation
-The MVP lists <N> features with a <T>-week timeline. This is likely <too aggressive | feasible | comfortable>.
-
-Options:
-1. Cut scope. Candidates: <list 2-3 lowest-priority MVP features>.
-2. Extend timeline. Realistic estimate: <revised>.
-3. Phase the rollout. MVP1 (week 0-X): <core>. MVP2 (week X-Y): <secondary>.
-
-Which path?
-```
-
-Don't deliver until resolved. If user dismisses, capture as top risk.
-
-### 10.4 — Optional: TAM/SAM/SOM
+### 10.3 — Optional: TAM/SAM/SOM
 Ask: *"Do you want to include market sizing in the PRD? This is TAM/SAM/SOM analysis. It's useful for fundraising, board updates, or strategic alignment, but requires either (a) credible bottom-up data, or (b) accepting wide error bars on top-down estimates. Skip if neither applies."*
 
 If user says yes:
@@ -816,16 +824,45 @@ Be explicit about methodology. Tag every number as "data-backed" or "estimated b
 
 If user says skip: don't include the section. Don't penalize the user for skipping — TAM/SAM/SOM is theatrical when the data isn't there.
 
-### 10.5 — Draft the PRD
-Fill in `references/templates/PRD.md.template`. Section emphasis follows Phase 0.2 stakeholders:
+### 10.4 — Draft the PRD
+Fill in `templates/PRD.md.template`. Section emphasis follows Phase 0.2 stakeholders:
 - Engineering reader → expand functional requirements, technical overview, error states
 - Sales reader → expand ICP, buyer persona, competitive, pricing
 - Legal reader → expand non-functional with compliance language
 - Leadership reader → expand TL;DR, business goals, metrics, risks
 
+Structure the PRD so feature modules and user flows are explicit before detailed requirements:
+- Include a `Feature Modules and User Flows` section (2-5 modules, each with flow steps and key behavior notes).
+- Follow that with `Epics, Features, and Functional Requirements`.
+Use the template section order as canonical for final output:
+1. Problem Statement
+2. Business Goals
+3. User Goals
+4. Non-Goals
+5. User Segmentation
+6. Feature Modules and User Flows
+7. User Journeys and Edge Cases
+8. Low-Fidelity Mockups
+9. Epics, Features, and Functional Requirements
+10. Technical Specifications
+11. Technical Overview
+12. Out of Scope
+13. Metrics
+14. Competitive Analysis
+15. Optional: Market Sizing (TAM/SAM/SOM)
+16. Optional: Paths Not Taken
+17. Risks and Open Questions
+
+Mockups are required in the final PRD. Include a `Low-Fidelity Mockups` section with at least 3 textual mockups from Phase 5 (ASCII and/or Mermaid), each with:
+- realistic content (not placeholders)
+- interactions
+- content notes
+- state variations
+- at least one cross-screen flow sequence
+
 Don't omit sections. If light, label explicitly (e.g., *"Technical overview: TBD with engineering review."*).
 
-### 10.6 — Final review
+### 10.5 — Final review
 Show the PRD. Ask:
 - Anything to add, cut, sharpen?
 - Sections that feel weak?
@@ -833,18 +870,18 @@ Show the PRD. Ask:
 
 Iterate.
 
-### 10.7 — Write the file
+### 10.6 — Write the file
 Write to `PRD.md` in the project root. Update `discovery-state.md`:
 - Mark Phase 10 complete
 - Add to decisions log: "PRD delivered <date>"
 - Initialize empty Revision log
 
-### 10.8 — Hand off
+### 10.7 — Hand off
 Tell the user:
 
 > *"PRD is at `PRD.md`. Discovery state is at `discovery-state.md`.*
 >
-> *To revise: just say "revise the [section name]" — I'll edit both files. Common triggers: stakeholder feedback, scope cuts after engineering review, new evidence, timeline changes."*
+> *To revise: just say "revise the [section name]" — I'll edit both files. Common triggers: stakeholder feedback, scope cuts after engineering review, new evidence, priority changes."*
 
 ---
 
@@ -892,8 +929,9 @@ Activates when:
 - **Treating wireframes as design.** Structural only.
 - **Mockups without interaction annotations.** That's just a wireframe.
 - **Features that don't trace to journey steps.** Cut them or add the missing journey.
+- **Treating epics and functional requirements as separate tracks.** Keep them side-by-side in Phase 6 so requirements stay grounded in journeys.
 - **Vague metrics.** "Users will love it" is not a metric. Push back, rewrite.
-- **Suppressing timeline-vs-scope mismatch.** Name it. Don't paper over.
+- **Carrying oversized MVP scope into PRD.** If MVP scope is too broad, cut or defer lower-priority items before delivery.
 - **Including TAM/SAM/SOM without data.** Skip the section if the data isn't there. Theatrical numbers hurt credibility.
 - **Vague user goals or non-goals.** Goals without measurable signals and non-goals without time horizons + reconsider triggers don't hold under scope pressure. Force precision in Phase 1.6 and 1.8.
 
@@ -912,12 +950,12 @@ Activates when:
 | 9 | 9.3 | `references/frameworks/positioning-canvas.md` |
 | 9 | 9.4 | `references/frameworks/monetizing-innovation.md` |
 | 9 | 9.6 | `references/frameworks/gtm-strategy.md` |
-| 10 | 10.1 | `references/templates/PRD.md.template` |
+| 10 | 10.1 | `templates/PRD.md.template` |
 
 Other frameworks (`opportunity-tree`, `hypothesis`, `solution-brief`, `experiment-design`, `prioritization`, `stakeholder-summary`) are available. Reach for them when a phase surfaces a need:
 - **Opportunity tree** — Phase 1: multiple candidate problems, need to choose
 - **Hypothesis** — Phase 1: critical assumption needs flagging for validation
 - **Solution brief** — Phase 4-5: multiple solution directions, need explicit choice
 - **Experiment design** — assumption needs validation before build
-- **Prioritization** — Phase 6: MVP feature set needs cutting to fit timeline
+- **Prioritization** — Phase 6: MVP feature set needs cutting to fit scope constraints
 - **Stakeholder summary** — Phase 0: complex multi-stakeholder situation

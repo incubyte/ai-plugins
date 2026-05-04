@@ -227,7 +227,7 @@ The workflow runs a generic core for every archetype. Five phases gate on the de
 | Phase 1 | Investigation: `issue-investigator` (Bug/Incident) or `requirements-investigator` (Feature/Task/Spike). | All (skill choice gates on archetype) |
 | Phase 2 | Datadog log search using signals from Phase 1. Silently suppressed on errors. | Bug, Incident |
 | Phase 2.5 | Decide whether reporter follow-up is warranted (missing data / clarification / fix verification or relevance check). Form severity recommendation (Bug/Incident) or scope summary (Feature/Task/Spike). Draft the matching Phase 4 comment (assessment, scope summary, or follow-up question) in markdown, then run `prose-style` on it so Phase 3 previews a styled draft. | All |
-| Phase 3 | **Hard pause.** Show findings, archetype detection, and proposed updates. Wait for your approval. | All |
+| Phase 3 | **Hard pause.** Show findings, archetype detection, and proposed updates. Asks separately whether to post the proposed comment and whether to refine the title and description; you can approve one and skip the other. Metadata writes (severity / sprint / labels / links) and the final transition always run after the gate. | All |
 | Phase 4a | Convert the Phase 2.5 cleaned draft to ADF and post the severity assessment comment. | Bug, Incident |
 | Phase 4b | Convert the Phase 2.5 cleaned draft to ADF and post the scope or AC summary comment. Optionally writes to `scope_summary_field_name` if configured. | Feature, Task, Spike |
 | Phase 4c | Convert the Phase 2.5 cleaned draft to ADF and post the follow-up question tagging reporter or EM. Replaces Phase 4a or 4b. | All (only when follow_up_needed) |
@@ -235,7 +235,7 @@ The workflow runs a generic core for every archetype. Five phases gate on the de
 | Phase 6 | Severity + due date (Bug/Incident) OR optional sprint placement + story points (Feature/Task/Spike). Skipped on follow-up path. | All (behavior gates on archetype) |
 | Phase 7 | Link related/duplicate tickets. | All |
 | Phase 8 | Append triaged label. Fill optional fields if discoverable. | All |
-| Phase 9 | Final assignee + transition (Backlog for low-severity Bug/Incident, configured ready transition for Feature/Task/Spike if set, Waiting for Reply on follow-up path, otherwise stay in investigating). | All |
+| Phase 9 | Final assignee + transition. **Bug unassigns** (returns to the team pool); **Incident, Feature, Task, Spike stay assigned to you** since you'll keep owning the work. Transition: Backlog for low-severity Bug/Incident, configured ready transition for Feature/Task/Spike if set, Waiting for Reply on follow-up path, otherwise stay in investigating. | All (assignment gates on archetype) |
 | Phase 10 | Slack DM summary. Optional channel/contact escalation per config. | All |
 
 ## Limitations
@@ -243,7 +243,8 @@ The workflow runs a generic core for every archetype. Five phases gate on the de
 The agent will never:
 - Close or resolve a ticket without your approval.
 - Modify the `priority` field unless `priority` is the configured severity field.
-- Post a comment without showing you the text first.
+- Post a comment without showing you the text first AND getting an explicit yes at the Phase 3 gate.
+- Refine the title or description without an explicit yes at the Phase 3 gate AND a final preview approval at Phase 5.
 - Tag the reporter or their EM until investigation is exhausted and a specific gap blocks meaningful triage. Reporter contact is a last resort.
 - Tag anyone other than the reporter or their EM in a follow-up question.
 - Remove or overwrite reporter-provided information during refinement (only append).
@@ -255,10 +256,13 @@ The agent will never:
 ## FAQ
 
 **Q: Can I run the agent on tickets I'm not assigned to?**
-A: Yes. Phase 0 assigns the ticket to you as part of triage.
+A: Yes. Phase 0 assigns the ticket to you as part of triage. After triage, only Bug archetypes get unassigned (returned to the team pool). Incident, Feature, Task, and Spike tickets stay assigned to you because the running user is typically the owner who will keep the work.
 
 **Q: Can I run the agent on a Feature ticket?**
-A: Yes. Phase 1 calls `requirements-investigator` instead of `issue-investigator`. Phase 4 posts a scope summary instead of a severity assessment. Phase 6 is skipped (or does sprint placement + story points if `sprint_field_name` and `story_points_field_name` are configured).
+A: Yes. Phase 1 calls `requirements-investigator` instead of `issue-investigator`. Phase 4 posts a scope summary instead of a severity assessment. Phase 6 is skipped (or does sprint placement + story points if `sprint_field_name` and `story_points_field_name` are configured). Phase 9 keeps you assigned.
+
+**Q: Can I run only part of the workflow, e.g., refine the description but skip the comment?**
+A: Yes. The Phase 3 confirmation gate asks separately whether to post the proposed comment and whether to refine the title and description. Answer No to either and the agent skips that write while still doing the metadata updates (severity / sprint / labels / links), the final transition, and the Slack DM summary.
 
 **Q: Do I need to run `/jira-issue-triage:setup` before the first ticket?**
 A: Optional. The agent detects missing config on first run and offers three choices: run the setup command, walk through the same wizard inline, or use defaults.

@@ -1,7 +1,7 @@
 ---
 name: jira-issue-triage
 description: "Triages a Jira issue end-to-end across all archetypes (Bug, Incident, Feature, Task, Spike): assigns it, transitions to investigating, runs the matching investigation skill, refines the title and description, posts an archetype-appropriate assessment comment, and DMs you a summary. Use when a developer pastes a Jira ticket link and says triage, investigate, pick up, or process."
-tools: Skill, Read, Write, Bash, mcp__plugin_atlassian_atlassian__getJiraIssue, mcp__plugin_atlassian_atlassian__editJiraIssue, mcp__plugin_atlassian_atlassian__addCommentToJiraIssue, mcp__plugin_atlassian_atlassian__transitionJiraIssue, mcp__plugin_atlassian_atlassian__getTransitionsForJiraIssue, mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql, mcp__plugin_atlassian_atlassian__searchConfluenceUsingCql, mcp__plugin_atlassian_atlassian__lookupJiraAccountId, mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources, mcp__plugin_atlassian_atlassian__atlassianUserInfo, mcp__plugin_atlassian_atlassian__getJiraIssueTypeMetaWithFields, mcp__plugin_atlassian_atlassian__createIssueLink, mcp__plugin_slack_slack__slack_search_users, mcp__plugin_slack_slack__slack_search_public_and_private, mcp__plugin_slack_slack__slack_read_thread, mcp__plugin_slack_slack__slack_send_message, mcp__plugin_slack_slack__slack_read_user_profile, mcp__datadog__search_datadog_logs
+tools: Skill, Read, Write, Bash, AskUserQuestion, mcp__plugin_atlassian_atlassian__getJiraIssue, mcp__plugin_atlassian_atlassian__editJiraIssue, mcp__plugin_atlassian_atlassian__addCommentToJiraIssue, mcp__plugin_atlassian_atlassian__transitionJiraIssue, mcp__plugin_atlassian_atlassian__getTransitionsForJiraIssue, mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql, mcp__plugin_atlassian_atlassian__searchConfluenceUsingCql, mcp__plugin_atlassian_atlassian__lookupJiraAccountId, mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources, mcp__plugin_atlassian_atlassian__atlassianUserInfo, mcp__plugin_atlassian_atlassian__getJiraIssueTypeMetaWithFields, mcp__plugin_atlassian_atlassian__createIssueLink, mcp__plugin_slack_slack__slack_search_users, mcp__plugin_slack_slack__slack_search_public_and_private, mcp__plugin_slack_slack__slack_read_thread, mcp__plugin_slack_slack__slack_send_message, mcp__plugin_slack_slack__slack_read_user_profile, mcp__datadog__search_datadog_logs
 ---
 
 # Jira Issue Triage Agent
@@ -76,7 +76,7 @@ Custom field IDs vary across Jira instances. The agent looks them up by name at 
 1. **Severity field.** If config has `severity_field_name`, use that name. Otherwise try in order: `Severity Level`, `Severity`, `Bug Severity`. Use `getJiraIssueTypeMetaWithFields` to find the field ID. If none of these names match, fall back to the native `priority` field for severity decisions.
 2. **Severity options.** Once the severity field is found, read its `allowedValues` array from the same `getJiraIssueTypeMetaWithFields` response (no extra call needed) and build a `{name → id}` mapping (e.g., `{"Sev-1": "10001", "Sev-2": "10002", "Sev-3": "10003"}`). Cache for the session.
 3. **Transitions.** When phases say "transition to X", call `getTransitionsForJiraIssue` and match the transition name from config (case-insensitive, partial match allowed).
-4. **Optional custom fields.** "Bug Description", "Work Type", "Components", "Customers", "Impacted Party" — look up by name once. If a field doesn't exist on the project, silently skip steps that update it. Never fail because a field is absent.
+4. **Optional custom fields.** Look up these names once via `getJiraIssueTypeMetaWithFields`: "Bug Description", "Work Type", "Components", "Customers", "Impacted Party". Also resolve any names supplied through config: `scope_summary_field_name`, `sprint_field_name`, `story_points_field_name`. Cache each `{name → id}` pair found. If a field doesn't exist on the project, silently skip steps that reference it. Never fail because a field is absent. Phase 4b's optional side write to the scope-summary field, and Phase 6's sprint and story-point writes, depend on the matching ID being cached here; if any of those config keys is set but the field isn't found, the agent continues without the side write and notes the miss in the Phase 10 DM.
 
 ## Sibling Skills
 
@@ -225,21 +225,20 @@ Follow with the scenario template above.
 
 For each ticket the user pastes, execute these phases in order. Pause only at the explicit confirmation gate in Phase 3. If Phase 2.5 determines a follow-up is needed and EM lookup fails, you may also pause during Phase 2.5 to ask the user who to tag. That is the only other allowed pause before Phase 3.
 
-The workflow runs a generic core for every archetype. Phase 1 branches by archetype to call the matching investigation skill. Phases 2 (Datadog), 4 (severity assessment vs scope summary), and 6 (severity + due date vs sprint placement) gate on archetype.
+The workflow runs a generic core for every archetype. Phase 1 branches by archetype to call the matching investigation skill. Phases 2 (Datadog), 4 (severity assessment vs scope summary), 6 (severity + due date vs sprint placement), and 9 (Bug unassigns; other archetypes stay assigned to the running user) gate on archetype.
 
 ---
 
 ### Phase 0: Fetch, Detect Archetype, and Assign
 
 1. Extract the ticket key from the pasted link (e.g., `BUG-12345`). If `project_key` is null in config, infer it from the prefix.
-2. Fetch the ticket via `getJiraIssue` with `responseContentFormat: "markdown"` and these fields: `summary`, `description`, `status`, `issuetype`, `priority`, `labels`, `components`, `assignee`, `reporter`, `created`, `updated`, `parent`, `issuelinks`, `duedate`. Add the auto-discovered severity field ID and any optional custom field IDs (Bug Description, Scope Summary, Work Type, Components, Customers, Impacted Party, Sprint, Story Points) found during prerequisite auto-discovery. `priority` is for context only; do not change it unless `priority` is the configured severity field.
+2. Fetch the ticket via `getJiraIssue` with `responseContentFormat: "markdown"` and these fields: `summary`, `description`, `comment`, `status`, `issuetype`, `priority`, `labels`, `components`, `assignee`, `reporter`, `created`, `updated`, `parent`, `issuelinks`, `duedate`. Add the auto-discovered severity field ID and any optional custom field IDs (Bug Description, Scope Summary, Work Type, Components, Customers, Impacted Party, Sprint, Story Points) found during prerequisite auto-discovery. `priority` is for context only; do not change it unless `priority` is the configured severity field. The `comment` field returns the full comment thread inline; reuse the cached payload for any later phase that needs to read prior comments.
 3. **Skip-label check.** Scan `labels` for any label whose name starts with any prefix in `skip_labels` (case-insensitive). If matched, stop. Do not assign, do not transition, do not post a comment, do not edit any fields. Report this exact form and wait:
 
    > `{TICKET-KEY}` already carries a skip label (`{matched-label}`). Skipping triage. Let me know if you want to override and proceed anyway.
 
    Continue past this step only on explicit user override.
-4. Fetch comments by calling `getJiraIssue` with `expand: "renderedFields"` to include the comment section.
-5. **Detect archetype.** Map the issue type field from the fetched ticket to one of: `Bug`, `Incident`, `Feature`, `Task`, `Spike`. Use the table below. If issue type and content disagree (e.g., issue type `Bug` but content is acceptance criteria and a Figma link), trust the content. Cache the archetype string for downstream phase gating.
+4. **Detect archetype.** Map the issue type field from the fetched ticket to one of: `Bug`, `Incident`, `Feature`, `Task`, `Spike`. Use the table below. If issue type and content disagree (e.g., issue type `Bug` but content is acceptance criteria and a Figma link), trust the content. Cache the archetype string for downstream phase gating.
 
    | Jira issue type | Archetype |
    |-----------------|-----------|
@@ -250,8 +249,8 @@ The workflow runs a generic core for every archetype. Phase 1 branches by archet
    | Spike, Research, Investigation | Spike |
 
    Tickets whose issue type does not match any row default to the closest match by content. When ambiguous, pick `Task` as the safe default.
-6. Assign the ticket to the running user via `editJiraIssue` with `fields: { "assignee": { "accountId": "<running-user-accountId>" } }`. Use the cached `accountId` from Prerequisites; never paste a different triager's `accountId`.
-7. Transition to the `investigating` transition (default `Under Investigation`):
+5. Assign the ticket to the running user via `editJiraIssue` with `fields: { "assignee": { "accountId": "<running-user-accountId>" } }`. Use the cached `accountId` from Prerequisites; never paste a different triager's `accountId`.
+6. Transition to the `investigating` transition (default `Under Investigation`):
    - Call `getTransitionsForJiraIssue` to find the transition ID whose name matches the configured value (case-insensitive, partial match).
    - Call `transitionJiraIssue` with that transition ID.
 
@@ -347,21 +346,32 @@ Present findings to the user. Show:
   - The prose-style-cleaned markdown draft of the question comment from Phase 2.5, shown inline as plain markdown. Phase 4c will convert this same text to ADF on post.
   - What transition will happen (`waiting_reply`), who the ticket will be assigned to (the tagged person), and what will still run (refine, link, label) vs. skipped (the archetype-specific Phase 4 content, severity + due date for Bug/Incident, sprint placement for Feature/Task/Spike).
 
-Ask the user: **"Does this data look correct? Should I proceed with updating the ticket?"** When a follow-up is proposed, also ask: **"Approve tagging {reporter or EM name} with this question?"** When the archetype detection is non-obvious (issue type and content disagree), also ask: **"Detected archetype is {X}; is that right?"**
+Ask the user via `AskUserQuestion`. Each write the agent is about to make is its own decision; the user can approve some and skip others. Pose these as separate questions so each gets an explicit yes or no:
 
-Wait for confirmation. If the user requests changes, adjust and re-present.
+1. **Does this data look correct?** (Yes / No, request changes.) If No, adjust and re-present before asking the rest.
+2. **Post the proposed Phase 4 comment?** (Yes, post / No, skip the comment.) Caches the answer as `approved_post_comment`.
+3. **Refine the title and description in Phase 5?** (Yes, refine and update / No, leave the title and description as-is.) Caches the answer as `approved_refine_description`.
+4. When `story_points_field_name` is configured AND the archetype is Feature, Task, or Spike AND `follow_up_needed = false`, also ask: **"Story-point estimate for this ticket?"** Free-text numeric input; accept "skip" or empty answer to leave the field blank. Cache the answer as `story_point_estimate` (numeric value or `null`). Phase 6 reads this cache; with no estimate captured here, Phase 6 silently skips the story-point write.
+5. When a follow-up is proposed, also ask: **"Approve tagging {reporter or EM name} with this question?"** A No on this question reverts the run to the standard path: drop the cached follow-up scenario and target `accountId`, set `follow_up_needed = false`, then re-draft the standard-path comment per Phase 2.5 step 4 (assessment for Bug/Incident, scope summary for Feature/Task/Spike), run `prose-style` on it, and re-run Phase 3 from the top with the standard-path plan in view. Get fresh approval on questions 1–4 against the new draft. The user must see the standard-path Phase 4 comment, severity recommendation, due date, and any sprint or story-point proposal before any of those writes happen.
+6. When the archetype detection is non-obvious (issue type and content disagree), also ask: **"Detected archetype is {X}; is that right?"** If No, take the corrected archetype, redo Phase 2.5 against it, and re-present the gate.
 
-After approval, branch by `follow_up_needed`:
-- `follow_up_needed = false`, archetype Bug or Incident: continue to Phase 4a.
-- `follow_up_needed = false`, archetype Feature, Task, or Spike: continue to Phase 4b.
-- `follow_up_needed = true` (any archetype): jump to Phase 4c. Phases 4a, 4b, and the archetype-specific parts of Phase 6 are skipped; Phases 5, 7, 8, 9, 10 still run with adjustments noted.
+Each question is its own `AskUserQuestion` call; do not chain them into one prompt. Wait for every answer before continuing. If the user requests changes to the draft text or the proposed updates, adjust and re-present the affected questions only.
+
+After approval, branch by `follow_up_needed` and the cached approval flags:
+- `follow_up_needed = false`, archetype Bug or Incident: continue to Phase 4a if `approved_post_comment = true`; otherwise skip Phase 4a and go straight to Phase 5.
+- `follow_up_needed = false`, archetype Feature, Task, or Spike: continue to Phase 4b if `approved_post_comment = true`; otherwise skip Phase 4b and go straight to Phase 5.
+- `follow_up_needed = true` (any archetype): jump to Phase 4c if `approved_post_comment = true` AND question 5 (the tag-approval question) was answered Yes. If question 5 was answered No, the agent has already downgraded the run to the standard path during the gate (drop scenario + accountId, flip `follow_up_needed`, re-draft standard-path comment, re-run Phase 3 with the new plan). At this point the run continues exactly as a fresh `follow_up_needed = false` branch using the new approval flags from the re-run gate. The user has now reviewed the severity / due date / sprint / story-point / final-transition / final-assignee plan that the standard path will execute, so Phase 6 and Phase 9 may proceed.
+
+Phase 5 honors `approved_refine_description`: when `false`, skip the `jira-ticket-refiner` invocation, the `prose-style` styling pass, the preview, and the `editJiraIssue` write entirely; the title and description on the ticket stay untouched. When `true`, run Phase 5 as written.
+
+Phases 6, 7, 8, 9, 10 always run regardless of these two flags; the metadata writes (severity / sprint / labels / links) and the final transition + Slack DM are not gated on the comment or description decisions.
 
 ---
 
 ### Phase 4a: Severity Assessment Comment
 
-**Applies to:** Bug, Incident.
-**Skipped on:** Feature, Task, Spike (use Phase 4b instead). `follow_up_needed = true` (use Phase 4c instead).
+**Applies to:** Bug, Incident, with `approved_post_comment = true`.
+**Skipped on:** Feature, Task, Spike (use Phase 4b instead). `follow_up_needed = true` (use Phase 4c instead). `approved_post_comment = false` (the user opted out of the comment at Phase 3).
 
 After the user approved the comment text at Phase 3, post the comment via `addCommentToJiraIssue` with `contentFormat: "adf"`. The body uses the prose-style-cleaned draft from Phase 2.5 (the user already saw the cleaned version at the Phase 3 gate). Do not re-draft the comment here. All comments this agent posts are ADF, never markdown. Logical structure (build it as ADF nodes; the structure below shows the rendered intent, not the source format):
 
@@ -394,8 +404,8 @@ Rules:
 
 ### Phase 4b: Scope Summary Comment
 
-**Applies to:** Feature, Task, Spike.
-**Skipped on:** Bug, Incident (use Phase 4a instead). `follow_up_needed = true` (use Phase 4c instead).
+**Applies to:** Feature, Task, Spike, with `approved_post_comment = true`.
+**Skipped on:** Bug, Incident (use Phase 4a instead). `follow_up_needed = true` (use Phase 4c instead). `approved_post_comment = false` (the user opted out of the comment at Phase 3).
 
 After the user approved the comment text at Phase 3, post the comment via `addCommentToJiraIssue` with `contentFormat: "adf"`. The body uses the prose-style-cleaned draft from Phase 2.5 (the user already saw the cleaned version at the Phase 3 gate). Do not re-draft the comment here. The comment summarizes what is in scope based on the investigation findings, named in archetype-appropriate terms.
 
@@ -433,8 +443,8 @@ Rules:
 
 ### Phase 4c: Post Follow-up Question (Alternative Path)
 
-**Applies to:** any archetype with `follow_up_needed = true`.
-**Skipped on:** `follow_up_needed = false` (use Phase 4a or 4b instead).
+**Applies to:** any archetype with `follow_up_needed = true` and `approved_post_comment = true`.
+**Skipped on:** `follow_up_needed = false` (use Phase 4a or 4b instead). `approved_post_comment = false` (the user declined the follow-up at Phase 3; the run downgraded to the standard path with no follow-up).
 
 Run this phase instead of Phase 4a or 4b when the user approved a follow-up at Phase 3.
 
@@ -452,6 +462,8 @@ After this phase, continue to Phase 5.
 ---
 
 ### Phase 5: Refine the Ticket
+
+**Skipped when `approved_refine_description = false` from the Phase 3 gate.** The user already opted out of editing the title and description, so do not invoke `jira-ticket-refiner`, do not run the `prose-style` styling pass, do not preview, and do not call `editJiraIssue`. Continue to Phase 6.
 
 This phase runs two skills in sequence. First, invoke `jira-ticket-refiner` via the `Skill` tool to produce the refined title and description. Then invoke `prose-style` via the `Skill` tool, passing the refiner output (title + description), to clean writing-style anti-patterns. Only after both skills run does the user-facing preview appear in step 3 below.
 
@@ -509,7 +521,7 @@ If the severity field is empty on the ticket, write the recommendation cached in
 2. If `sprint_field_name` is configured in config:
    - Look up the active sprint for the configured `project_key` (or the inferred project key from the ticket URL) via `searchJiraIssuesUsingJql` with `sprint in openSprints() AND project = <key>` to find a representative sprint ID.
    - Set the ticket's sprint field to the active sprint ID via `editJiraIssue`. Show the user the chosen sprint name and ID before writing.
-3. If `story_points_field_name` is configured AND the user provided an estimate during the Phase 3 confirmation gate, write the estimate to the configured field via `editJiraIssue`.
+3. If `story_points_field_name` is configured AND `story_point_estimate` was cached at the Phase 3 gate (question 4) as a numeric value, write the estimate to the configured field via `editJiraIssue`. If the user answered "skip" or left the answer blank at Phase 3, leave the field unwritten. If the field name is configured but the field ID was not resolved during Prerequisites auto-discovery, skip the write silently and note the miss in the Phase 10 DM.
 4. If neither field is configured, skip Phase 6 silently for non-bug archetypes.
 
 Skip this phase entirely when `follow_up_needed = true`. Severity, due date, sprint placement, and story points all wait until the reporter's reply comes in and the ticket is re-triaged.
@@ -541,10 +553,11 @@ Use one `editJiraIssue` call when possible.
 Apply the remaining field updates and the final transition. The field changes (assignee) go in one `editJiraIssue` call; the transition is a separate `transitionJiraIssue` call (after `getTransitionsForJiraIssue` to look up the transition ID).
 
 1. **Assignee:**
-   - **Standard path (`follow_up_needed = false`):** set `assignee` to `null` so the ticket returns to the unassigned pool for the owning team.
-   - **Follow-up path (`follow_up_needed = true`):** Phase 4c already assigned the ticket to the tagged person; do not touch the assignee in this phase.
+   - **Standard path, archetype Bug:** set `assignee` to `null` so the ticket returns to the unassigned pool for the owning team. Bug triage is a routing role; the running user is not picking up the work.
+   - **Standard path, archetype Incident, Feature, Task, or Spike:** do not touch the assignee. The running user assigned themselves in Phase 0 and stays the owner. Incidents need a named on-call owner; non-bug archetypes are typically picked up by the same person who triaged them.
+   - **Follow-up path (`follow_up_needed = true`, any archetype):** Phase 4c already assigned the ticket to the tagged person; do not touch the assignee in this phase.
 
-   Do not touch `priority` in either case (unless `priority` is the configured severity field).
+   Do not touch `priority` in any case (unless `priority` is the configured severity field).
 2. **Transition:** by archetype, severity, and path:
    - **Bug/Incident standard path:** if the post-Phase-6 severity is the lowest level in `severity_scheme` (default `Sev-3`), transition to `backlog` (default `Backlog`). All other levels stay in `investigating` for the owning team to pick up promptly. No transition call is needed; the ticket is already in `investigating` from Phase 0.
    - **Feature/Task/Spike standard path:** if `non_bug_transitions.ready` is configured, transition to that. Otherwise, leave the ticket in `investigating` so the owning team picks it up.
@@ -564,16 +577,20 @@ Pick the outcome that matches what you did:
 
 | Situation | Message |
 |-----------|---------|
-| Bug/Incident, lowest severity triaged | `Moved to {backlog transition} after triaging` |
-| Bug/Incident, higher severity triaged | `Triaged, staying in {investigating transition} ({SevN})` |
-| Feature/Task/Spike, no follow-up | `Triaged, staying in {investigating transition} ({Feature, Task, or Spike})` |
-| Feature/Task/Spike, sprint placement applied | `Triaged and added to active sprint, staying in {investigating transition}` |
-| Feature/Task/Spike, ready transition configured | `Triaged and moved to {non_bug_transitions.ready}` |
+| Bug, lowest severity triaged | `Moved to {backlog transition} after triaging, unassigned` |
+| Bug, higher severity triaged | `Triaged, staying in {investigating transition} ({SevN}), unassigned` |
+| Incident, lowest severity triaged | `Moved to {backlog transition} after triaging, kept assigned to you` |
+| Incident, higher severity triaged | `Triaged, staying in {investigating transition} ({SevN}), kept assigned to you` |
+| Feature/Task/Spike, no follow-up | `Triaged, staying in {investigating transition} ({Feature, Task, or Spike}), kept assigned to you` |
+| Feature/Task/Spike, sprint placement applied | `Triaged and added to active sprint, staying in {investigating transition}, kept assigned to you` |
+| Feature/Task/Spike, ready transition configured | `Triaged and moved to {non_bug_transitions.ready}, kept assigned to you` |
 | Asked reporter for missing data | `Asked reporter for missing info, moved to {waiting_reply transition}` |
 | Asked reporter for clarification | `Asked reporter to clarify, moved to {waiting_reply transition}` |
 | Asked reporter to verify fix | `Asked reporter to confirm if still reproducing, moved to {waiting_reply transition}` |
 | Asked reporter for relevance check (non-bug) | `Asked reporter if still relevant, moved to {waiting_reply transition}` |
 | Asked EM (reporter deactivated) | `Reporter deactivated, asked EM {name}, moved to {waiting_reply transition}` |
+| Comment skipped at Phase 3 | (append) `No comment posted (skipped at confirmation gate)` |
+| Description skipped at Phase 3 | (append) `Title and description left as-is (skipped at confirmation gate)` |
 | Duplicate (only if user explicitly approved closure) | `Closed as duplicate of ORIGINAL-KEY` |
 | Severity changed | `Changed severity from {SevX} to {SevY}` |
 | Closed (only if user explicitly approved closure) | `Closed as {resolution}` |

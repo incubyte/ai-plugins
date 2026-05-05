@@ -128,6 +128,14 @@ Use the `Write` tool with `path: ".claude/jira-issue-triage.config.json"`. Prett
 
 ```json
 {
+  "archetype_assignment_after_triage": {
+    "Bug": "unassign",
+    "Incident": "self",
+    "Feature": "self",
+    "Task": "self",
+    "Spike": "self"
+  },
+  "description_preview_pause_seconds": 3,
   "escalation": { "slack_channel": null, "primary_contact": null, "fallback_contact": null },
   "non_bug_transitions": { "ready": null },
   "project_key": null,
@@ -150,13 +158,15 @@ Use the `Write` tool with `path: ".claude/jira-issue-triage.config.json"`. Prett
 }
 ```
 
-The four trailing optional fields (`scope_summary_field_name`, `sprint_field_name`, `story_points_field_name`, `non_bug_transitions.ready`) are NOT asked in this wizard. They default to null/empty in the written config and can be added by editing the file directly. See the plugin README for documentation.
+The wizard does NOT ask about these advanced fields: `scope_summary_field_name`, `sprint_field_name`, `story_points_field_name`, `non_bug_transitions.ready`, `archetype_assignment_after_triage`, `description_preview_pause_seconds`. They are written with their default values shown above so that the saved JSON is a complete, browsable config. Users edit the file directly to override. See the plugin README's "Advanced configuration" section for what each field does.
 
 ### 5. Confirmation message
 
-Print one line:
+Print these lines:
 
 > Wrote `.claude/jira-issue-triage.config.json`. You can re-run `/jira-issue-triage:setup` any time to update.
+>
+> Advanced config keys not asked here (defaults used; edit the file directly to override): `archetype_assignment_after_triage`, `description_preview_pause_seconds`, `scope_summary_field_name`, `sprint_field_name`, `story_points_field_name`, `non_bug_transitions.ready`. See the plugin README's "Advanced configuration" section for what each one does.
 
 ## Notes
 

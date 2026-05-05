@@ -120,7 +120,8 @@ Configuration is **optional**. The agent uses sensible defaults if no config fil
     "Feature": "self",
     "Task": "self",
     "Spike": "self"
-  }
+  },
+  "description_preview_pause_seconds": 3
 }
 ```
 
@@ -212,7 +213,7 @@ Optional fields (`Bug Description`, `Scope Summary`, `Work Type`, `Components`, 
 
 ### Advanced configuration (per-archetype tuning)
 
-Five optional fields tune the agent's behavior. They are not asked by the setup wizard; add them by editing the config file directly when you need them.
+Six optional fields tune the agent's behavior. The setup wizard writes them into the saved JSON with their default values so the file is a complete, browsable config; override them by editing the file directly when you want different behavior.
 
 | Field | Purpose | When to set |
 |-------|---------|-------------|
@@ -220,9 +221,16 @@ Five optional fields tune the agent's behavior. They are not asked by the setup 
 | `sprint_field_name` | Custom Jira field name (e.g., `Sprint`). When set, Phase 6 (on Feature/Task/Spike tickets) places the ticket into the active sprint of the configured project. | Your team uses sprints and triage should auto-place new tickets into the current sprint. |
 | `story_points_field_name` | Custom Jira field name (e.g., `Story Points`). When set, the Phase 3 confirmation gate prompts you for a point estimate, and Phase 6 writes it. | Your team estimates non-bug tickets at triage time. |
 | `non_bug_transitions.ready` | Transition name (e.g., `Ready for Development`). When set, Phase 9 transitions Feature/Task/Spike tickets to this state instead of leaving them in `investigating`. | Your workflow has a distinct "ready to pick up" state for non-bug work. |
-| `archetype_assignment_after_triage` | Object mapping each archetype (`Bug`, `Incident`, `Feature`, `Task`, `Spike`) to either `"unassign"` (return to the team pool) or `"self"` (keep assigned to the running user). Defaults: `Bug = "unassign"`, all others `"self"`. | Your team's ownership rule differs from the default. Sev-1 incidents that auto-route to on-call: set `"Incident": "unassign"`. Bug-fix ownership stays with triager: set `"Bug": "self"`. |
+| `archetype_assignment_after_triage` | Object mapping each archetype (`Bug`, `Incident`, `Feature`, `Task`, `Spike`) to either `"unassign"` (return to the team pool) or `"self"` (keep assigned to the running user). Defaults: `Bug = "unassign"`, all others `"self"`. Missing keys are filled from defaults. Validation runs at session start (Phase 0); warnings about invalid values are surfaced once in the Phase 10 Slack DM, not as inline output. See the Validation block below. | Your team's ownership rule differs from the default. Sev-1 incidents that auto-route to on-call: set `"Incident": "unassign"`. Bug-fix ownership stays with triager: set `"Bug": "self"`. |
+| `description_preview_pause_seconds` | Integer seconds to pause between the Phase 5 informational preview and the `editJiraIssue` write. Default `3`. Set higher (`5`-`10`) if you want more time to read the preview before the write commits. Set to `0` to write immediately (not recommended). | Your team wants more time to skim the rendered description before it lands on the ticket. |
 
-When any of these is null (or omitted, in the case of `archetype_assignment_after_triage`), the agent uses the default behavior described above.
+**Backwards compatibility.** When any of these is null, the agent uses the default behavior described above. The two keys with non-null defaults (`archetype_assignment_after_triage`, `description_preview_pause_seconds`) also backfill on omission: existing 1.2.0 configs that don't include either key get `archetype_assignment_after_triage = {Bug: "unassign", Incident: "self", Feature: "self", Task: "self", Spike: "self"}` and `description_preview_pause_seconds = 3` applied at runtime. No migration steps required; the saved JSON does not need to be edited to upgrade.
+
+**Validation.** The agent normalizes invalid values at session start and warns once via the Phase 10 DM rather than failing the run:
+
+- `description_preview_pause_seconds`: must be a non-negative integer. Negative, float, string, or null falls back to `3`.
+- `archetype_assignment_after_triage`: must be an object whose values are `"unassign"` or `"self"`. A non-object value (string, array, null) is treated as omitted and the full default object applies. Per-key invalid values warn and use the archetype default. Unknown archetype keys (typos like `"Bg"`) are ignored with a warning.
+- `scope_summary_field_name`, `sprint_field_name`, `story_points_field_name`, `non_bug_transitions.ready`: must be strings or null. Non-string values are treated as null with a warning, and the steps that reference them are skipped.
 
 ## Workflow phases
 
@@ -239,7 +247,7 @@ The workflow runs a generic core for every archetype. Five phases gate on the de
 | Phase 4a | Convert the Phase 2.5 cleaned draft to ADF and post the severity assessment comment. | Bug, Incident |
 | Phase 4b | Convert the Phase 2.5 cleaned draft to ADF and post the scope or AC summary comment. Optionally writes to `scope_summary_field_name` if configured. | Feature, Task, Spike |
 | Phase 4c | Convert the Phase 2.5 cleaned draft to ADF and post the follow-up question tagging reporter or EM. Replaces Phase 4a or 4b. | All (only when follow_up_needed) |
-| Phase 5 | Refine ticket via `jira-ticket-refiner` (with `skip_preview: true` so the skill doesn't run its own gate), then run `prose-style` on the refined title + description, render the cleaned output inline as an informational preview, then write. The render is **not** a second confirmation; Phase 3 already captured your approval to refine. Interrupt within a few seconds to abort if something looks wrong. | All |
+| Phase 5 | Refine ticket via `jira-ticket-refiner` (the agent passes `Calling context: skip_preview=true.` as the leading line of the skill prompt so the skill's own preview-and-write gate is suppressed), then run `prose-style` on the refined title + description, render the cleaned output inline as an informational preview, then write after a `description_preview_pause_seconds` pause (default 3). The render is **not** a second confirmation; Phase 3 already captured your approval to refine. Interrupt during the pause to abort if something looks wrong. | All |
 | Phase 6 | Severity + due date (Bug/Incident) OR optional sprint placement + story points (Feature/Task/Spike). Skipped on follow-up path. | All (behavior gates on archetype) |
 | Phase 7 | Link related/duplicate tickets. | All |
 | Phase 8 | Append triaged label. Fill optional fields if discoverable. | All |
@@ -252,7 +260,7 @@ The agent will never:
 - Close or resolve a ticket without your approval.
 - Modify the `priority` field unless `priority` is the configured severity field.
 - Post a comment without showing you the text first AND getting an explicit yes at the Phase 3 gate.
-- Refine the title or description without an explicit yes at the Phase 3 gate AND a final preview approval at Phase 5.
+- Refine the title or description without an explicit yes at the Phase 3 gate. Phase 5 then renders the cleaned output inline as an informational preview and pauses for `description_preview_pause_seconds` (default 3) before writing, so you have a chance to interrupt if something looks wrong; users who want a second confirmation prompt can opt in per run via the "Other" channel on Phase 3 question 2.
 - Tag the reporter or their EM until investigation is exhausted and a specific gap blocks meaningful triage. Reporter contact is a last resort.
 - Tag anyone other than the reporter or their EM in a follow-up question.
 - Remove or overwrite reporter-provided information during refinement (only append).

@@ -1,0 +1,13 @@
+{
+  "name": "azure-issue-triage",
+  "version": "0.4.0",
+  "description": "End-to-end Azure DevOps work-item triage subagent across all archetypes (Bug, Incident, User Story, Feature, Task, Spike). Sibling of jira-issue-triage; ports the same workflow to Azure DevOps Boards: WIQL queries, Area/Iteration paths, State+Reason transitions, Microsoft.VSTS.Common.Severity. Bundles azure-issue-investigator, azure-requirements-investigator, azure-work-item-refiner, prose-style. Ships a /azure-issue-triage:setup wizard.",
+  "author": {
+    "name": "Taha Bikanerwala",
+    "url": "https://github.com/TahaBikanerwala"
+  },
+  "homepage": "https://github.com/TahaBikanerwala/jt-bikanerwala-marketplace",
+  "repository": "https://github.com/TahaBikanerwala/jt-bikanerwala-marketplace",
+  "license": "MIT",
+  "keywords": ["azure", "azure-devops", "ado", "boards", "work-item", "wiql", "triage", "bug", "task", "subagent"]
+}

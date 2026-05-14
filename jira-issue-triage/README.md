@@ -1,6 +1,8 @@
 # jira-issue-triage
 
-A Claude Code plugin that ships one subagent (`jira-issue-triage`) and a setup wizard (`/jira-issue-triage:setup`). Paste any Jira ticket URL (Bug, Incident, Feature, Task, or Spike) and tell the agent to triage. The agent assigns the ticket to you, transitions it to investigating, runs the matching investigation skill, drafts an archetype-appropriate assessment comment, refines the title and description, applies the triaged label, and DMs you a one-line summary on Slack. The agent pauses at the Phase 3 confirmation gate (before posting any comment, changing the description, or updating other fields) to show you the full findings and get your approval.
+A Claude Code plugin that ships one subagent (`jira-issue-triage`) and two slash commands: `/jira-issue-triage:setup` (config wizard) and `/jira-issue-triage:investigate-and-refine` (one-shot investigate + refine + post). Paste any Jira ticket URL (Bug, Incident, Feature, Task, or Spike) and tell the agent to triage. The agent assigns the ticket to you, transitions it to investigating, runs the matching investigation skill, drafts an archetype-appropriate assessment comment, refines the title and description, applies the triaged label, and DMs you a one-line summary on Slack. The agent pauses at the Phase 3 confirmation gate (before posting any comment, changing the description, or updating other fields) to show you the full findings and get your approval.
+
+When you want a lighter workflow that stops short of severity, transitions, and metadata writes, run `/jira-issue-triage:investigate-and-refine <TICKET>` instead. It chains the investigator skill (issue-investigator or requirements-investigator), `jira-ticket-refiner`, and `prose-style` end-to-end, then asks whether to update the title and description, post the investigation as a comment, both, or cancel. No assignment, no transitions, no Slack DM, no field writes outside title/description and one optional comment.
 
 ## Migration from `jira-bug-triage` v0.3.0
 
@@ -65,6 +67,35 @@ The agent body retains short defensive fallbacks for all four bundled skills. Th
    > Triage `https://yourcompany.atlassian.net/browse/PROJ-12345`.
 
    The agent runs through phases 0-10, pauses at the Phase 3 confirmation gate, and waits for your approval before posting comments or changing fields. The investigation skill, the Phase 4 comment, and the Phase 6 metadata updates depend on the ticket's archetype (see Workflow phases below).
+
+5. (Alternative) For a lighter flow, run the one-shot command:
+
+   ```
+   /jira-issue-triage:investigate-and-refine https://yourcompany.atlassian.net/browse/PROJ-12345
+   ```
+
+   See "Investigate-and-refine command" below for the full scope.
+
+## Investigate-and-refine command
+
+`/jira-issue-triage:investigate-and-refine <TICKET>` is the lightweight counterpart to the full agent. It chains three skills end-to-end and writes the result back to Jira, without touching severity, transitions, sprints, due dates, labels, links, or assignments.
+
+The flow:
+
+1. **Fetch and detect archetype.** One `getJiraIssue` call; archetype mapped from issue type with a content-override fallback (Bug, Incident, Feature, Task, Spike).
+2. **Investigate.** Invokes `issue-investigator` for Bug/Incident or `requirements-investigator` for Feature/Task/Spike. Both skills run read-only and produce evidence-tagged reports (`[VERIFIED]`, `[OBSERVED]`, `[INFERRED]`, `[UNKNOWN]`).
+3. **Refine.** Invokes `jira-ticket-refiner` in read-only-return mode (`Calling context: skip_preview=true.`) with the investigation findings folded in as source material. The skill returns the refined title and description as plain text.
+4. **Style cleanup.** Invokes `prose-style` to strip writing-style anti-patterns (em dashes, opener phrases, LLM vocabulary, bullet sprawl) from the refined title and description.
+5. **Preview and confirm.** Renders the cleaned title and description inline, then asks one `AskUserQuestion` with four options:
+   - `Update title and description` (one `editJiraIssue` call).
+   - `Post the investigation findings as a comment` (one `addCommentToJiraIssue` call, ADF only).
+   - `Both` (comment first, then the description update).
+   - `Cancel without writing`.
+6. **Write.** Executes the chosen action. The comment is always ADF (`contentFormat: "adf"`); the description write uses `contentFormat: "markdown"` (the Atlassian MCP converts to ADF on write).
+
+What this command does NOT touch: assignee, priority, severity, status, transitions, due date, sprint, story points, labels, components, custom fields, related links, or Slack. Use the full `jira-issue-triage` agent for any of those.
+
+The command requires the same Atlassian MCP server the full agent needs. The investigator skills' Slack/Confluence/Datadog calls run through their own bundled tools when invoked via the `Skill` tool, so no additional permissions are needed on the command itself.
 
 ## Setup wizard
 

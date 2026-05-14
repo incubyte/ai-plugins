@@ -4,6 +4,34 @@ A Claude Code plugin that ships one subagent (`azure-incident-postmortem`) and a
 
 This plugin is a sibling of [`jira-issue-triage`](../jira-issue-triage/) and [`azure-issue-triage`](../azure-issue-triage/). All three install side by side; the workflows are conceptually distinct but share the evidence-tag taxonomy and the bundled `prose-style` skill (resolved via plugin namespacing).
 
+## Plug and play: the 60-second tour
+
+### One entry point, one shape
+
+There's only one way to invoke this plugin: spawn the `azure-incident-postmortem` agent and paste an incident work-item URL. Unlike `azure-issue-triage`, there's no lightweight subset to extract as a separate slash command — the agent is already a one-shot gather + generate chain.
+
+### What gets gathered in one run
+
+The agent runs three phases of evidence gathering in parallel before pausing, then chains two skills to produce the document.
+
+| Phase | What runs | Sources touched |
+|---|---|---|
+| 1 (parallel fan-out) | Teams search via `teams_search_messages` + `teams_read_thread` (when a Teams MCP is installed). WIQL query for related work items in the same area path during the incident window. Datadog log search for the inferred or configured service (when a Datadog MCP is installed). Azure Repos pull requests merged during the incident window via `repos_list_pull_requests`. | Microsoft Teams, AzDO work items, AzDO Repos, Datadog logs |
+| 2 | `incident-timeline-builder` skill: reconstructs a chronological event timeline from the gathered evidence, with one UTC timestamp + one-sentence description + source citation + evidence tag per row. | Cached output from Phase 1 only (no fresh API calls) |
+| 3 (user gate) | Pause for review. Agent prints the timeline + proposed scope and asks whether to proceed, revise scope, or cancel. | n/a |
+| 4 | `postmortem-writer` skill: produces the full Google-SRE-style blameless markdown (summary, impact, timeline, root cause, contributing factors, what went well/wrong, action items, lessons learned, references). Then `prose-style` cleans the result. | Cached evidence + approved timeline |
+
+Teams and Datadog gracefully degrade. Missing either one means the timeline is necessarily thinner (most incidents have key context in the response thread), but the agent never aborts.
+
+### Plug-and-play status (read before installing)
+
+Two things are true about this plugin today; one is a friction point worth knowing up front.
+
+1. **The bundled `.mcp.json` is Rolai-shaped.** The plugin ships a `.mcp.json` that launches `@azure-devops/mcp` with the org hardcoded to `rolaillc` and the PAT pulled from `server/.env` via `dotenvx get`. If you work at Rolai with the standard `server/.env` + `.env.keys` setup, this is fully plug-and-play. If you don't, you'll need to override the file locally (drop your own `.mcp.json` in the project root with your org + auth) before the agent can read incident work items.
+2. **Everything else auto-discovers.** Project, default service for Datadog queries, output directory for the saved postmortem, incident-window heuristics — the setup wizard prompts for each.
+
+A universal version of the MCP config (`userConfig` schema, PAT in the system keychain, no dotenvx dependency, no hardcoded org) is on the follow-up list. When it lands, item 1 above flips to "fully plug-and-play for anyone."
+
 ## Status: v0.1.0
 
 This is the initial release. Compared to a hypothetical fully-featured postmortem suite:

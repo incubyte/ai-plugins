@@ -10,6 +10,19 @@ Run investigation, refinement, and writing-style cleanup against one Azure DevOp
 
 Use this when you want a structured investigation report plus a cleaned-up title and description on a work item, without going through the full triage flow (assignment, severity, due date, escalation, iteration path, story points, ArtifactLink relations, Teams escalation).
 
+## Sources gathered in one run
+
+The command itself orchestrates four skills end-to-end. The investigator skill it picks (one per archetype) walks a multi-level source ladder internally and pulls from every connected MCP server before returning.
+
+| Phase | Skill invoked | Sources the skill touches |
+|---|---|---|
+| 1 (Bug/Incident) | `azure-issue-investigator` | **L1** Microsoft Teams (`teams_search_messages`, `teams_read_thread`) when a Teams MCP is installed → **L2** AzDO work items via WIQL (`wit_query_by_wiql`) + Wiki search (`wiki_search`) + linked work items from the `relations` array → **L3** Datadog logs (`search_datadog_logs`) when a Datadog MCP is installed → **L4** repo code via Read/Glob/Grep when external sources fall short. Early-exit gates short-circuit when a level lands a confirmed root cause. |
+| 1 (User Story/Feature/Task/Spike) | `azure-requirements-investigator` | **L1** Microsoft Teams when a Teams MCP is installed → **L2** AzDO Wiki + linked design/product docs + related work items via WIQL → **L3** repo code for affected areas. Datadog is intentionally skipped (the non-bug archetypes are scoping, not diagnosis). |
+| 2 | `azure-work-item-refiner` | Re-reads the cached work-item payload + comments + revision history; folds the investigation report into archetype-appropriate sections; produces refined title + safe-HTML description. |
+| 3 | `prose-style` | Cleans the refined title and description (no em dashes, no opener phrases, no LLM vocabulary, no bullet sprawl). HTML-aware: rewrites text inside tags, preserves tag structure. |
+
+Every level is silently skipped when its MCP server is unavailable (no Teams MCP → Teams gathering skipped; no Datadog MCP → Datadog gathering skipped). The investigator notes the gap once and continues with the levels it can reach. The command itself never aborts because a non-AzDO source is missing.
+
 ## Scope
 
 What this command does:

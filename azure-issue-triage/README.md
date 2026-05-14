@@ -4,6 +4,43 @@ A Claude Code plugin that ships one subagent (`azure-issue-triage`) and two slas
 
 This plugin is a sibling of [`jira-issue-triage`](../jira-issue-triage/). The two plugins install side by side; the workflows are conceptually identical but call platform-specific tools.
 
+## Plug and play: the 60-second tour
+
+### Choose your entry point
+
+| You want… | Use | What it does |
+|---|---|---|
+| Full triage: assignment, severity, due date, transitions, sprint, story points, PR links, Teams summary | The agent: `azure-issue-triage` | Phases 0-10. Pauses at Phase 3 for approval, then writes everything. |
+| Just an investigation report + cleaner title and description | `/azure-issue-triage:investigate-and-refine <URL or ID>` | Phases 0-4. Pauses at Phase 4 to ask: update title/description, post comment, both, or cancel. No severity, transitions, sprints, or Teams summary. |
+| Configure the plugin for the first time | `/azure-issue-triage:setup` | Six questions. Writes `.claude/azure-issue-triage.config.json`. Re-runnable. |
+
+### What gets gathered in one run (either entry point)
+
+The investigator skill picked for the archetype walks a multi-level source ladder and pulls from every connected MCP server before returning. The skill's own gates short-circuit early if a level lands a confirmed root cause; otherwise it exhausts levels.
+
+| Source | Bug / Incident | User Story / Feature / Task / Spike |
+|---|---|---|
+| Microsoft Teams (`teams_search_messages` + `teams_read_thread`) | L1 — first lookup | L1 — first lookup |
+| Azure DevOps work items via WIQL (`wit_query_by_wiql`) | L2 | L2 |
+| Azure DevOps Wiki (`wiki_search`) | L2 | L2 |
+| Linked work items from `relations` | L2 | L2 |
+| Datadog logs (`search_datadog_logs`) | L3 | skipped (scoping, not diagnosis) |
+| Repo code (Read / Glob / Grep) | L4 | L3 |
+| Linked design / product docs from the work item | as found in L2 | first-class L2 input |
+| Azure Repos pull requests (`repos_get_pull_request_by_id`) | agent only, Phases 1-2 collection | agent only, Phases 1-2 collection |
+
+If a Teams MCP server isn't installed, L1 is silently skipped and the investigation starts at L2. If a Datadog MCP server isn't installed, L3 is silently skipped on Bug/Incident. The investigation never aborts because a non-AzDO source is missing.
+
+### Plug-and-play status (read before installing)
+
+Three things are true about this plugin today; one of them is a friction point and worth knowing up front.
+
+1. **The bundled `.mcp.json` is Rolai-shaped.** The plugin ships a `.mcp.json` that launches `@azure-devops/mcp` with the org hardcoded to `rolaillc` and the PAT pulled from `server/.env` via `dotenvx get`. If you work at Rolai with the standard `server/.env` + `.env.keys` setup, this is fully plug-and-play. If you don't, you'll need to override the file locally (drop your own `.mcp.json` in the project root with your org + auth) before the agent or the slash command can talk to AzDO.
+2. **Everything else auto-discovers.** Org, project, area path, severity field, state mapping, severity scheme, Teams channel — the setup wizard prompts for each, with sensible defaults the Agile process template uses. The agent's first-run fallback walks the same questions inline if you skip the wizard.
+3. **Teams and Datadog gracefully degrade.** Neither is required. The agent and the slash command both note the gap once and continue with the levels they can reach.
+
+A universal version of the MCP config (`userConfig` schema, PAT in the system keychain, no dotenvx dependency, no hardcoded org) is on the follow-up list. When it lands, item 1 above flips to "fully plug-and-play for anyone."
+
 ## What's new in v0.5.0
 
 New slash command: `/azure-issue-triage:investigate-and-refine <work-item URL or ID>`. Chains `azure-issue-investigator` (Bug/Incident) or `azure-requirements-investigator` (User Story/Feature/Task/Spike), `azure-work-item-refiner`, and `prose-style` end-to-end, then pauses once to ask whether to update `System.Title` and `System.Description`, post the investigation as a comment, both, or cancel. The full `azure-issue-triage` agent stays the recommended path when you want severity assessment, due dates, transitions, sprint placement, story points, PR linking, or Teams summary. The new command is the strict subset for users who only want investigation plus a clean title and description.

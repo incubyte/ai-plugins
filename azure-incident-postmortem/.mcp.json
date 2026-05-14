@@ -2,11 +2,11 @@
   "mcpServers": {
     "azure-devops": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@azure-devops/mcp", "${user_config.azure_devops_org}"],
-      "env": {
-        "AZURE_DEVOPS_PAT": "${user_config.azure_devops_pat}"
-      }
+      "command": "bash",
+      "args": [
+        "-c",
+        "export AZURE_DEVOPS_PAT=$(dotenvx get AZURE_DEVOPS_PAT -f server/.env) && npx -y @azure-devops/mcp rolaillc"
+      ]
     }
   }
 }

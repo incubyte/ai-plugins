@@ -34,11 +34,16 @@ The archetype scope expanded from Bug + Task (v0.1.0) to all five archetypes. **
 
 - **Azure DevOps MCP server.** The agent needs full Boards access (read work items, edit fields, post comments, query via WIQL, link work items, look up users). Microsoft ships an official server at [github.com/microsoft/azure-devops-mcp](https://github.com/microsoft/azure-devops-mcp) (`@azure-devops/mcp`).
 
-  **Auto-registered by this plugin.** The plugin ships a `.mcp.json` that launches `@azure-devops/mcp` via `npx -y` and a `userConfig` schema in `plugin.json` declaring two values:
-  - `azure_devops_org` — your org slug (the `<org>` in `https://dev.azure.com/<org>`).
-  - `azure_devops_pat` — a personal access token. Marked `sensitive`, so Claude Code stores it in your system keychain (or `~/.claude/.credentials.json` where the keychain is unavailable), not in `settings.json`.
+  **Auto-registered by this plugin (Rolai-shaped).** The plugin ships a `.mcp.json` that launches `@azure-devops/mcp` via `npx -y` with a `bash -c` wrapper that pulls the PAT from an encrypted env file with [dotenvx](https://dotenvx.com/):
+  ```
+  export AZURE_DEVOPS_PAT=$(dotenvx get AZURE_DEVOPS_PAT -f server/.env) \
+    && npx -y @azure-devops/mcp rolaillc
+  ```
+  Working assumptions today, hardcoded in the shipped config:
+  - Organization slug: `rolaillc`.
+  - PAT location: `server/.env`, relative to the directory Claude Code is launched from, encrypted with dotenvx, with the matching `.env.keys` available for decryption.
 
-  Claude Code prompts for both the first time the plugin is enabled. No hand-editing of `settings.json` or shell env vars required. If you also install `azure-incident-postmortem`, it ships the same `.mcp.json` and will prompt for its own copy of the same two values (per-plugin user_config is isolated).
+  This matches the Rolai dev workflow and is the working state of the config. A universal version (`userConfig` schema, keychain-stored PAT, no dotenvx dependency) is on the follow-up list.
 
   **Tool-prefix note.** MCP tool names are scoped by however your Claude Code client mounts the server (e.g., `mcp__azure_devops__wit_get_work_item`, `mcp__plugin_ado__wit_get_work_item`, etc.). The agent body lists tool names in their commonly-used short form (`wit_get_work_item`, `wit_query_by_wiql`, `wiki_search`, `core_list_projects`). If your install prefixes them, the frontmatter and inline references in `agents/azure-issue-triage.md` need the prefix added once. The setup wizard prints the prefix it detects so you can update the agent body in one pass.
 

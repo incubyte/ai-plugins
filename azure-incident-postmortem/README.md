@@ -17,6 +17,12 @@ This is the initial release. Compared to a hypothetical fully-featured postmorte
 
 - **Azure DevOps MCP server.** The agent needs Boards access (read incident work items, query related work items via WIQL, list deploys via Repos). Microsoft ships an official server at [github.com/microsoft/azure-devops-mcp](https://github.com/microsoft/azure-devops-mcp) (`@azure-devops/mcp`).
 
+  **Auto-registered by this plugin.** The plugin ships a `.mcp.json` that launches `@azure-devops/mcp` via `npx -y` and a `userConfig` schema in `plugin.json` declaring two values:
+  - `azure_devops_org` — your org slug (the `<org>` in `https://dev.azure.com/<org>`).
+  - `azure_devops_pat` — a personal access token. Marked `sensitive`, so Claude Code stores it in your system keychain (or `~/.claude/.credentials.json` where the keychain is unavailable), not in `settings.json`.
+
+  Claude Code prompts for both the first time the plugin is enabled. No hand-editing of `settings.json` or shell env vars required. If you also install `azure-issue-triage`, it ships the same `.mcp.json` and will prompt for its own copy of the same two values (per-plugin user_config is isolated).
+
   **Tool-prefix note.** MCP tool names are scoped by however your Claude Code client mounts the server. The agent body lists tool names in their commonly-used short form (`wit_get_work_item`, `wit_query_by_wiql`, `repos_list_pull_requests`, `wiki_search`). If your install prefixes them, edit the agent's frontmatter once.
 
 ### Recommended (the agent gracefully degrades without these)

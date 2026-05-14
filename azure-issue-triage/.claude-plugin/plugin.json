@@ -9,5 +9,20 @@
   "homepage": "https://github.com/TahaBikanerwala/jt-bikanerwala-marketplace",
   "repository": "https://github.com/TahaBikanerwala/jt-bikanerwala-marketplace",
   "license": "MIT",
-  "keywords": ["azure", "azure-devops", "ado", "boards", "work-item", "wiql", "triage", "bug", "task", "subagent"]
+  "keywords": ["azure", "azure-devops", "ado", "boards", "work-item", "wiql", "triage", "bug", "task", "subagent"],
+  "userConfig": {
+    "azure_devops_org": {
+      "type": "string",
+      "title": "Azure DevOps organization slug",
+      "description": "The short org name from your AzDO URL. For https://dev.azure.com/contoso, enter: contoso. Passed as the positional arg to @azure-devops/mcp.",
+      "required": true
+    },
+    "azure_devops_pat": {
+      "type": "string",
+      "title": "Azure DevOps personal access token",
+      "description": "PAT for the AzDO MCP server. Needs read/write on Work Items, plus read on Code and Wiki for the triage workflows. Stored in your system keychain.",
+      "sensitive": true,
+      "required": true
+    }
+  }
 }

@@ -22,7 +22,17 @@
     {
       "name": "jira-issue-triage",
       "source": "./jira-issue-triage",
-      "description": "End-to-end Jira issue triage subagent across all archetypes (Bug, Incident, Feature, Task, Spike)"
+      "description": "End-to-end Jira issue triage subagent across all archetypes (Bug, Incident, Feature, Task, Spike). Ships /jira-issue-triage:setup and /jira-issue-triage:investigate-and-refine."
+    },
+    {
+      "name": "azure-issue-triage",
+      "source": "./azure-issue-triage",
+      "description": "End-to-end Azure DevOps work-item triage subagent across all archetypes (Bug, Incident, User Story, Feature, Task, Spike). Sibling of jira-issue-triage. Ships /azure-issue-triage:setup and /azure-issue-triage:investigate-and-refine. Bundles a Rolai-shaped Azure DevOps MCP config (override the .mcp.json locally if your org differs)."
+    },
+    {
+      "name": "azure-incident-postmortem",
+      "source": "./azure-incident-postmortem",
+      "description": "Generates a Google-SRE-style blameless postmortem for an Azure DevOps incident work item. Gathers evidence from Microsoft Teams, related work items, Datadog logs, and Azure Repos merges; pauses for review; produces the document. Ships /azure-incident-postmortem:setup."
     },
     {
       "name": "ralph-wiggum",

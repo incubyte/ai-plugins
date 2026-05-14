@@ -97,6 +97,104 @@ What this command does NOT touch: assignee, priority, severity, status, transiti
 
 The command requires the same Atlassian MCP server the full agent needs. The investigator skills' Slack/Confluence/Datadog calls run through their own bundled tools when invoked via the `Skill` tool, so no additional permissions are needed on the command itself.
 
+### Worked example: Bug archetype
+
+Suppose the user runs:
+
+```
+/jira-issue-triage:investigate-and-refine https://acme.atlassian.net/browse/SUP-4501
+```
+
+`SUP-4501` is a poorly written bug ticket with the title `login broken` and a one-line description: `tenant MapleTower can't sign in, this started yesterday`.
+
+**Phase 0** prints one line so the user knows what is running:
+
+```
+Investigating SUP-4501 (Bug). This will take a minute.
+```
+
+**Phase 1** invokes `issue-investigator`. The skill searches Slack for `SUP-4501` and `MapleTower`, finds an in-progress thread where on-call has named the SSO middleware deploy from the previous evening, and writes its six-section report. The relevant findings (paraphrased):
+
+```
+1. Lead
+Sessions for tenant MapleTower started failing at the join step yesterday after deploy
+2026-04-29T18:00Z; the new SSO middleware is the most likely cause [OBSERVED].
+
+5. What We Found
+A Slack thread in #sso-rollout (link cited) confirms on-call paused the rollout
+for MapleTower at 2026-04-29T19:14Z [VERIFIED]. The middleware fails token
+exchange when the tenant's IDP returns SAML attributes in a non-standard order
+[OBSERVED]. Two prior tickets in the same area (SUP-4310, SUP-4422) match the
+symptom and were closed as fixed before the latest deploy [VERIFIED].
+```
+
+**Phase 2** invokes `jira-ticket-refiner` with `Calling context: skip_preview=true.` and the investigation report as source material. The skill returns:
+
+```
+Title: Auth: MapleTower sessions fail at join step after 2026-04-29 SSO deploy
+
+Description:
+## Summary
+Sessions for tenant `MapleTower` fail at the join step. The failure started
+2026-04-29T18:00Z, immediately after the SSO middleware deploy.
+
+## Impact
+All MapleTower users cannot complete sign-in. Other tenants are unaffected per
+the on-call thread linked below.
+
+## Reproduction
+1. From MapleTower's SSO start URL, complete the IDP authentication step.
+2. Observe a 500 response on the `/sso/join` callback.
+
+## Investigation Notes
+- On-call paused the rollout for MapleTower at 2026-04-29T19:14Z (Slack thread
+  in #sso-rollout). [VERIFIED]
+- The middleware fails token exchange when the tenant's IDP returns SAML
+  attributes in a non-standard order. [OBSERVED]
+- Prior tickets `SUP-4310` and `SUP-4422` match the symptom and were closed
+  before the latest deploy. [VERIFIED]
+
+## Working Hypotheses
+1. The SSO middleware's attribute-order handling regressed in the
+   2026-04-29T18:00Z deploy. [OBSERVED]
+2. MapleTower's IDP changed its attribute order independently. [INFERRED]
+```
+
+**Phase 3** invokes `prose-style`. The cleaned output collapses one bullet-sprawl block back into prose and strips one opener phrase. Substance does not change.
+
+**Phase 4** renders the preview to the user as inline markdown, then asks one question:
+
+```
+What should I do with this on SUP-4501?
+  1. Update title and description
+  2. Post the investigation findings as a comment
+  3. Both
+  4. Cancel without writing
+```
+
+If the user picks `Both`, the command posts the comment first (ADF, with the investigation findings under an `Investigation Findings (Bug)` heading), then calls `editJiraIssue` with the cleaned title and description. Final line printed to the user:
+
+```
+Posted investigation findings and updated title/description on SUP-4501.
+```
+
+If the user picks `Update title and description`, the comment step is skipped and the final line reads `Updated title and description on SUP-4501.` instead.
+
+### Worked example: Feature archetype
+
+The same command works on Feature/Task/Spike tickets; the only differences are which investigator runs and how the description is structured.
+
+For a Feature ticket (`PROJ-820`, title `add csv export`), Phase 1 invokes `requirements-investigator` instead of `issue-investigator`. The investigator searches Slack and Confluence for prior decisions in the export area, follows linked design docs, and returns its Feature-template report (Lead / Background / Requirements Found / Design Refs / Open Questions). Phase 2's refiner uses the Feature section set (Summary / Context and Background / Requirements and Acceptance Criteria / Open Blockers) rather than the Bug section set. Phase 3 and Phase 4 are identical.
+
+Datadog is silently skipped on non-bug archetypes, since `requirements-investigator` does not include a Datadog level in its ladder by default.
+
+### Cancel and revision paths
+
+The Phase 4 question is the only user-facing pause. Two non-obvious behaviours:
+
+- **Cancel.** Picking `Cancel without writing` ends the run with no Jira mutations. The investigation report and refined draft are still visible in the transcript, so the user can copy them by hand if they want.
+- **Revision via "Other".** The runtime automatically adds an "Other" channel to the four options. If the user types something like `refine but skip the title` or `re-run with the production-incident framing`, the command treats the free-text as guidance, re-enters Phase 2 with the guidance prefixed `User refinement guidance:` on the prompt to `jira-ticket-refiner`, and re-presents the panel. The loop caps at three rounds; on the fourth disagreement the panel collapses to a two-option `Approve as-is / Cancel` question.
+
 ## Setup wizard
 
 The `/jira-issue-triage:setup` slash command walks through eight questions and writes the result to `.claude/jira-issue-triage.config.json`:

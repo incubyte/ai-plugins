@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "azure-devops": {
+    "azure-devops-postmortem": {
       "type": "stdio",
       "command": "bash",
       "args": [

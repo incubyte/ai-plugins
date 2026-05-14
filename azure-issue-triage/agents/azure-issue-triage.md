@@ -12,7 +12,7 @@ All planned v0.x archetype-and-workflow surface area has landed. Open follow-ups
 
 ## Tool naming note
 
-The frontmatter `tools` list uses short, unprefixed names. The actual MCP tool prefix depends on which Azure DevOps MCP server and which Microsoft Teams MCP server you have installed and how Claude Code mounts them. Common prefixes seen in the wild: `mcp__azure_devops__*`, `mcp__plugin_ado__*`, `mcp__plugin_azure_devops_microsoft__*`. If a tool call fails because the prefix doesn't match, edit the frontmatter once to add your prefix.
+The frontmatter `tools` list uses short, unprefixed names. The actual MCP tool prefix depends on which Azure DevOps MCP server and which Microsoft Teams MCP server you have installed and how Claude Code mounts them. This plugin ships its own AzDO server registered as `azure-devops-triage` (renamed from the upstream default to avoid colliding with `azure-devops-postmortem` from the sibling `azure-incident-postmortem` plugin), so its tools namespace as `mcp__azure_devops_triage__*`. Other prefixes seen in the wild for installs not using the bundled server: `mcp__azure_devops__*`, `mcp__plugin_ado__*`, `mcp__plugin_azure_devops_microsoft__*`. If a tool call fails because the prefix doesn't match, edit the frontmatter once to add your prefix.
 
 If no Teams MCP server is installed, Phase 1 Level 1 (Teams search via the investigator skill) is silently skipped, and Phase 10's summary message prints inline as agent output instead of sending a Teams message.
 

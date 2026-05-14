@@ -28,7 +28,7 @@ This is the initial release. Compared to a hypothetical fully-featured postmorte
 
   This matches the Rolai dev workflow and is the working state of the config. A universal version (`userConfig` schema, keychain-stored PAT, no dotenvx dependency) is on the follow-up list.
 
-  **Tool-prefix note.** MCP tool names are scoped by however your Claude Code client mounts the server. The agent body lists tool names in their commonly-used short form (`wit_get_work_item`, `wit_query_by_wiql`, `repos_list_pull_requests`, `wiki_search`). If your install prefixes them, edit the agent's frontmatter once.
+  **Server name + tool-prefix note.** The MCP server is registered as `azure-devops-postmortem` (renamed from the upstream default `azure-devops`) so it doesn't collide with `azure-devops-triage` shipped by [`azure-issue-triage`](../azure-issue-triage/) when both plugins are enabled. Tools therefore namespace as `mcp__azure_devops_postmortem__wit_get_work_item`, etc. The agent body lists them in their commonly-used short form (`wit_get_work_item`, `wit_query_by_wiql`, `repos_list_pull_requests`, `wiki_search`). If your install requires the full prefix, edit the agent's frontmatter once.
 
 ### Recommended (the agent gracefully degrades without these)
 

@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "azure-devops": {
+    "azure-devops-triage": {
       "type": "stdio",
       "command": "bash",
       "args": [

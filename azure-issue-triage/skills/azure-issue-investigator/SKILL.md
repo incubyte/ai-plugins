@@ -26,7 +26,7 @@ This skill runs without user interaction. The constraints below let it work clea
 
 ## Tool naming note
 
-The frontmatter `tools` list uses short, unprefixed names (`wit_get_work_item`, `wit_query_by_wiql`, `wiki_search`, `teams_search_messages`). The actual tool prefix depends on which Azure DevOps MCP server and which Teams MCP server you have installed and how Claude Code mounts them (e.g., `mcp__azure_devops__wit_get_work_item`, `mcp__plugin_ado__wit_get_work_item`). If the skill's tool calls fail because the prefix doesn't match, edit the frontmatter to add your prefix once. The skill body refers to tools by their short name throughout.
+The frontmatter `tools` list uses short, unprefixed names (`wit_get_work_item`, `wit_query_by_wiql`, `wiki_search`, `teams_search_messages`). The actual tool prefix depends on which Azure DevOps MCP server and which Teams MCP server you have installed and how Claude Code mounts them. When invoked from the `azure-issue-triage` plugin (which ships its own AzDO server registered as `azure-devops-triage`), tools namespace as `mcp__azure_devops_triage__wit_get_work_item`, etc. For installs not using the bundled server, common prefixes seen in the wild: `mcp__azure_devops__wit_get_work_item`, `mcp__plugin_ado__wit_get_work_item`. If the skill's tool calls fail because the prefix doesn't match, edit the frontmatter to add your prefix once. The skill body refers to tools by their short name throughout.
 
 If no Teams MCP server is installed, Level 1 (Teams search) is silently skipped and the investigation starts at Level 2.
 

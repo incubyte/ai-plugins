@@ -45,7 +45,7 @@ The archetype scope expanded from Bug + Task (v0.1.0) to all five archetypes. **
 
   This matches the Rolai dev workflow and is the working state of the config. A universal version (`userConfig` schema, keychain-stored PAT, no dotenvx dependency) is on the follow-up list.
 
-  **Tool-prefix note.** MCP tool names are scoped by however your Claude Code client mounts the server (e.g., `mcp__azure_devops__wit_get_work_item`, `mcp__plugin_ado__wit_get_work_item`, etc.). The agent body lists tool names in their commonly-used short form (`wit_get_work_item`, `wit_query_by_wiql`, `wiki_search`, `core_list_projects`). If your install prefixes them, the frontmatter and inline references in `agents/azure-issue-triage.md` need the prefix added once. The setup wizard prints the prefix it detects so you can update the agent body in one pass.
+  **Server name + tool-prefix note.** The MCP server is registered as `azure-devops-triage` (renamed from the upstream default `azure-devops`) so it doesn't collide with `azure-devops-postmortem` shipped by [`azure-incident-postmortem`](../azure-incident-postmortem/) when both plugins are enabled. Tools therefore namespace as `mcp__azure_devops_triage__wit_get_work_item`, etc. The agent body lists them in their commonly-used short form (`wit_get_work_item`, `wit_query_by_wiql`, `wiki_search`, `core_list_projects`). If your install requires the full prefix, the frontmatter and inline references in `agents/azure-issue-triage.md` need the prefix added once. The setup wizard prints the prefix it detects so you can update the agent body in one pass.
 
 ### Recommended (the agent gracefully degrades without these)
 

@@ -12,7 +12,7 @@ The agent is read-only on Azure DevOps. It does not modify the incident work ite
 
 ## Tool naming note
 
-The frontmatter `tools` list uses short, unprefixed names. The actual MCP tool prefix depends on which Azure DevOps MCP server and which Microsoft Teams MCP server you have installed and how Claude Code mounts them. Common prefixes seen in the wild: `mcp__azure_devops__*`, `mcp__plugin_ado__*`, `mcp__plugin_azure_devops_microsoft__*`. If a tool call fails because the prefix doesn't match, edit the frontmatter once to add your prefix.
+The frontmatter `tools` list uses short, unprefixed names. The actual MCP tool prefix depends on which Azure DevOps MCP server and which Microsoft Teams MCP server you have installed and how Claude Code mounts them. This plugin ships its own AzDO server registered as `azure-devops-postmortem` (renamed from the upstream default to avoid colliding with `azure-devops-triage` from the sibling `azure-issue-triage` plugin), so its tools namespace as `mcp__azure_devops_postmortem__*`. Other prefixes seen in the wild for installs not using the bundled server: `mcp__azure_devops__*`, `mcp__plugin_ado__*`, `mcp__plugin_azure_devops_microsoft__*`. If a tool call fails because the prefix doesn't match, edit the frontmatter once to add your prefix.
 
 If no Teams MCP server is installed, Phase 1 Teams gathering is silently skipped and the timeline is built from the remaining sources only. If no Datadog MCP server is installed, Phase 1 Datadog gathering is silently skipped.
 

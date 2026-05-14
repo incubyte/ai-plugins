@@ -1,0 +1,13 @@
+{
+  "name": "azure-incident-postmortem",
+  "version": "0.1.0",
+  "description": "End-to-end incident postmortem generator for Azure DevOps. Paste an incident work-item URL and the agent gathers evidence from Teams, AzDO work items, Datadog logs, and Azure Repos deploys; reconstructs a chronological timeline with evidence tags; and writes a Google-SRE-style blameless postmortem (summary, impact, timeline, root cause, contributing factors, what went well/wrong, action items, lessons learned). Bundles incident-timeline-builder, postmortem-writer, prose-style. Ships a /azure-incident-postmortem:setup wizard.",
+  "author": {
+    "name": "Taha Bikanerwala",
+    "url": "https://github.com/TahaBikanerwala"
+  },
+  "homepage": "https://github.com/TahaBikanerwala/jt-bikanerwala-marketplace",
+  "repository": "https://github.com/TahaBikanerwala/jt-bikanerwala-marketplace",
+  "license": "MIT",
+  "keywords": ["azure", "azure-devops", "ado", "incident", "postmortem", "rca", "root-cause-analysis", "sre", "subagent"]
+}

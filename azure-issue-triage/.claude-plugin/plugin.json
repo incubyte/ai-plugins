@@ -1,7 +1,7 @@
 {
   "name": "azure-issue-triage",
-  "version": "0.4.0",
-  "description": "End-to-end Azure DevOps work-item triage subagent across all archetypes (Bug, Incident, User Story, Feature, Task, Spike). Sibling of jira-issue-triage; ports the same workflow to Azure DevOps Boards: WIQL queries, Area/Iteration paths, State+Reason transitions, Microsoft.VSTS.Common.Severity. Bundles azure-issue-investigator, azure-requirements-investigator, azure-work-item-refiner, prose-style. Ships a /azure-issue-triage:setup wizard.",
+  "version": "0.5.0",
+  "description": "End-to-end Azure DevOps work-item triage subagent across all archetypes (Bug, Incident, User Story, Feature, Task, Spike). Sibling of jira-issue-triage; ports the same workflow to Azure DevOps Boards: WIQL queries, Area/Iteration paths, State+Reason transitions, Microsoft.VSTS.Common.Severity. Bundles azure-issue-investigator, azure-requirements-investigator, azure-work-item-refiner, prose-style. Ships /azure-issue-triage:setup (wizard) and /azure-issue-triage:investigate-and-refine (one-shot investigate + refine + post; lightweight alternative to the full agent that skips severity, transitions, sprints, story points, PR linking, and Teams summary).",
   "author": {
     "name": "Taha Bikanerwala",
     "url": "https://github.com/TahaBikanerwala"

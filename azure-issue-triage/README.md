@@ -1,8 +1,16 @@
 # azure-issue-triage
 
-A Claude Code plugin that ships one subagent (`azure-issue-triage`) and a setup wizard (`/azure-issue-triage:setup`). Paste any Azure DevOps work-item URL (Bug, Incident, User Story, Feature, Task, or Spike) and tell the agent to triage. The agent assigns the work item to you, transitions it to investigating, runs the matching investigation skill, drafts an archetype-appropriate assessment comment, refines the title and description, applies a triaged tag, and posts a one-line summary on Microsoft Teams. The agent pauses at the Phase 3 confirmation gate (before posting any comment, changing the description, or updating other fields) to show you the full findings and get your approval.
+A Claude Code plugin that ships one subagent (`azure-issue-triage`) and two slash commands: `/azure-issue-triage:setup` (first-time configuration wizard) and `/azure-issue-triage:investigate-and-refine` (one-shot investigate + refine + post; a lightweight subset of the full agent). Paste any Azure DevOps work-item URL (Bug, Incident, User Story, Feature, Task, or Spike) and tell the agent to triage. The agent assigns the work item to you, transitions it to investigating, runs the matching investigation skill, drafts an archetype-appropriate assessment comment, refines the title and description, applies a triaged tag, and posts a one-line summary on Microsoft Teams. The agent pauses at the Phase 3 confirmation gate (before posting any comment, changing the description, or updating other fields) to show you the full findings and get your approval.
 
 This plugin is a sibling of [`jira-issue-triage`](../jira-issue-triage/). The two plugins install side by side; the workflows are conceptually identical but call platform-specific tools.
+
+## What's new in v0.5.0
+
+New slash command: `/azure-issue-triage:investigate-and-refine <work-item URL or ID>`. Chains `azure-issue-investigator` (Bug/Incident) or `azure-requirements-investigator` (User Story/Feature/Task/Spike), `azure-work-item-refiner`, and `prose-style` end-to-end, then pauses once to ask whether to update `System.Title` and `System.Description`, post the investigation as a comment, both, or cancel. The full `azure-issue-triage` agent stays the recommended path when you want severity assessment, due dates, transitions, sprint placement, story points, PR linking, or Teams summary. The new command is the strict subset for users who only want investigation plus a clean title and description.
+
+Mirrors the `/jira-issue-triage:investigate-and-refine` command shipped in `jira-issue-triage` v1.4.0; the two siblings now have feature parity on the lightweight-command surface.
+
+No migration steps. The agent body, the setup wizard, and the four bundled skills are unchanged in 0.5.0; the release adds one file (`commands/investigate-and-refine.md`) and bumps the plugin version.
 
 ## What's new in v0.4.0
 
@@ -93,6 +101,15 @@ The agent body retains short defensive fallbacks for all four bundled skills.
    > Triage `https://dev.azure.com/<org>/<project>/_workitems/edit/12345`.
 
    The agent runs through phases 0-10, pauses at the Phase 3 confirmation gate, and waits for your approval before posting comments or changing fields.
+
+5. **Or, when you only need investigate + refine (no severity, no transitions, no sprints, no Teams summary):** invoke the lightweight slash command directly.
+
+   ```
+   /azure-issue-triage:investigate-and-refine https://dev.azure.com/<org>/<project>/_workitems/edit/12345
+   /azure-issue-triage:investigate-and-refine 12345
+   ```
+
+   The command runs the same investigator and refiner skills as the agent, then pauses once at Phase 4 to ask whether to update title and description, post the investigation as a comment, both, or cancel. See [`commands/investigate-and-refine.md`](./commands/investigate-and-refine.md) for the full contract.
 
 ## Setup wizard
 

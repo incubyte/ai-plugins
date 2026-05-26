@@ -63,4 +63,4 @@ Entry point: `/discovery:start`
 
 ## License
 
-See individual plugin directories for license details.
+MIT

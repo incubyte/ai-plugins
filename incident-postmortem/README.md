@@ -1,10 +1,10 @@
 # incident-postmortem
 
-Generates a Google-SRE-style blameless postmortem from a resolved incident issue on any supported tracker. Tracker-agnostic via [`tracker-core`](../tracker-core/).
+Generates a Google-SRE-style blameless postmortem from a resolved incident issue on any supported tracker. Tracker-agnostic via [`issuekit`](../issuekit/).
 
 ## Plug-and-play contract
 
-Plug-and-play in this suite = `tracker-core` + `incident-postmortem` + your own MCPs. This plugin ships **no** `.mcp.json` and bundles **no** vendor config. The tracker-adapter resolves which tracker is active by inspecting the tools the user has registered.
+Plug-and-play in this suite = `issuekit` + `incident-postmortem` + your own MCPs. This plugin ships **no** `.mcp.json` and bundles **no** vendor config. The tracker-adapter resolves which tracker is active by inspecting the tools the user has registered.
 
 ## Install
 
@@ -12,7 +12,7 @@ Plug-and-play in this suite = `tracker-core` + `incident-postmortem` + your own 
 /plugin install incident-postmortem@incubyte-plugins
 ```
 
-`tracker-core` is declared as a dependency and Claude Code auto-installs it for you.
+`issuekit` is declared as a dependency and Claude Code auto-installs it for you.
 
 You also need at least one tracker MCP:
 
@@ -51,7 +51,7 @@ Six phases, with confirmation gates only where the user actually has a decision 
 | **1. Gather** | Parallel evidence collection: tracker history, related issues, chat threads, deploys, Datadog logs. | none |
 | **2. Timeline** | Build chronological timeline via the `incident-timeline-builder` skill. Every event carries a UTC timestamp, source citation, and evidence tag. | none |
 | **3. Review** | Show the proposed timeline truncated to the first 10 events; ask the user to confirm scope before generating. | confirmation gate |
-| **4. Generate** | Run `postmortem-writer` to assemble the full document using the Google-SRE-style blameless template; clean with `tracker-core:prose-style`. | none |
+| **4. Generate** | Run `postmortem-writer` to assemble the full document using the Google-SRE-style blameless template; clean with `issuekit:prose-style`. | none |
 | **5. Save** | Render the postmortem inline; optionally save to `output_directory`. | save prompt |
 
 ## Configuration
@@ -73,8 +73,8 @@ When a legacy `.claude/azure-incident-postmortem.config.json` exists, the agent 
 | `incident-timeline-builder` | Reconstructs a chronological event timeline from gathered evidence; output is a markdown table with timestamp, event, source, evidence tag. |
 | `postmortem-writer` | Generates the full postmortem markdown using the Google-SRE-style template. |
 
-The agent also invokes `tracker-core:tracker-adapter` (for every tracker read) and `tracker-core:prose-style` (to clean the generated document).
+The agent also invokes `issuekit:tracker-adapter` (for every tracker read) and `issuekit:prose-style` (to clean the generated document).
 
 ## Legacy config import
 
-If your project still has `.claude/azure-incident-postmortem.config.json` from a previous version of this marketplace, the agent reads it forward for the session with a one-time warning. To stop the warning, translate the values into `.claude/tracker-policy.json` (shape documented in [`tracker-core/skills/tracker-adapter/references/policy-schema.md`](../tracker-core/skills/tracker-adapter/references/policy-schema.md)) and delete the legacy file.
+If your project still has `.claude/azure-incident-postmortem.config.json` from a previous version of this marketplace, the agent reads it forward for the session with a one-time warning. To stop the warning, translate the values into `.claude/tracker-policy.json` (shape documented in [`issuekit/skills/tracker-adapter/references/policy-schema.md`](../issuekit/skills/tracker-adapter/references/policy-schema.md)) and delete the legacy file.

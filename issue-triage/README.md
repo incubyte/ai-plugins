@@ -1,10 +1,10 @@
 # issue-triage
 
-End-to-end issue triage on any supported tracker. Replaces both `azure-issue-triage` and `jira-issue-triage` with a single tracker-agnostic plugin powered by [`tracker-core`](../tracker-core/).
+End-to-end issue triage on any supported tracker. Replaces both `azure-issue-triage` and `jira-issue-triage` with a single tracker-agnostic plugin powered by [`issuekit`](../issuekit/).
 
 ## Plug-and-play contract
 
-Plug-and-play in this suite = `tracker-core` + `issue-triage` + your own MCPs. This plugin ships **no** `.mcp.json` and bundles **no** vendor config.
+Plug-and-play in this suite = `issuekit` + `issue-triage` + your own MCPs. This plugin ships **no** `.mcp.json` and bundles **no** vendor config.
 
 ## Install
 
@@ -12,7 +12,7 @@ Plug-and-play in this suite = `tracker-core` + `issue-triage` + your own MCPs. T
 /plugin install issue-triage@incubyte-plugins
 ```
 
-`tracker-core` is declared as a dependency and Claude Code auto-installs it for you.
+`issuekit` is declared as a dependency and Claude Code auto-installs it for you.
 
 You also need at least one tracker MCP:
 
@@ -64,7 +64,7 @@ The agent runs ten phases. Phase 3 is the only confirmation gate (Phase 0 has a 
 | Phase | What happens |
 |---|---|
 | **0. Identify** | Fetch the issue. Detect archetype (Bug / Incident / Story / Feature / Task / Spike). Skip if it carries any `skip_labels`. |
-| **1. Investigate** | Bug or Incident: run `tracker-core:issue-investigator` (chat → tracker+docs → Datadog → code). Story/Feature/Task/Spike: run `requirements-investigator` (bundled). |
+| **1. Investigate** | Bug or Incident: run `issuekit:issue-investigator` (chat → tracker+docs → Datadog → code). Story/Feature/Task/Spike: run `requirements-investigator` (bundled). |
 | **2. Datadog (Bug/Incident only)** | Build queries from investigation signals; gather error patterns. Skip if `log == none`. |
 | **2.5. Gap analysis** | When the investigation has `[UNKNOWN]` items that need reporter input, prepare the follow-up question for Phase 4c. |
 | **3. Confirmation gate** | Show the full diff. User confirms or declines. **No writes have happened yet.** |
@@ -101,7 +101,7 @@ Read from `.claude/tracker-policy.json`. The keys this plugin uses:
 - `triaged_label` — label appended after a successful run.
 - `archetype_assignment_after_triage` — per-archetype assign-to policy.
 
-When the file is absent, the agent uses defaults and lazy-prompts at the moment it encounters an unset key. Defaults are listed in [`tracker-core/skills/tracker-adapter/references/policy-schema.md`](../tracker-core/skills/tracker-adapter/references/policy-schema.md).
+When the file is absent, the agent uses defaults and lazy-prompts at the moment it encounters an unset key. Defaults are listed in [`issuekit/skills/tracker-adapter/references/policy-schema.md`](../issuekit/skills/tracker-adapter/references/policy-schema.md).
 
 Legacy config files (`.claude/azure-issue-triage.config.json`, `.claude/jira-issue-triage.config.json`, `.claude/jira-bug-triage.config.json`) are read forward for the session with a one-time warning. To stop the warning, translate the values into `.claude/tracker-policy.json` and delete the legacy file. Lazy prompts persist any missing keys after that.
 
@@ -110,10 +110,10 @@ Legacy config files (`.claude/azure-issue-triage.config.json`, `.claude/jira-iss
 | Skill | Purpose |
 |---|---|
 | `issue-refiner` | Re-writes title and description into the archetype-matching template; emits canonical markdown with reserved tokens. |
-| `requirements-investigator` | Investigates Story/Feature/Task/Spike issues (chat → tracker → docs → adjacent code areas). Distinct from `tracker-core:issue-investigator`, which handles Bug/Incident. |
+| `requirements-investigator` | Investigates Story/Feature/Task/Spike issues (chat → tracker → docs → adjacent code areas). Distinct from `issuekit:issue-investigator`, which handles Bug/Incident. |
 
-The agent also invokes `tracker-core:tracker-adapter` (for every tracker read and write), `tracker-core:issue-investigator` (for Bug/Incident investigation), and `tracker-core:prose-style` (to clean any prose before write).
+The agent also invokes `issuekit:tracker-adapter` (for every tracker read and write), `issuekit:issue-investigator` (for Bug/Incident investigation), and `issuekit:prose-style` (to clean any prose before write).
 
 ## Legacy config import
 
-If your project still has `.claude/azure-issue-triage.config.json` or `.claude/jira-issue-triage.config.json` (or the older `.claude/jira-bug-triage.config.json`) from a previous version of this marketplace, the agent reads it forward for the session with a one-time warning. To stop the warning, translate the values into `.claude/tracker-policy.json` (shape documented in [`tracker-core/skills/tracker-adapter/references/policy-schema.md`](../tracker-core/skills/tracker-adapter/references/policy-schema.md)) and delete the legacy file. The lazy-prompt path will offer to persist any keys still missing.
+If your project still has `.claude/azure-issue-triage.config.json` or `.claude/jira-issue-triage.config.json` (or the older `.claude/jira-bug-triage.config.json`) from a previous version of this marketplace, the agent reads it forward for the session with a one-time warning. To stop the warning, translate the values into `.claude/tracker-policy.json` (shape documented in [`issuekit/skills/tracker-adapter/references/policy-schema.md`](../issuekit/skills/tracker-adapter/references/policy-schema.md)) and delete the legacy file. The lazy-prompt path will offer to persist any keys still missing.

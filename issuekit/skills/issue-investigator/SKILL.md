@@ -26,7 +26,7 @@ This skill runs without user interaction. The constraints below let it work clea
 
 ## Tracker access
 
-All tracker calls go through the `tracker-core:tracker-adapter` skill. Use the abstract verbs:
+All tracker calls go through the `issuekit:tracker-adapter` skill. Use the abstract verbs:
 
 - `getIssue(id)` — issue payload, body in markdown
 - `getIssueComments(id)` — comment thread
@@ -211,4 +211,4 @@ These apply to all text in the report.
 - Prose over bullet lists when the content flows naturally as sentences.
 - Never present unverified analysis as a confirmed root cause.
 
-For deeper guidance, the calling agent may invoke `tracker-core:prose-style` on the finished report.
+For deeper guidance, the calling agent may invoke `issuekit:prose-style` on the finished report.

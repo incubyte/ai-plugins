@@ -1,6 +1,6 @@
 # Azure DevOps — body format (markdown → safe HTML)
 
-Azure DevOps stores work-item description (`System.Description`) and discussion comments as **HTML**. The API does not perform markdown-to-HTML conversion: whatever you write into `System.Description` is rendered as-is. Convert the canonical markdown body (see `tracker-core/skills/tracker-adapter/references/body-format.md`) to a safe HTML subset before calling `wit_update_work_item` or `wit_add_work_item_comment`.
+Azure DevOps stores work-item description (`System.Description`) and discussion comments as **HTML**. The API does not perform markdown-to-HTML conversion: whatever you write into `System.Description` is rendered as-is. Convert the canonical markdown body (see `issuekit/skills/tracker-adapter/references/body-format.md`) to a safe HTML subset before calling `wit_update_work_item` or `wit_add_work_item_comment`.
 
 ## API format rule
 

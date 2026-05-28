@@ -8,7 +8,7 @@ tools: Skill, Read, Write, Bash, AskUserQuestion
 
 Process a tracker issue through the full triage workflow regardless of archetype: detect whether it is a Bug, Incident, Story, Feature, Task, or Spike; investigate using the matching skill; refine the title and description; post an archetype-appropriate assessment comment; update the metadata fields. The workflow runs a generic core for every archetype and gates a small number of phases (severity write, investigator-skill choice, comment shape) on Bug or Incident vs Story / Feature / Task / Spike.
 
-All tracker access goes through `tracker-core:tracker-adapter`. No vendor-specific MCP tool name appears in this prompt.
+All tracker access goes through `issuekit:tracker-adapter`. No vendor-specific MCP tool name appears in this prompt.
 
 **Phase 3 is the single confirmation gate.** Phases 4–9 are gated writes that execute only after the user confirms the diff. The diff is the dry-run.
 
@@ -25,7 +25,7 @@ Run these once at the start of the session and cache the results.
 
 ### Tracker bootstrap
 
-1. Invoke `tracker-core:tracker-adapter` with `Calling context: phase=bootstrap.` Cache the resulting `{ tracker, chat, doc, log }` 4-tuple.
+1. Invoke `issuekit:tracker-adapter` with `Calling context: phase=bootstrap.` Cache the resulting `{ tracker, chat, doc, log }` 4-tuple.
 2. Announce: `Detected: tracker=<value> chat=<value> doc=<value> log=<value>`.
 3. If `tracker == none`, stop and tell the user that no tracker MCP is detected.
 4. The adapter calls `whoAmI()` during bootstrap and caches `{ trackerUser, defaultProject, defaultTeam }`. Cache `trackerUser` as `running_user` for assignment writes.
@@ -34,8 +34,8 @@ Run these once at the start of the session and cache the results.
 
 ### Configuration
 
-1. Look for `.claude/tracker-policy.json` in the project root. If present, parse it and merge with the defaults documented in `tracker-core/skills/tracker-adapter/references/policy-schema.md`.
-2. **Legacy fallback.** If `.claude/tracker-policy.json` is absent but a legacy file exists (`.claude/azure-issue-triage.config.json`, `.claude/jira-issue-triage.config.json`, or `.claude/jira-bug-triage.config.json`), read it forward and print one warning: `Found legacy config at <path>. Read for this session. Translate the values into .claude/tracker-policy.json (shape in tracker-core/skills/tracker-adapter/references/policy-schema.md) and delete the legacy file to stop this warning.`
+1. Look for `.claude/tracker-policy.json` in the project root. If present, parse it and merge with the defaults documented in `issuekit/skills/tracker-adapter/references/policy-schema.md`.
+2. **Legacy fallback.** If `.claude/tracker-policy.json` is absent but a legacy file exists (`.claude/azure-issue-triage.config.json`, `.claude/jira-issue-triage.config.json`, or `.claude/jira-bug-triage.config.json`), read it forward and print one warning: `Found legacy config at <path>. Read for this session. Translate the values into .claude/tracker-policy.json (shape in issuekit/skills/tracker-adapter/references/policy-schema.md) and delete the legacy file to stop this warning.`
 3. If neither exists, proceed with shipped defaults silently. Lazy-prompt at the moment a missing key is needed (the adapter's lazy-prompt rule).
 
 The shipped defaults the agent reads:
@@ -58,11 +58,11 @@ The agent invokes other skills during the workflow. Reference them by name; the 
 
 | Phase | Skill name | Purpose |
 |-------|-----------|---------|
-| Bootstrap and all read/write calls | `tracker-core:tracker-adapter` | Detection, abstract verb dispatcher, identity bootstrap, diff-and-confirm gate. |
-| Phase 1 (Bug, Incident) | `tracker-core:issue-investigator` | Search ladder (chat → tracker+docs → Datadog → code), evidence-tagged report. |
+| Bootstrap and all read/write calls | `issuekit:tracker-adapter` | Detection, abstract verb dispatcher, identity bootstrap, diff-and-confirm gate. |
+| Phase 1 (Bug, Incident) | `issuekit:issue-investigator` | Search ladder (chat → tracker+docs → Datadog → code), evidence-tagged report. |
 | Phase 1 (Story, Feature, Task, Spike) | `requirements-investigator` (this plugin) | Domain context, related work, adjacent code areas; orientation report tailored to non-bug archetypes. |
 | Phase 5 | `issue-refiner` (this plugin) | Re-write title and description into the archetype template; output is canonical markdown with reserved tokens. |
-| Phase 4a, 4b, 5 (post-draft) | `tracker-core:prose-style` | Clean drafted text before it reaches the diff gate. |
+| Phase 4a, 4b, 5 (post-draft) | `issuekit:prose-style` | Clean drafted text before it reaches the diff gate. |
 
 ### Skill calling-context conventions
 
@@ -146,7 +146,7 @@ For each issue the user pastes, execute these phases in order.
 
 Route by archetype.
 
-**Bug or Incident:** invoke `tracker-core:issue-investigator` with the payload:
+**Bug or Incident:** invoke `issuekit:issue-investigator` with the payload:
 
 ```
 Calling context: phase=1, archetype=<archetype>, mode=<mode>.
@@ -214,11 +214,11 @@ This is the single decision point for the run.
    - Phase 8: `addLabel(triaged_label)`.
    - Phase 9: `assign` per `archetype_assignment_after_triage`; `transition` to backlog or waiting_reply.
 
-   For Phase 5's refinement, invoke `issue-refiner` now to produce `refined_title` and `refined_body`. Pass `tracker-core:prose-style` to clean the body before caching.
+   For Phase 5's refinement, invoke `issue-refiner` now to produce `refined_title` and `refined_body`. Pass `issuekit:prose-style` to clean the body before caching.
 
-2. **Lazy-prompt for missing policy values.** Before building tuples that depend on `states.investigating`, `severity_scheme`, etc., check if they're set in policy. If not, ask once via `AskUserQuestion` (using the question templates in `tracker-core/skills/tracker-adapter/references/policy-schema.md`) and offer to persist the answer.
+2. **Lazy-prompt for missing policy values.** Before building tuples that depend on `states.investigating`, `severity_scheme`, etc., check if they're set in policy. If not, ask once via `AskUserQuestion` (using the question templates in `issuekit/skills/tracker-adapter/references/policy-schema.md`) and offer to persist the answer.
 
-3. **Render the diff** through `tracker-core:tracker-adapter`'s diff-and-confirm contract (`references/diff-and-confirm.md`). The adapter formats the table and asks the single `AskUserQuestion`.
+3. **Render the diff** through `issuekit:tracker-adapter`'s diff-and-confirm contract (`references/diff-and-confirm.md`). The adapter formats the table and asks the single `AskUserQuestion`.
 
 4. **On confirm:** set `confirmed = true`. Phases 4–9 execute as a sequence of write verb calls. The adapter handles each write; on the first failure, the batch stops and the failure summary surfaces at Phase 10.
 
@@ -284,7 +284,7 @@ When the reporter's tracker account is inactive (deleted or deactivated), the co
 
 Executes after Phase 3 confirms. Adapter's `updateFields({ title, body })` fires with the cached `refined_title` and `refined_body`. Body is canonical markdown; the adapter converts to vendor format.
 
-The `issue-refiner` skill produced these in Phase 3 prep. The skill ran `tracker-core:prose-style` before returning, so the body is already clean.
+The `issue-refiner` skill produced these in Phase 3 prep. The skill ran `issuekit:prose-style` before returning, so the body is already clean.
 
 ---
 
@@ -364,4 +364,4 @@ Always runs (skipped only if Phase 3 was declined).
 - Lead with the answer. No opener phrases.
 - No trailing summaries on short sections.
 - Prose over bullet lists when the content flows naturally as sentences.
-- `tracker-core:prose-style` runs on every drafted comment and the refined description before the diff gate; these rules are the floor.
+- `issuekit:prose-style` runs on every drafted comment and the refined description before the diff gate; these rules are the floor.

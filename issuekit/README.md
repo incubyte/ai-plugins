@@ -1,4 +1,4 @@
-# tracker-core
+# issuekit
 
 Shared adapter layer for issue-tracker plugins in this marketplace. `incident-postmortem` and `issue-triage` both depend on it.
 
@@ -24,14 +24,14 @@ This plugin ships **no** MCP, **no** agent, and **no** slash command. It is a li
 You don't install this directly — it's declared as a `dependencies` entry on `incident-postmortem` and `issue-triage`, so Claude Code auto-installs it whenever you install either verb-plugin. To install it on its own:
 
 ```
-/plugin install tracker-core@incubyte-plugins
+/plugin install issuekit@incubyte-plugins
 ```
 
 You also need at least one tracker MCP (`@azure-devops/mcp` or the Atlassian MCP) configured at the user or project level. See each verb-plugin's README for the chat/doc/log MCPs it can use opportunistically.
 
 ## Plug-and-play contract
 
-**Plug-and-play in this suite = `tracker-core` + a verb-plugin + your own MCPs.** No bundled `.mcp.json`, no hardcoded org names. The tracker-adapter skill pattern-matches available tool names at session start and routes verbs to the right adapter.
+**Plug-and-play in this suite = `issuekit` + a verb-plugin + your own MCPs.** No bundled `.mcp.json`, no hardcoded org names. The tracker-adapter skill pattern-matches available tool names at session start and routes verbs to the right adapter.
 
 ## Detection rules
 

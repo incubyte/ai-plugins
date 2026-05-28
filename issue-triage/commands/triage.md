@@ -21,8 +21,8 @@ Entry point for the `issue-triage` agent. Pass the issue's tracker URL or ID as 
 
 This command is a thin shell. It dispatches to the `issue-triage` agent with the URL/ID as the input. The agent runs the full ten-phase workflow:
 
-1. Identify the issue and detect archetype via `tracker-core:tracker-adapter`.
-2. Investigate (Bug/Incident → `tracker-core:issue-investigator`; Story/Feature/Task/Spike → `requirements-investigator`).
+1. Identify the issue and detect archetype via `issuekit:tracker-adapter`.
+2. Investigate (Bug/Incident → `issuekit:issue-investigator`; Story/Feature/Task/Spike → `requirements-investigator`).
 3. Search Datadog (Bug/Incident only, when `log != none`).
 4. Build the diff-and-confirm batch covering everything the agent intends to write.
 5. **Pause at the diff-and-confirm gate.** User confirms or declines.

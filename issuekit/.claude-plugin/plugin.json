@@ -1,5 +1,5 @@
 {
-  "name": "tracker-core",
+  "name": "issuekit",
   "version": "0.1.0",
   "description": "Shared adapter layer for issue-tracker plugins. Auto-detects the active MCP (Azure DevOps, Jira), exposes an abstract verb surface (getIssue, addComment, transition, linkIssue, ...), converts markdown bodies to the target format (HTML for Azure DevOps, ADF/markdown for Jira), and reads policy from .claude/tracker-policy.json. No MCP bundled, no agent, no slash command. Required by incident-postmortem and issue-triage.",
   "author": {

@@ -1,6 +1,6 @@
 ---
 name: issue-refiner
-description: "Restructures a poorly written tracker issue into a clear, self-contained document a stranger can open cold and act on. Works on any archetype (Bug, Incident, Story, Feature, Task, Spike) and any supported tracker (Azure DevOps, Jira). Returns the refined title and markdown body; the caller owns the write (tracker-core:tracker-adapter projects markdown to the vendor's format)."
+description: "Restructures a poorly written tracker issue into a clear, self-contained document a stranger can open cold and act on. Works on any archetype (Bug, Incident, Story, Feature, Task, Spike) and any supported tracker (Azure DevOps, Jira). Returns the refined title and markdown body; the caller owns the write (issuekit:tracker-adapter projects markdown to the vendor's format)."
 metadata:
   author: Taha Bikanerwala
 tools: AskUserQuestion, Read
@@ -12,7 +12,7 @@ Take a tracker issue that is hard to read and turn it into a document a stranger
 
 This skill **does not write to the tracker**. It returns the refined title and markdown body as plain text. The caller (the `issue-triage` agent in Phase 3 prep, or a user invoking the skill directly with a manual write step) batches the write through the adapter's diff-and-confirm gate.
 
-The skill writes **markdown only**. The `tracker-core:tracker-adapter` body-format converter projects to AzDO HTML or Jira ADF at write time.
+The skill writes **markdown only**. The `issuekit:tracker-adapter` body-format converter projects to AzDO HTML or Jira ADF at write time.
 
 ## Calling convention
 
@@ -31,7 +31,7 @@ Six ordered steps. Steps 1, 4, and 5 require reading the corresponding reference
 2. **Classify** the archetype (Bug / Incident / Story / Feature / Task / Spike). The archetype picks which sections appear in the refined description.
 3. **Inventory** every distinct fact across description, comments, history, and linked issues. Tag each fact with its information category. (Reference: `references/classification-guide.md`.)
 4. **Rewrite** the inventory into prose, applying the rewrite principles from the same reference.
-5. **Apply the template** in `assets/template.md`, including only the sections the archetype calls for. (Reference also applies `tracker-core:prose-style` rules to the output before returning.)
+5. **Apply the template** in `assets/template.md`, including only the sections the archetype calls for. (Reference also applies `issuekit:prose-style` rules to the output before returning.)
 6. **Rewrite the title.** (Reference: `references/title-guide.md`.)
 
 The skill returns:
@@ -53,7 +53,7 @@ Read [`references/gathering-guide.md`](references/gathering-guide.md) when you r
 
 When the caller (the `issue-triage` agent) has already fetched the issue and exposes the payload, reuse it. Don't re-fetch.
 
-If a direct invocation: call `getIssue(id)` and `getIssueComments(id)` via `tracker-core:tracker-adapter`. The adapter normalizes the body to markdown regardless of source format.
+If a direct invocation: call `getIssue(id)` and `getIssueComments(id)` via `issuekit:tracker-adapter`. The adapter normalizes the body to markdown regardless of source format.
 
 ### Step 2: Classify the archetype
 
@@ -94,11 +94,11 @@ Read [`references/title-guide.md`](references/title-guide.md) when you reach thi
 
 ### Final cleanup
 
-Before returning, invoke `tracker-core:prose-style` on the refined body. The skill runs the writing-style rules (em dashes, LLM vocabulary, opener phrases, hedging). The refined body that comes back is what the skill returns to the caller.
+Before returning, invoke `issuekit:prose-style` on the refined body. The skill runs the writing-style rules (em dashes, LLM vocabulary, opener phrases, hedging). The refined body that comes back is what the skill returns to the caller.
 
 ## Markdown subset and reserved tokens
 
-The body must conform to the canonical markdown subset in `tracker-core/skills/tracker-adapter/references/body-format.md`. Headings, bold, italic, inline code, fenced code, bullet/numbered lists, links, blockquotes, horizontal rules, mentions via `@[userRef]`. Tables only when 4+ rows with distinct columns. No HTML, no wiki markup, no strikethrough, no interactive checkboxes.
+The body must conform to the canonical markdown subset in `issuekit/skills/tracker-adapter/references/body-format.md`. Headings, bold, italic, inline code, fenced code, bullet/numbered lists, links, blockquotes, horizontal rules, mentions via `@[userRef]`. Tables only when 4+ rows with distinct columns. No HTML, no wiki markup, no strikethrough, no interactive checkboxes.
 
 Out-of-subset constructs in the input round-trip as literal text and trigger a one-line warning in the returned `warnings` array.
 
@@ -122,4 +122,4 @@ These rules apply to everything this skill produces.
 - Lead with the answer. No opener phrases.
 - No trailing summary on a short section.
 - Prefer prose over bullets when the content reads cleanly as sentences.
-- `tracker-core:prose-style` runs on the refined body before return; these rules are the floor.
+- `issuekit:prose-style` runs on the refined body before return; these rules are the floor.

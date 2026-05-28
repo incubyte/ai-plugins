@@ -6,7 +6,7 @@ Read this when you reach Step 1 of the workflow. Skip it on earlier steps.
 
 Pull every artifact in parallel where the adapter allows it. The fetch is the foundation; underfetching is the most common cause of a refined issue that loses information.
 
-1. **Issue fields and description.** Call `getIssue(id)` via `tracker-core:tracker-adapter`. The adapter returns the normalized `Issue` shape with body in markdown regardless of source format. Fields the adapter populates include:
+1. **Issue fields and description.** Call `getIssue(id)` via `issuekit:tracker-adapter`. The adapter returns the normalized `Issue` shape with body in markdown regardless of source format. Fields the adapter populates include:
 
    ```
    id, url, title, body, type, state, severity, assignee, reporter,

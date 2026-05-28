@@ -1,6 +1,6 @@
 ---
 name: requirements-investigator
-description: "Investigates a non-bug issue (Story, Feature, Task, Spike) on any supported tracker (Azure DevOps, Jira) by reading the issue and linked design or product docs, searching chat (Slack/Teams) and docs (Confluence/Wiki) for prior decisions, and producing an evidence-tagged orientation report. Use when a developer is about to pick up a Story, Feature, Task, or Spike and wants context before starting work. For Bug/Incident, use tracker-core:issue-investigator instead."
+description: "Investigates a non-bug issue (Story, Feature, Task, Spike) on any supported tracker (Azure DevOps, Jira) by reading the issue and linked design or product docs, searching chat (Slack/Teams) and docs (Confluence/Wiki) for prior decisions, and producing an evidence-tagged orientation report. Use when a developer is about to pick up a Story, Feature, Task, or Spike and wants context before starting work. For Bug/Incident, use issuekit:issue-investigator instead."
 metadata:
   author: Taha Bikanerwala
 tools: Read, Bash, Grep, Skill
@@ -24,7 +24,7 @@ This skill runs without user interaction. The constraints below let it work clea
 
 ## Tracker access
 
-All tracker calls go through the `tracker-core:tracker-adapter` skill. Use the abstract verbs:
+All tracker calls go through the `issuekit:tracker-adapter` skill. Use the abstract verbs:
 
 - `getIssue(id)` — issue payload
 - `getIssueComments(id)` — comments
@@ -42,7 +42,7 @@ Before running the levels, fetch the issue data once and cache it for the rest o
 
 1. Identify the issue ID/key from the invocation context. If the calling context (the `issue-triage` agent in Phase 1) has already fetched the issue and exposed the payload, reuse it; don't re-fetch.
 2. If no payload is available, call `getIssue(id)` via the adapter. Include comments and history.
-3. Determine the archetype: use the value passed by the caller in `Calling context: archetype=<value>.`. If running standalone, map `issue.type` and labels per the agent's taxonomy (Story / Feature / Task / Spike). If the type is `Bug` or `Incident`, stop and tell the caller to route to `tracker-core:issue-investigator` instead.
+3. Determine the archetype: use the value passed by the caller in `Calling context: archetype=<value>.`. If running standalone, map `issue.type` and labels per the agent's taxonomy (Story / Feature / Task / Spike). If the type is `Bug` or `Incident`, stop and tell the caller to route to `issuekit:issue-investigator` instead.
 4. Cache the response as "the issue payload" throughout the skill.
 
 If `getIssue` fails, stop and tell the caller which call failed. Do not proceed without issue data.

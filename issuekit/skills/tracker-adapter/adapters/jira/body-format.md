@@ -2,7 +2,7 @@
 
 The Atlassian MCP server takes plain markdown for most descriptions and converts it to ADF (Atlassian Document Format) under the hood. This file documents which markdown features survive the conversion intact, which to use with caution, and which are forbidden because they break the call.
 
-The canonical authoring format is markdown (see `tracker-core/skills/tracker-adapter/references/body-format.md` for the cross-vendor subset). This adapter file documents Jira-specific behavior on top of that subset.
+The canonical authoring format is markdown (see `issuekit/skills/tracker-adapter/references/body-format.md` for the cross-vendor subset). This adapter file documents Jira-specific behavior on top of that subset.
 
 ## API format rule
 

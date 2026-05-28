@@ -49,7 +49,7 @@ Take a raw product idea through ten guided phases and walk away with a structure
 
 Entry point: `/discovery:start`
 
-### [Tracker Core](tracker-core/) — Shared Adapter Layer
+### [Tracker Core](issuekit/) — Shared Adapter Layer
 
 Auto-detects the active issue-tracker MCP (Azure DevOps, Jira) and exposes an abstract verb surface (`getIssue`, `addComment`, `transition`, `linkIssue`, ...). Declared as a dependency by `incident-postmortem` and `issue-triage`; Claude Code auto-installs it when you install either verb-plugin. Ships no MCP, no agent, no slash command — it's a library.
 
@@ -69,7 +69,7 @@ Paste an incident URL (Azure DevOps or Jira) and the agent gathers evidence from
 - Optional save to a configured output directory
 - One slash command: `/incident-postmortem:run <URL or ID>`
 
-Auto-installs `tracker-core`.
+Auto-installs `issuekit`.
 
 Entry point: `/incident-postmortem:run <URL or ID>`
 
@@ -77,14 +77,14 @@ Entry point: `/incident-postmortem:run <URL or ID>`
 
 Paste any issue URL (Azure DevOps or Jira; Bug, Incident, Story, Feature, Task, or Spike) and the agent triages it end-to-end: assigns to you, transitions to investigating, runs the matching investigation skill, refines title and description, posts an assessment comment, sets severity + due date or sprint + story points, links related work, applies the triaged label, and posts a summary to the configured chat channel.
 
-- Two bundled skills: `issue-refiner`, `requirements-investigator` (uses `tracker-core:issue-investigator` for Bug/Incident)
+- Two bundled skills: `issue-refiner`, `requirements-investigator` (uses `issuekit:issue-investigator` for Bug/Incident)
 - **Single always-on diff-and-confirm gate at Phase 3.** The diff is the dry-run.
 - Graceful degradation when chat/doc/log MCPs are missing
 - Two slash commands:
   - `/issue-triage:run <URL or ID>` — full workflow
   - `/issue-triage:investigate-and-refine <URL or ID>` — lightweight subset (no severity, transitions, sprints, comments, labels, or escalation)
 
-Auto-installs `tracker-core`.
+Auto-installs `issuekit`.
 
 Entry point: `/issue-triage:run <URL or ID>`
 
@@ -102,11 +102,11 @@ Add the marketplace once, then install the plugins you want:
 /plugin install issue-triage@incubyte-plugins
 ```
 
-`incident-postmortem` and `issue-triage` declare `tracker-core` as a dependency; Claude Code auto-installs it. Install `tracker-core` directly only if you want the shared verb surface for some other purpose.
+`incident-postmortem` and `issue-triage` declare `issuekit` as a dependency; Claude Code auto-installs it. Install `issuekit` directly only if you want the shared verb surface for some other purpose.
 
 ## Configure your MCPs
 
-Plug-and-play in this suite = **`tracker-core` + a verb-plugin + your own MCPs.** No plugin bundles a `.mcp.json`; you bring whatever you have.
+Plug-and-play in this suite = **`issuekit` + a verb-plugin + your own MCPs.** No plugin bundles a `.mcp.json`; you bring whatever you have.
 
 ### Required: at least one tracker MCP
 
@@ -130,9 +130,9 @@ Register the MCP at the user level (in `~/.claude.json`) or project level (in `.
 
 Replace `YOUR_ORG_SLUG` with the slug from your AzDO URL (`https://dev.azure.com/<slug>`) and export `AZURE_DEVOPS_PAT` from your shell. PAT needs at least: Work Items (Read & Write), Code (Read), Wiki (Read), Identity (Read).
 
-`tracker-core` matches on tool-name **suffix** (`*__wit_get_work_item`, `*__getJiraIssue`, etc.), so it doesn't matter how the MCP is registered — pick whatever name you like.
+`issuekit` matches on tool-name **suffix** (`*__wit_get_work_item`, `*__getJiraIssue`, etc.), so it doesn't matter how the MCP is registered — pick whatever name you like.
 
-When both an AzDO MCP and a Jira MCP are present, `tracker-core` resolves the active tracker per-issue by inspecting the URL/key the user pastes.
+When both an AzDO MCP and a Jira MCP are present, `issuekit` resolves the active tracker per-issue by inspecting the URL/key the user pastes.
 
 ### Optional MCPs the agents use opportunistically
 

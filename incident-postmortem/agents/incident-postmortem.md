@@ -16,7 +16,7 @@ Run these once at the start of the session and cache the results.
 
 ### Tracker bootstrap
 
-1. Invoke `tracker-core:tracker-adapter` with `Calling context: phase=bootstrap.` Cache the resulting `{ tracker, chat, doc, log }` 4-tuple.
+1. Invoke `issuekit:tracker-adapter` with `Calling context: phase=bootstrap.` Cache the resulting `{ tracker, chat, doc, log }` 4-tuple.
 2. Announce the detection: `Detected: tracker=<value> chat=<value> doc=<value> log=<value>`.
 3. If `tracker == none`, stop and tell the user that no tracker MCP is detected. Suggest the official `@azure-devops/mcp` or the Atlassian MCP.
 4. The adapter calls `whoAmI()` during bootstrap and caches `{ trackerUser, defaultProject, defaultTeam }`. Use `trackerUser` as the Author for the postmortem header when no override is provided.
@@ -24,7 +24,7 @@ Run these once at the start of the session and cache the results.
 ### Configuration
 
 1. Look for `.claude/tracker-policy.json` in the project root. If present, parse it and merge with the defaults below. Only the keys this agent uses (`output_directory`, `postmortem_template`, `incident_identifier`, optional `datadog_default_service`) are read; other keys are ignored silently.
-2. **Legacy fallback.** If `.claude/tracker-policy.json` is absent but `.claude/azure-incident-postmortem.config.json` exists, read it forward for this session and print one warning: `Found legacy config at .claude/azure-incident-postmortem.config.json. Read for this session. Translate the values into .claude/tracker-policy.json (shape in tracker-core/skills/tracker-adapter/references/policy-schema.md) and delete the legacy file to stop this warning.`
+2. **Legacy fallback.** If `.claude/tracker-policy.json` is absent but `.claude/azure-incident-postmortem.config.json` exists, read it forward for this session and print one warning: `Found legacy config at .claude/azure-incident-postmortem.config.json. Read for this session. Translate the values into .claude/tracker-policy.json (shape in issuekit/skills/tracker-adapter/references/policy-schema.md) and delete the legacy file to stop this warning.`
 3. If neither exists, proceed with defaults silently. The shipped defaults are sensible for most teams. The agent lazy-prompts for any missing key it actually needs and offers to persist the answer to `.claude/tracker-policy.json`.
 
 The default config:
@@ -57,10 +57,10 @@ The agent invokes other skills during the workflow. Reference them by name; the 
 
 | Phase | Skill name | Purpose |
 |-------|-----------|---------|
-| Bootstrap and all phases | `tracker-core:tracker-adapter` | Detection, abstract verb dispatcher, identity bootstrap. |
+| Bootstrap and all phases | `issuekit:tracker-adapter` | Detection, abstract verb dispatcher, identity bootstrap. |
 | Phase 2 | `incident-timeline-builder` (this plugin) | Reconstruct a chronological event timeline from gathered evidence. Tags every event with its source and an evidence level. |
 | Phase 4 | `postmortem-writer` (this plugin) | Take the cached timeline + source materials and produce the full postmortem markdown using the Google-SRE-style blameless template. |
-| Phase 4 (after `postmortem-writer`) | `tracker-core:prose-style` | Audit and rewrite the generated postmortem so it reads like a person wrote it. Strips em dashes, opener phrases, LLM vocabulary, bullet sprawl. Never weakens Root Cause statements when the evidence supports a strong claim. |
+| Phase 4 (after `postmortem-writer`) | `issuekit:prose-style` | Audit and rewrite the generated postmortem so it reads like a person wrote it. Strips em dashes, opener phrases, LLM vocabulary, bullet sprawl. Never weakens Root Cause statements when the evidence supports a strong claim. |
 
 ### Skill calling-context conventions
 
@@ -247,7 +247,7 @@ The skill returns a single block of markdown — the full postmortem document.
 
 **Fallback (when `postmortem-writer` is not installed):** assemble the document inline using the sections defined in `skills/postmortem-writer/references/postmortem-template.md` (the agent reads that file directly via the `Read` tool when the skill load fails). The fallback applies the same anti-patterns: never present unverified analysis as confirmed root cause, never blame an individual, never invent timeline events.
 
-**Step 2.** Invoke `tracker-core:prose-style` via the `Skill` tool, passing the output of Step 1 as input. The skill returns the cleaned markdown.
+**Step 2.** Invoke `issuekit:prose-style` via the `Skill` tool, passing the output of Step 1 as input. The skill returns the cleaned markdown.
 
 **Fallback (when `prose-style` is not installed):** apply these rules inline to the postmortem before caching: no em dashes, no spaced hyphens as separators, no LLM vocabulary, lead with the answer, no opener phrases, no trailing summaries on short sections, never weaken Root Cause statements. Warn the user once at the start of Phase 5.
 

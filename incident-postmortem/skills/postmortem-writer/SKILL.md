@@ -19,7 +19,7 @@ The skill runs without user interaction. It produces a single markdown document 
 - **Non-interactive.** Never ask the user a question. Inputs are inferred from the payload the caller provides.
 - **Predictable structure.** The output always carries every section in the template (in the order documented in `references/postmortem-template.md`). Sections with no source data collapse into a one-line placeholder rather than disappearing — the structure is intentional even when data is sparse.
 - **Same evidence tags as the rest of the marketplace.** `[VERIFIED]`, `[OBSERVED]`, `[INFERRED]`, `[UNKNOWN]`. The skill applies these inline where claims are made (especially in Root Cause and Contributing Factors).
-- **Read-only.** No file writes, no posting. The agent in Phase 4 consumes the markdown and runs `tracker-core:prose-style` on it before Phase 5 renders it.
+- **Read-only.** No file writes, no posting. The agent in Phase 4 consumes the markdown and runs `issuekit:prose-style` on it before Phase 5 renders it.
 - **Output is the last thing.** Skill ends after the markdown renders. No follow-up prompts.
 
 ## Setup
@@ -127,4 +127,4 @@ These rules apply to everything this skill produces.
 - No trailing summaries on short sections.
 - Prose over bullet lists when the content flows naturally as sentences. The Lessons Learned section is prose; What Went Well and What Went Wrong are bullets (each item is a discrete observation).
 - Quote source text directly with quotation marks when paraphrasing risks losing meaning.
-- The agent runs `tracker-core:prose-style` on the final output (Phase 4); these rules are the floor.
+- The agent runs `issuekit:prose-style` on the final output (Phase 4); these rules are the floor.

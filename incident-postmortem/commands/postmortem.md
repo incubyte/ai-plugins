@@ -21,11 +21,11 @@ Entry point for the `incident-postmortem` agent. Pass the incident's tracker URL
 
 This command is a thin shell. It dispatches to the `incident-postmortem` agent with the URL/ID as the input. The agent runs the full six-phase workflow:
 
-1. Identify the incident from the URL/ID; resolve which tracker via `tracker-core:tracker-adapter`.
+1. Identify the incident from the URL/ID; resolve which tracker via `issuekit:tracker-adapter`.
 2. Gather evidence in parallel (tracker history, related issues, chat threads, deploys, Datadog logs).
 3. Build the timeline via `incident-timeline-builder`.
 4. Pause for the user to confirm scope.
-5. Generate the postmortem via `postmortem-writer`; clean via `tracker-core:prose-style`.
+5. Generate the postmortem via `postmortem-writer`; clean via `issuekit:prose-style`.
 6. Render inline; optionally save to the configured `output_directory`.
 
 The agent is read-only on the tracker. It never modifies the incident, comments on it, or transitions it. See the agent prompt (`agents/incident-postmortem.md`) for the detailed contract.

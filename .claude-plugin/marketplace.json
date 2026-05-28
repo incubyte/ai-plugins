@@ -12,7 +12,7 @@
     {
       "name": "learn",
       "source": "./learn",
-      "description": "Learn any technology by building real projects \u2014 Claude guides step-by-step, you write every line of code"
+      "description": "Learn any technology by building real projects — Claude guides step-by-step, you write every line of code"
     },
     {
       "name": "discovery",
@@ -20,19 +20,19 @@
       "description": "End-to-end product discovery flow that produces a structured PRD"
     },
     {
-      "name": "jira-issue-triage",
-      "source": "./jira-issue-triage",
-      "description": "End-to-end Jira issue triage subagent across all archetypes (Bug, Incident, Feature, Task, Spike). Ships /jira-issue-triage:setup and /jira-issue-triage:investigate-and-refine."
+      "name": "tracker-core",
+      "source": "./tracker-core",
+      "description": "Shared adapter layer for issue-tracker plugins. Auto-detects the active MCP (Azure DevOps, Jira) and exposes an abstract verb surface (getIssue, addComment, transition, linkIssue, ...). Auto-installed as a dependency of incident-postmortem and issue-triage. Bring your own MCPs; no .mcp.json bundled."
     },
     {
-      "name": "azure-issue-triage",
-      "source": "./azure-issue-triage",
-      "description": "End-to-end Azure DevOps work-item triage subagent across all archetypes (Bug, Incident, User Story, Feature, Task, Spike). Sibling of jira-issue-triage. Ships /azure-issue-triage:setup and /azure-issue-triage:investigate-and-refine. Bundles a Rolai-shaped Azure DevOps MCP config (override the .mcp.json locally if your org differs)."
+      "name": "incident-postmortem",
+      "source": "./incident-postmortem",
+      "description": "End-to-end incident postmortem generator. Paste an incident URL (Azure DevOps or Jira); the agent gathers evidence, builds a timeline, and writes a Google-SRE-style blameless postmortem. Auto-installs tracker-core; bring your own MCPs."
     },
     {
-      "name": "azure-incident-postmortem",
-      "source": "./azure-incident-postmortem",
-      "description": "Generates a Google-SRE-style blameless postmortem for an Azure DevOps incident work item. Gathers evidence from Microsoft Teams, related work items, Datadog logs, and Azure Repos merges; pauses for review; produces the document. Ships /azure-incident-postmortem:setup."
+      "name": "issue-triage",
+      "source": "./issue-triage",
+      "description": "End-to-end issue triage across all archetypes (Bug, Incident, Story, Feature, Task, Spike) on any supported tracker (Azure DevOps, Jira). All writes pass through a single diff-and-confirm gate. Auto-installs tracker-core; bring your own MCPs."
     },
     {
       "name": "ralph-wiggum",

@@ -1,0 +1,16 @@
+{
+  "name": "issue-triage",
+  "version": "1.0.0",
+  "description": "End-to-end issue triage across all archetypes (Bug, Incident, Story, Feature, Task, Spike) on any supported tracker (Azure DevOps, Jira). Assigns the issue, transitions it to 'investigating', runs the matching investigation skill, refines title and description, posts an assessment comment, sets severity + due date or sprint + story points, links related work, applies the triaged label, and posts a Slack/Teams summary. All writes pass through a single diff-and-confirm gate — the diff is the dry-run. Tracker-agnostic via issuekit.",
+  "author": {
+    "name": "Taha Bikanerwala",
+    "url": "https://github.com/TahaBikanerwala"
+  },
+  "homepage": "https://github.com/TahaBikanerwala/jt-bikanerwala-marketplace",
+  "repository": "https://github.com/TahaBikanerwala/jt-bikanerwala-marketplace",
+  "license": "MIT",
+  "keywords": ["triage", "bug-triage", "issue-triage", "azure-devops", "jira", "tracker-agnostic", "subagent"],
+  "dependencies": [
+    { "name": "issuekit", "version": "^0.1.0" }
+  ]
+}

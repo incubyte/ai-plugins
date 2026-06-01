@@ -1,0 +1,16 @@
+{
+  "name": "incident-postmortem",
+  "version": "1.0.0",
+  "description": "End-to-end incident postmortem generator. Paste an incident issue URL (Azure DevOps or Jira) and the agent gathers evidence from chat (Slack/Teams), the tracker (related issues, history), Datadog logs, and merged pull requests; reconstructs a chronological timeline with evidence tags; and writes a Google-SRE-style blameless postmortem (summary, impact, timeline, root cause, contributing factors, what went well/wrong, action items, lessons learned). Tracker-agnostic via issuekit. Bundles incident-timeline-builder and postmortem-writer skills.",
+  "author": {
+    "name": "Taha Bikanerwala",
+    "url": "https://github.com/TahaBikanerwala"
+  },
+  "homepage": "https://github.com/TahaBikanerwala/jt-bikanerwala-marketplace",
+  "repository": "https://github.com/TahaBikanerwala/jt-bikanerwala-marketplace",
+  "license": "MIT",
+  "keywords": ["incident", "postmortem", "rca", "root-cause-analysis", "sre", "azure-devops", "jira", "tracker-agnostic"],
+  "dependencies": [
+    { "name": "issuekit", "version": "^0.1.0" }
+  ]
+}

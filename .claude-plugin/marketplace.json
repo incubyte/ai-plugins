@@ -12,12 +12,27 @@
     {
       "name": "learn",
       "source": "./learn",
-      "description": "Learn any technology by building real projects \u2014 Claude guides step-by-step, you write every line of code"
+      "description": "Learn any technology by building real projects — Claude guides step-by-step, you write every line of code"
     },
     {
       "name": "discovery",
       "source": "./discovery",
       "description": "End-to-end product discovery flow that produces a structured PRD"
+    },
+    {
+      "name": "issuekit",
+      "source": "./issuekit",
+      "description": "Shared adapter layer for issue-tracker plugins. Auto-detects the active MCP (Azure DevOps, Jira) and exposes an abstract verb surface (getIssue, addComment, transition, linkIssue, ...). Auto-installed as a dependency of incident-postmortem and issue-triage. Bring your own MCPs; no .mcp.json bundled."
+    },
+    {
+      "name": "incident-postmortem",
+      "source": "./incident-postmortem",
+      "description": "End-to-end incident postmortem generator. Paste an incident URL (Azure DevOps or Jira); the agent gathers evidence, builds a timeline, and writes a Google-SRE-style blameless postmortem. Auto-installs issuekit; bring your own MCPs."
+    },
+    {
+      "name": "issue-triage",
+      "source": "./issue-triage",
+      "description": "End-to-end issue triage across all archetypes (Bug, Incident, Story, Feature, Task, Spike) on any supported tracker (Azure DevOps, Jira). All writes pass through a single diff-and-confirm gate. Auto-installs issuekit; bring your own MCPs."
     },
     {
       "name": "ralph-wiggum",

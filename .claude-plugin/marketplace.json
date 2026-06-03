@@ -15,6 +15,11 @@
       "description": "Learn any technology by building real projects — Claude guides step-by-step, you write every line of code"
     },
     {
+      "name": "blog-writer",
+      "source": "./blog-writer",
+      "description": "Interactive writing partner for technical and meta-technical blogs — turn a brain dump into a polished Substack-ready post via brief, section-by-section drafting, editorial polish, and title selection"
+    },
+    {
       "name": "ralph-wiggum",
       "source": {
         "source": "github",

@@ -1,0 +1,9 @@
+{
+  "name": "blog-writer",
+  "description": "Interactive writing partner for technical and meta-technical blogs. Two slash commands for A/B testing: /blog-writer:write-blog (multi-phase — brief, angle, outline, section-by-section draft, editorial, research, title, cover) and /blog-writer:write (streamlined — one research-informed Q&A batch, one clean draft, then an @bw annotation loop). Individual skills from the multi-phase flow also activate via trigger phrases. Preserves your voice; author-controlled throughout.",
+  "version": "0.3.0",
+  "author": {
+    "name": "Incubyte"
+  },
+  "license": "Proprietary"
+}

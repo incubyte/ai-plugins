@@ -15,6 +15,11 @@
       "description": "Learn any technology by building real projects — Claude guides step-by-step, you write every line of code"
     },
     {
+      "name": "ccaf",
+      "source": "./ccaf",
+      "description": "CCAF (Claude Certified Architect – Foundations) mock-exam readiness gate. /ccaf:mock-exam assembles a 60-question weighted mock (official seed questions + verified generated ones), administers it 4 per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line plus a per-domain breakdown."
+    },
+    {
       "name": "discovery",
       "source": "./discovery",
       "description": "End-to-end product discovery flow that produces a structured PRD"

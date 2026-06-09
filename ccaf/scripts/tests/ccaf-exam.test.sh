@@ -66,7 +66,7 @@ assert_file_exists "blueprint exists" "$BLUEPRINT"
 assert_file_exists "question bank exists" "$BANK"
 assert_eq "12 seed questions"            "12" "$(grep -c '^  - id:' "$BANK")"
 assert_eq "12 correct keys"              "12" "$(grep -cE '^    correct: [A-D]$' "$BANK")"
-assert_eq "12 source: official tags"     "12" "$(grep -cE '^    source: official$' "$BANK")"
+assert_eq "12 source: authored tags"     "12" "$(grep -cE '^    source: authored$' "$BANK")"
 assert_eq "12 domain tags"               "12" "$(grep -cE '^    domain: D[1-5]$' "$BANK")"
 assert_eq "12 scenario tags"             "12" "$(grep -cE '^    scenario: [a-z-]+$' "$BANK")"
 # Domain weights in the blueprint sum to 60.

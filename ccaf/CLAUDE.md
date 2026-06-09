@@ -8,8 +8,8 @@ readiness before booking the real (paid) exam.
 
 - `commands/mock-exam.md` — the `/ccaf:mock-exam` command (loads the engine skill).
 - `skills/ccaf-exam/SKILL.md` — the assemble → administer → score engine.
-- `data/ccaf-blueprint.md` — domains, weights, scenarios, the paraphrased syllabus, scope lists, scoring.
-- `data/ccaf-question-bank.md` — the 12 official sample questions (verbatim), used as seeds + anchors.
+- `data/ccaf-blueprint.md` — domains, weights, scenarios, the syllabus, scope lists, scoring.
+- `data/ccaf-question-bank.md` — 12 self-authored seed questions, used as seeds + anchors.
 - `scripts/ccaf-exam.sh` — silent state helper (init / get / record / score / clear); never use Write/Edit on the attempt file.
 - `scripts/tests/ccaf-exam.test.sh` — shell test harness for the data files + helper logic.
 

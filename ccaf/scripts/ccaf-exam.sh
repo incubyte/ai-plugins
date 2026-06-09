@@ -25,8 +25,8 @@ set -eo pipefail
 #   [[Q1]]
 #   domain: D1
 #   scenario: customer-support
-#   source: official
-#   id: official-01
+#   source: authored
+#   id: seed-01
 #   stem: ...
 #   A) ...
 #   B) ...

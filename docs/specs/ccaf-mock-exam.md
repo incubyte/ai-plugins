@@ -9,7 +9,7 @@
 
 The org has mandated the **Claude Certified Architect – Foundations (CCAF)** certification for everyone, with the policy: _take a practice exam first, and only attempt the real (paid) exam once you score 720+._ Today that means each person hand-rolls a quiz from the 40-page exam guide PDF — inconsistent, unrepeatable, and easy to get wrong. This spec defines `/ccaf:mock-exam`, a new command in a standalone **`ccaf`** Claude Code plugin that administers a faithful **60-question mock exam** end-to-end in the terminal and returns a scaled `/1000` score with the **720 pass line** plus a per-domain breakdown, so anyone can self-serve the readiness gate.
 
-The exam mirrors the real one on every replicable rule (60 questions, 4 of 6 scenarios, domain weighting 27/18/20/20/15, single-select MCQ, no penalty for guessing) and is honest about the one thing it cannot replicate: Anthropic's proprietary scaled-scoring curve. Questions are **assembled per run** from a small static seed bank (the 12 official sample questions from the guide, verbatim with their official explanations) plus model-generated questions that fill the remainder, each generated question passing an **independent verifier** before it is served. The attempt persists to a user-level file so it is **resumable**. It ships as the standalone `ccaf` plugin in the `incubyte-plugins` marketplace, so teammates install it and `/ccaf:mock-exam` appears; it runs fully offline.
+The exam mirrors the real one on every replicable rule (60 questions, 4 of 6 scenarios, domain weighting 27/18/20/20/15, single-select MCQ, no penalty for guessing) and is honest about the one thing it cannot replicate: Anthropic's proprietary scaled-scoring curve. Questions are **assembled per run** from a small static seed bank (a curated set of 12 self-authored seed questions) plus model-generated questions that fill the remainder, each generated question passing an **independent verifier** before it is served. The attempt persists to a user-level file so it is **resumable**. It ships as the standalone `ccaf` plugin in the `incubyte-plugins` marketplace, so teammates install it and `/ccaf:mock-exam` appears; it runs fully offline.
 
 This is a LOW-risk, internal, honor-system developer tool: no regulated data, no central reporting, easy to revert.
 
@@ -36,7 +36,7 @@ Categorical, non-overlapping, drawn from the exam guide [1] and the plugin conve
 ### 3.2 Kinds of data
 
 - **Blueprint** — the distilled, version-controlled encoding of the exam guide: the 5 domains with weights, the 6 scenarios, the in-scope/out-of-scope topic lists, and few-shot anchors. Read-only at runtime [1].
-- **Seed question** — an official question transcribed verbatim from the guide (the 12 sample questions), with its official correct answer and explanation. Authoritative; version-controlled [1].
+- **Seed question** — a curated, self-authored question covering a domain and scenario, with its correct answer and explanation. Version-controlled [5].
 - **Generated question** — a model-authored question produced at assembly time to fill an exam to 60, grounded in the blueprint. Must pass the verifier before use [4, 5].
 - **Assembled exam** — a frozen set of exactly 60 questions for one attempt: the questions, their hidden answer keys, the candidate's recorded answers, and progress metadata. Lives in the local state file; never shared [5].
 - **Result** — the computed outcome of a completed exam: scaled score, pass/fail, and a per-domain breakdown. Displayed, never persisted as history [5].
@@ -70,7 +70,7 @@ None of this data is regulated (no PHI, PCI, PII).
 
 **4.5 Position carries no signal** — the correct option's letter is shuffled per question so answer position encodes nothing learnable across an exam. Sources: [4].
 
-**4.6 Official questions are authoritative and verbatim** — the 12 seed questions retain the guide's exact stem, options, correct answer, and explanation; they are never rewritten or re-keyed. Sources: [1].
+**4.6 Seed questions are curated and stable** — the 12 self-authored seed questions are version-controlled and are not regenerated or re-keyed at runtime. Sources: [5].
 
 **4.7 No generated question is served unverified** — every Generated question passes the independent verifier (4.4 + 4.5 checks) before entering an Assembled exam; a failing question is regenerated or replaced, never shown. Sources: [4, 5].
 
@@ -90,7 +90,7 @@ Outside-in, independently verifiable, sequenced for build. The single user-reach
 
 ### 5.1 Ship the distilled blueprint and the 12-question seed bank
 
-Establish the read-only data foundation the command reads at runtime. Distill the exam guide [1] into `ccaf/data/ccaf-blueprint.md` — the 5 domains with their weights, the 6 scenarios (name + primary domains), the in-scope and out-of-scope topic lists, and the 12 official sample questions used as few-shot style/difficulty anchors. Transcribe those same 12 questions verbatim into `ccaf/data/ccaf-question-bank.md` as the static seed bank, each carrying its official correct answer, official explanation, and `domain` + `scenario` + `source: official` tags. From outside, this slice is "done" when both data files exist and a reader can confirm the 12 questions, their correct keys, and their tags match the guide exactly.
+Establish the read-only data foundation the command reads at runtime. Distill the exam guide [1] into `ccaf/data/ccaf-blueprint.md` — the 5 domains with their weights, the 6 scenarios (name + primary domains), the in-scope and out-of-scope topic lists, and references to the 12 seed questions used as few-shot style/difficulty anchors. Author 12 self-authored questions in `ccaf/data/ccaf-question-bank.md` as the static seed bank, each carrying its correct answer, explanation, and `domain` + `scenario` + `source: authored` tags. From outside, this slice is "done" when both data files exist and a reader can confirm the 12 questions, their correct keys, and their tags are well-formed.
 
 - **Touches types:** Blueprint, Seed question.
 - **Preserves invariants:** 4.6.
@@ -101,8 +101,8 @@ Establish the read-only data foundation the command reads at runtime. Distill th
 Indicative seed-question schema (contract, not logic):
 
 ```yaml
-- id: q-official-04
-  source: official # official | generated
+- id: seed-04
+  source: authored # authored | generated
   domain: D3 # D1..D5
   scenario: code-generation # one of the 6 scenario slugs
   stem: "You want to create a custom /review slash command ... Where should you create this command file?"
@@ -112,17 +112,17 @@ Indicative seed-question schema (contract, not logic):
     C: "In the CLAUDE.md file at the project root"
     D: "In a .claude/config.json file with a commands array"
   correct: A
-  explanation: "Project-scoped slash commands live in .claude/commands/ ... (verbatim from guide)"
+  explanation: "Project-scoped slash commands live in .claude/commands/ ... (self-authored)"
 ```
 
-Domain/scenario tags for the 12 official questions (assembly anchors): Q1→D1·customer-support, Q2→D2·customer-support, Q3→D5·customer-support, Q4→D3·code-generation, Q5→D3·code-generation, Q6→D3·code-generation, Q7→D1·multi-agent-research, Q8→D5·multi-agent-research, Q9→D2·multi-agent-research, Q10→D3·claude-code-ci, Q11→D4·claude-code-ci, Q12→D4·claude-code-ci.
+Domain/scenario tags for the 12 seed questions (assembly anchors): seed-01→D1·customer-support, seed-02→D2·customer-support, seed-03→D5·customer-support, seed-04→D3·code-generation, seed-05→D3·code-generation, seed-06→D3·code-generation, seed-07→D1·multi-agent-research, seed-08→D5·multi-agent-research, seed-09→D2·multi-agent-research, seed-10→D3·claude-code-ci, seed-11→D4·claude-code-ci, seed-12→D4·claude-code-ci.
 
 **Acceptance criteria**
 
 - [x] **5.1.1** `ccaf/data/ccaf-blueprint.md` exists and records all 5 domains with weights 27/18/20/20/15 and the 6 scenario names with their primary domains.
 - [x] **5.1.2** The blueprint records the guide's in-scope and out-of-scope topic lists, so generation can be constrained to in-scope material.
-- [x] **5.1.3** `ccaf/data/ccaf-question-bank.md` contains all 12 official questions transcribed verbatim (stem, four options, correct key, explanation) with no edits to wording or answer keys.
-- [x] **5.1.4** Each of the 12 seed questions carries a `domain` tag (D1–D5), a `scenario` tag (one of the 6 slugs), and `source: official`, matching the mapping above.
+- [x] **5.1.3** `ccaf/data/ccaf-question-bank.md` contains 12 self-authored seed questions (stem, four options, single correct key, explanation), each well-formed.
+- [x] **5.1.4** Each of the 12 seed questions carries a `domain` tag (D1–D5), a `scenario` tag (one of the 6 slugs), and `source: authored`, matching the mapping above.
 - [x] **5.1.5** The files contain no out-of-scope topics from the guide's exclusion list (e.g. fine-tuning, billing, vision, streaming).
 
 **Verification (slice complete when these pass):**
@@ -133,7 +133,7 @@ Domain/scenario tags for the 12 official questions (assembly anchors): Q1→D1·
 
 ### 5.2 Assemble a 60-question exam on `/ccaf:mock-exam`
 
-Create the `/ccaf:mock-exam` command and the `ccaf-exam` skill, and implement the **assemble** phase. The command (frontmatter: `description`, `argument-hint`, scoped `allowed-tools` including the pre-approved exam-state Bash helper, `AskUserQuestion`, `Skill`) loads `ccaf/skills/ccaf-exam/SKILL.md`. On a fresh run the skill: randomly selects 4 of the 6 scenarios (4.3); computes per-domain counts to satisfy 4.2; pulls the official seed questions whose scenario is in the selection as anchors; generates the remaining questions — grounded in the blueprint's in-scope material and few-shot anchors — to reach 60 while honoring the per-domain counts; runs each generated question through the **independent verifier** (a fresh evaluation, without the authoring rationale, that confirms exactly one defensible answer and three plausible-but-wrong distractors per 4.4, then shuffles A–D per 4.5); and writes the frozen Assembled exam to `~/.claude/ccaf-exam.local.md` with `status: in_progress`, empty answers, and `next_index` at the first question. From outside, "done" means running `/ccaf:mock-exam` (with no prior attempt) yields a well-formed local file of 60 questions with the correct domain distribution, the seed anchors embedded verbatim, hidden keys present, and answers empty.
+Create the `/ccaf:mock-exam` command and the `ccaf-exam` skill, and implement the **assemble** phase. The command (frontmatter: `description`, `argument-hint`, scoped `allowed-tools` including the pre-approved exam-state Bash helper, `AskUserQuestion`, `Skill`) loads `ccaf/skills/ccaf-exam/SKILL.md`. On a fresh run the skill: randomly selects 4 of the 6 scenarios (4.3); computes per-domain counts to satisfy 4.2; pulls the seed questions whose scenario is in the selection as anchors; generates the remaining questions — grounded in the blueprint's in-scope material and few-shot anchors — to reach 60 while honoring the per-domain counts; runs each generated question through the **independent verifier** (a fresh evaluation, without the authoring rationale, that confirms exactly one defensible answer and three plausible-but-wrong distractors per 4.4, then shuffles A–D per 4.5); and writes the frozen Assembled exam to `~/.claude/ccaf-exam.local.md` with `status: in_progress`, empty answers, and `next_index` at the first question. From outside, "done" means running `/ccaf:mock-exam` (with no prior attempt) yields a well-formed local file of 60 questions with the correct domain distribution, the seed anchors embedded, hidden keys present, and answers empty.
 
 - **Touches types:** Blueprint, Seed question, Generated question, Assembled exam, Verifier verdict.
 - **Preserves invariants:** 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.10, 4.11.
@@ -153,7 +153,7 @@ domain_counts: "D1:16,D2:11,D3:12,D4:12,D5:9"
 next_index: 1 # 1-based pointer to the next unanswered question
 ---
 
-## Q1 [domain=D1 scenario=customer-support source=official id=q-official-01]
+## Q1 [domain=D1 scenario=customer-support source=authored id=seed-01]
 
 <stem>
 A) ...
@@ -171,7 +171,7 @@ flowchart LR
   SK -->|reads| QB[ccaf-question-bank.md]
   SK --> SEL[select 4 of 6 scenarios]
   SEL --> CNT[compute domain counts 16/11/12/12/9]
-  CNT --> ANCH[pull matching official seeds]
+  CNT --> ANCH[pull matching seed questions]
   ANCH --> GEN[generate remainder]
   GEN --> VER{independent verifier}
   VER -->|pass + shuffle A-D| ASM[assemble 60]
@@ -184,7 +184,7 @@ flowchart LR
 - [ ] **5.2.1** Running `/ccaf:mock-exam` with no existing attempt writes `~/.claude/ccaf-exam.local.md` containing exactly 60 questions (4.1).
 - [ ] **5.2.2** The assembled questions match the domain distribution D1=16, D2=11, D3=12, D4=12, D5=9 (4.2).
 - [ ] **5.2.3** Exactly 4 distinct scenarios are represented, selected at random across runs (4.3).
-- [x] **5.2.4** Official seed questions whose scenario is selected appear verbatim (stem, options, key, explanation unchanged) (4.6).
+- [x] **5.2.4** Seed questions whose scenario is selected appear unchanged (stem, options, key, explanation) (4.6).
 - [ ] **5.2.5** Every generated question passes the verifier (exactly one defensible correct answer; three plausible-but-wrong distractors) before inclusion; a question that fails is regenerated or replaced, up to a bounded retry budget (default 3), after which a seed question or an alternative in-domain generation is substituted rather than serving an unverified item (4.4, 4.7).
 - [x] **5.2.6** Each question's correct-answer letter is shuffled so correct positions are not systematically biased across the exam (4.5).
 - [x] **5.2.7** The file is written with `status: in_progress`, `next_index: 1`, all `user_answer` blank, and every `answer_key` present but not surfaced in command output (4.10, 4.11).
@@ -328,7 +328,7 @@ No compliance packs are active (Fabric MCP unreachable; the tool handles no regu
 
 **6.4 Scoring honesty** — the scaled score is always labeled an estimate, never presented as Anthropic's official equating result; the disclaimer states the formula (a linear estimate over the real 100–1000 band) and that it is not Anthropic's proprietary equating curve. Sources: [1, 5] (invariant 4.9, AC 5.4.5).
 
-**6.5 Content fidelity & scope discipline** — official questions are verbatim (4.6); generated questions stay within the guide's in-scope topics and avoid the out-of-scope list (5.1.5, 5.2.8). Source: [1].
+**6.5 Content fidelity & scope discipline** — seed questions are curated and stable (4.6); generated questions stay within the guide's in-scope topics and avoid the out-of-scope list (5.1.5, 5.2.8). Source: [1].
 
 **6.6 Question integrity** — no generated question is served without passing the independent verifier; answer positions are shuffled to remove bias (invariants 4.4, 4.5, 4.7). Source: [4].
 
@@ -394,7 +394,7 @@ graph LR
 | `ccaf/commands/mock-exam.md`           | Command entry; frontmatter + allowed-tools; loads the skill; resume check | ccaf-exam skill          |
 | `ccaf/skills/ccaf-exam/SKILL.md`  | The engine: assemble → administer → score + resume/recovery               | data files, state helper |
 | `ccaf/data/ccaf-blueprint.md`     | Domains, weights, scenarios, scope lists, anchors                         | (nothing)                |
-| `ccaf/data/ccaf-question-bank.md` | 12 official seed questions                                                | (nothing)                |
+| `ccaf/data/ccaf-question-bank.md` | 12 self-authored seed questions                                           | (nothing)                |
 | `ccaf/scripts/ccaf-exam.sh`       | Silent init/record/get/score/clear on the local file                      | filesystem               |
 
 ### 7.4 Data flow
@@ -413,7 +413,7 @@ Not applicable beyond the honor-system caveat (4.11): the answer key is co-locat
 | `ccaf/skills/ccaf-exam/SKILL.md`  | 5.2, 5.3, 5.4, 5.5, 5.6 | New skill: the assemble/administer/score engine            |
 | `ccaf/scripts/ccaf-exam.sh`       | 5.2, 5.3, 5.4, 5.5, 5.6 | New silent state helper (modeled on `update-bee-state.sh`) |
 | `ccaf/data/ccaf-blueprint.md`     | 5.1, 5.2                | New data file distilled from the guide                     |
-| `ccaf/data/ccaf-question-bank.md` | 5.1, 5.2                | New data file (12 official seed questions)                 |
+| `ccaf/data/ccaf-question-bank.md` | 5.1, 5.2                | New data file (12 self-authored seed questions)            |
 | `ccaf/.claude-plugin/plugin.json` | 5.2                    | New plugin manifest                                        |
 | `.claude-plugin/marketplace.json` | 5.2                    | Register the `ccaf` plugin                                 |
 | `ccaf/CLAUDE.md`                 | 5.2                     | New plugin guide                                           |
@@ -421,7 +421,7 @@ Not applicable beyond the honor-system caveat (4.11): the answer key is co-locat
 
 ## 9. Open questions
 
-**9.1 Bank growth & v2 generation tuning.** v1 seeds with only the 12 official questions and generates the other ~48 per run. Over time the bank should grow with verified questions to reduce per-run generation load and improve quality. Awaiting: a follow-up effort (the build-time fan-out that authors + verifies additional seeds in parallel) — out of scope for v1.
+**9.1 Bank growth & v2 generation tuning.** v1 seeds with only the 12 self-authored seed questions and generates the other ~48 per run. Over time the bank should grow with verified questions to reduce per-run generation load and improve quality. Awaiting: a follow-up effort (the build-time fan-out that authors + verifies additional seeds in parallel) — out of scope for v1.
 
 **9.2 Verifier prompt calibration.** The exact instructions that make the independent verifier reliably catch wrong keys / weak distractors will need empirical tuning against real generated output. Awaiting: build-time iteration and review of sample assembled exams.
 
@@ -434,3 +434,4 @@ Not applicable beyond the honor-system caveat (4.11): the answer key is co-locat
 - 2026-06-08 — Dinesh — Initial spec from the /anthara brainstorm → spec-writer chain [1, 5]. LOW risk; no compliance packs (Fabric unreachable).
 - 2026-06-08 — Dinesh (/anthara:collaboration-loop) — Resolved the §5.4 scoring annotation: switched the scaled-score mapping from the custom `0%→0` formula to a linear estimate over the real **100–1000** band (`scaled = 100 + round(correct ÷ 60 × 900)`, pass 720 = ≥ 42/60). Cascaded through §4.9, §5.4 (intro, result-display example → 790/1000, ACs 5.4.1/5.4.3/5.4.5, Verification boundaries), and §6.4.
 - 2026-06-09 — Dinesh (/anthara:develop) — Built the artifacts (data files, `ccaf-exam.sh` helper + 32-test harness, command, skill), enriched the blueprint with the full paraphrased syllabus, ran a live 8-question verification, then **relocated everything from `bee` into a standalone `ccaf` plugin** — command `/ccaf:mock-exam`, new `ccaf/.claude-plugin/plugin.json` + `ccaf/CLAUDE.md`, registered in the `incubyte-plugins` marketplace; reverted the `bee` CLAUDE.md and `.gitignore` edits. 24/35 ACs verified (test-suite- or live-run-backed); the remaining 11 need a full 60-question run + the resume/fresh/recovery prompt branches.
+- 2026-06-09 — Dinesh — Replaced the seed bank with 12 **self-authored** questions (same domain/scenario coverage: D1×2, D2×2, D3×4, D4×2, D5×2; balanced answer positions). Synced references in §1, §3.2, §4.6, §5.1, §5.2, §6.5, §8, §9 and in the blueprint/skill/test from "official/verbatim" to "self-authored seed." Suite green (32/32).

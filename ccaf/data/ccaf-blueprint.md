@@ -5,9 +5,8 @@ exam guide (Anthropic, PBC; guide v0.1, 2025-02-10). This is the read-only autho
 `/ccaf:mock-exam` command's `ccaf-exam` skill uses to assemble a mock exam. It is **not** shared or
 modified at runtime.
 
-The syllabus below is **paraphrased** from the official guide (an internal NTK document) so this
-repo does not republish it verbatim. The only verbatim content is the 12 official sample questions
-in `ccaf-question-bank.md`, which are the explicit learner-practice anchors. Generated questions
+The syllabus below is distilled from the public CCAF exam-guide structure — its domains, scenarios,
+and scope. The seed questions in `ccaf-question-bank.md` are self-authored. Generated questions
 must test the points below and stay strictly inside the in-scope list.
 
 > The official scaled-scoring curve is proprietary and unpublished. This mock approximates it
@@ -311,7 +310,7 @@ comparison; prompt-caching internals (beyond "it exists"); tokenization specific
 
 ## Few-shot anchors
 
-The 12 official sample questions in `ccaf-question-bank.md` are the authoritative style,
+The 12 self-authored seed questions in `ccaf-question-bank.md` are the style,
 difficulty, and explanation-tone anchors. Generated questions should match their shape:
 a realistic production scenario, one clearly-correct option, and three distractors that a
 candidate with incomplete knowledge might plausibly pick (build distractors from the anti-patterns

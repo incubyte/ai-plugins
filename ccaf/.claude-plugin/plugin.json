@@ -1,7 +1,7 @@
 {
   "name": "ccaf",
   "version": "0.1.0",
-  "description": "CCAF (Claude Certified Architect – Foundations) mock-exam readiness gate. Assembles a 60-question weighted mock (official seed questions + verified generated ones), administers it 4 per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line plus a per-domain breakdown. Run /ccaf:mock-exam.",
+  "description": "CCAF (Claude Certified Architect – Foundations) mock-exam readiness gate. Assembles a 60-question weighted mock (curated seed questions + verified generated ones), administers it 4 per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line plus a per-domain breakdown. Run /ccaf:mock-exam.",
   "author": {
     "name": "Incubyte"
   },

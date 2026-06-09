@@ -1,6 +1,6 @@
 ---
 name: ccaf-exam
-description: "Engine for the /ccaf:mock-exam mock exam. Assembles a 60-question CCAF mock (official seed questions + verified generated ones), administers it 4 questions per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line. Use when running or resuming /ccaf:mock-exam."
+description: "Engine for the /ccaf:mock-exam mock exam. Assembles a 60-question CCAF mock (curated seed questions + verified generated ones), administers it 4 questions per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line. Use when running or resuming /ccaf:mock-exam."
 user-invocable: false
 ---
 
@@ -18,7 +18,7 @@ helper so there are no permission prompts:
 ```
 
 Read-only authority: `${CLAUDE_PLUGIN_ROOT}/data/ccaf-blueprint.md` (domains, weights, scenarios,
-in/out-of-scope, scoring) and `${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` (the 12 official
+in/out-of-scope, scoring) and `${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` (the 12 curated
 seed questions). Read both before assembling.
 
 ## On startup — resume / fresh / recover
@@ -42,20 +42,20 @@ Goal: a frozen, well-formed 60-question exam written to the attempt file.
 1. **Pick scenarios.** Choose **4 of the 6** scenarios at random (vary the choice across attempts;
    don't always pick the same four). The six slugs are in the blueprint.
 2. **Domain quotas (hard constraint).** Exactly: **D1=16, D2=11, D3=12, D4=12, D5=9** (= 60).
-3. **Seed anchors.** Include the official seed questions whose `scenario` is among the four chosen
-   (verbatim — never reword or re-key them). They count toward their domain quotas.
+3. **Seed anchors.** Include the seed questions whose `scenario` is among the four chosen
+   (use them as-is). They count toward their domain quotas.
 4. **Generate the remainder** up to 60, honoring the quotas and spread across the chosen scenarios.
    Each generated question:
    - tests a task statement for its tagged domain (see blueprint), stays strictly **in-scope**, and
      never touches an **out-of-scope** topic;
    - has one clearly-correct option and three plausible-but-wrong distractors;
-   - matches the official questions' style and difficulty (use them as few-shot anchors).
+   - matches the seed questions' style and difficulty (use them as few-shot anchors).
 5. **Verify each generated question independently.** For each, run an *independent* check that did
    **not** see your authoring rationale — prefer spawning a fresh subagent via the Task tool that
    receives only the question + options and must (a) pick the single defensible answer and (b) flag
    any second-correct or implausible distractor. Reject and regenerate any question that fails
    (budget ~3 tries); if it still fails, substitute another in-domain question or an unused seed.
-   Official seed questions are authoritative and skip this check.
+   Curated seed questions are pre-verified and skip this check.
 6. **Shuffle answer positions.** For every question (seed and generated), place the correct option
    at a varied A–D position so the answer key carries no positional pattern across the exam.
 7. **Write the file** by piping the assembled body to `ccaf-exam.sh init` (one call, via stdin —
@@ -71,8 +71,8 @@ next_index: 1
 [[Q1]]
 domain: D3
 scenario: code-generation
-source: official
-id: official-04
+source: authored
+id: seed-04
 stem: <question text — keep to one logical line; no blank lines inside the block>
 A) <option>
 B) <option>
@@ -85,7 +85,7 @@ user_answer:
 ```
 
 Rules for the body: one `[[Q<n>]]` block per question numbered 1..60 in order; each block has
-`domain:`, `scenario:`, `source:` (`official` or `generated`), `id:`, `stem:`, the four options,
+`domain:`, `scenario:`, `source:` (`authored` or `generated`), `id:`, `stem:`, the four options,
 `answer_key:` (the correct letter after shuffling), and an empty `user_answer:`. Keep each block
 free of blank lines — the helper parses `user_answer:` as the block terminator.
 

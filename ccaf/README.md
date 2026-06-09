@@ -27,7 +27,7 @@ The one thing it **can't** replicate is Anthropic's proprietary scaled-scoring c
 /ccaf:mock-exam
        |
        v
-  [ ASSEMBLE ]   Pick 4 of 6 scenarios; pull the official seed questions +
+  [ ASSEMBLE ]   Pick 4 of 6 scenarios; pull the seed questions +
        |          generate the rest (each independently verified, A–D shuffled);
        |          freeze a 60-question exam to ~/.claude/ccaf-exam.local.md.
        v
@@ -90,7 +90,7 @@ ccaf/
 │       └── SKILL.md               # engine: assemble → administer → score (internal)
 ├── data/
 │   ├── ccaf-blueprint.md          # domains, weights, scenarios, paraphrased syllabus, scoring
-│   └── ccaf-question-bank.md      # the 12 official sample questions (verbatim seeds + anchors)
+│   └── ccaf-question-bank.md      # 12 self-authored seed questions (seeds + anchors)
 ├── scripts/
 │   ├── ccaf-exam.sh               # silent state helper (init / get / record / score / clear)
 │   └── tests/
@@ -102,8 +102,7 @@ ccaf/
 
 ## Notes
 
-- **Question sourcing.** The 12 official sample questions seed the bank (verbatim) and anchor style/difficulty; the rest are generated from a paraphrased syllabus and pass an independent verifier (re-solve cold, plausible distractors, shuffled positions) before being served.
-- **Confidentiality.** The syllabus in `ccaf-blueprint.md` is *paraphrased* — only the 12 official sample questions are verbatim — so this internal repo doesn't republish the exam guide wholesale.
+- **Question sourcing.** The 12 self-authored seed questions seed the bank and anchor style/difficulty; the rest are generated from the blueprint syllabus and pass an independent verifier (re-solve cold, plausible distractors, shuffled positions) before being served.
 - **Roadmap.** v1 leans on a small seed bank + generation; growing a larger verified bank, adding a short per-domain "practice" mode, and verifying the full lifecycle end-to-end are the next steps (tracked in `docs/specs/ccaf-mock-exam.md`).
 
 ## License

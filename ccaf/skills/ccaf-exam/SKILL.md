@@ -1,6 +1,7 @@
 ---
 name: ccaf-exam
 description: "Engine for the /ccaf:mock-exam mock exam. Assembles a 60-question CCAF mock (official seed questions + verified generated ones), administers it 4 questions per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line. Use when running or resuming /ccaf:mock-exam."
+user-invocable: false
 ---
 
 # CCAF Mock Exam Engine

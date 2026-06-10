@@ -136,7 +136,9 @@ Do not capture or report time at any point.
    (scaled = 100 + 15 × correct, a linear mapping over the real 100–1000 band). It is NOT
    Anthropic's proprietary equating curve. Treat 720+ here as a readiness signal, not a guarantee."*
 4. If PASS: note they're in good shape to book the real exam. If FAIL: point at the weakest
-   domain(s) from the breakdown as where to study. Do not persist, export, or share the result —
+   domain(s) from the breakdown as where to study, and recommend the conversational tutor for
+   targeted practice — e.g. *"Your weakest area is D5. Run `/ccaf:prepare D5` to work through it
+   turn by turn, then come back for another mock."* Do not persist, export, or share the result —
    it's shown in the terminal only.
 
 ## Integrity note

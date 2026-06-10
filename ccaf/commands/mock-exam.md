@@ -14,10 +14,10 @@ resume/recovery logic.
 
 Administers a faithful **mock** of the Claude Certified Architect – Foundations exam so the
 candidate can self-check readiness before booking the real (paid) exam. It mirrors the real
-format on everything replicable (60 questions, 4 of 6 scenarios, domain weighting
-27/18/20/20/15, single-select MCQ, no penalty for guessing) and reports a scaled 100–1000 score
-with the 720 pass line. The scaled number is an honest estimate — not Anthropic's proprietary
-equating curve.
+format on everything replicable (60 questions, 4 of 6 scenarios presented as case-study
+sections with the case brief kept visible, machine-enforced domain weighting 27/18/20/20/15,
+single-select MCQ, no penalty for guessing) and reports a scaled 100–1000 score with the 720
+pass line. The scaled number is an honest estimate — not Anthropic's proprietary equating curve.
 
 ## Arguments
 

@@ -16,6 +16,9 @@ must test the points below and stay strictly inside the in-scope list.
 
 - **60 questions** per attempt.
 - **4 of the 6 scenarios** below, chosen at random per attempt.
+- **Case-study framing** — like the real exam, questions are organized around the chosen
+  scenarios: the exam is grouped into 4 contiguous case-study sections, each opening with its
+  case-study brief (below), and every question is set inside its section's case.
 - Each question: single-select, **1 correct option + 3 distractors** (A–D).
 - **No penalty for guessing** — an unanswered question scores as incorrect.
 - Scaled score reported on the **100–1000** band; **pass = 720**; pass/fail designation.
@@ -56,6 +59,40 @@ Each question is framed inside a scenario. Pick 4 at random per attempt.
 | `developer-productivity` | Developer Productivity with Claude  | D2, D3, D1      | Agent SDK tools to explore unfamiliar codebases, understand legacy systems, generate boilerplate; built-in tools + MCP servers. |
 | `claude-code-ci`         | Claude Code for Continuous Integration | D3, D4       | Claude Code in CI/CD: automated reviews, test generation, PR feedback; actionable feedback, minimize false positives. |
 | `structured-extraction`  | Structured Data Extraction          | D4, D5          | Extract from unstructured docs, validate with JSON schemas, high accuracy, graceful edge-case handling, downstream integration. |
+
+## Case-study briefs (copy verbatim into assembled exams)
+
+Each chosen scenario's brief goes into its `[[CASE:<slug>]]` block in the attempt file —
+`title:` and `brief:` exactly as written here (each brief is one logical line). The brief is shown
+above every screen of that section, and every question in the section must be answerable from the
+brief plus its own stem (a question may add detail, but must never contradict the brief).
+
+- `customer-support` — **Customer Support Resolution Agent** — You are the architect of a
+  customer-support agent built on the Agent SDK for a consumer subscription company. The agent
+  resolves returns, billing disputes, and account issues through MCP tools including
+  `get_customer`, `lookup_order`, `process_refund`, and `escalate_to_human`. Leadership targets 80%+ first-contact
+  resolution, but refunds move real money, so policy enforcement and sound escalation matter as
+  much as speed.
+- `code-generation` — **Code Generation with Claude Code** — Your platform team has adopted Claude
+  Code for day-to-day code generation, refactoring, debugging, and documentation across several
+  services. You own the shared configuration — the CLAUDE.md hierarchy, custom slash commands,
+  rules, and skills — and you coach engineers on when to use plan mode versus direct execution.
+- `multi-agent-research` — **Multi-Agent Research System** — You operate a research system in
+  which a coordinator decomposes questions and delegates to web-search, document-analysis,
+  synthesis, and report-writing subagents to produce cited reports for analysts. Subagents run
+  with isolated context; the coordinator owns routing, error handling, and synthesis quality.
+- `developer-productivity` — **Developer Productivity with Claude** — Your team builds Agent SDK
+  tooling that helps engineers explore unfamiliar codebases, understand legacy systems, and
+  generate boilerplate. Agents combine built-in tools (Grep, Glob, Read, Edit) with MCP servers
+  for internal systems, and you tune tool scope and descriptions to keep each agent reliable.
+- `claude-code-ci` — **Claude Code for Continuous Integration** — You are wiring Claude Code into
+  CI/CD: automated review on pull requests, test generation, and PR feedback. Runs are
+  non-interactive, output must be machine-parseable, and the team demands actionable findings
+  with minimal false positives.
+- `structured-extraction` — **Structured Data Extraction** — You are building a pipeline that
+  extracts structured records from unstructured documents (invoices, contracts, reports),
+  validates them against JSON schemas, and feeds downstream systems. Accuracy targets are high,
+  edge cases must fail gracefully rather than fabricate, and human review capacity is limited.
 
 ---
 

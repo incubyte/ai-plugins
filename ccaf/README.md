@@ -15,11 +15,14 @@ CCAF is a Claude Code plugin that administers a faithful **mock** of the **Claud
 | 60 questions | ✅ 60 per attempt |
 | 5 domains, weighted 27 / 18 / 20 / 20 / 15 | ✅ same distribution (D1=16, D2=11, D3=12, D4=12, D5=9) |
 | 4 of 6 scenarios, chosen at random | ✅ same |
+| Questions organized around case studies | ✅ 4 case-study sections; the case brief stays visible on every screen |
 | Single-select, 1 correct + 3 distractors | ✅ same |
 | No penalty for guessing | ✅ unanswered = incorrect |
+| Answers revisable before submit | ✅ ask to change any earlier answer mid-exam |
 | Scaled 100–1000, pass = 720 | ✅ `scaled = 100 + 15 × correct`; pass at ≥ 42/60 |
+| 120-minute time limit | ❌ untimed by design — it shows the 120-min / ~2-min-per-question budget up front so you can self-pace |
 
-The one thing it **can't** replicate is Anthropic's proprietary scaled-scoring curve — so the score is a transparent, linear *estimate*, clearly labelled. Treat 720+ as a readiness signal, not a guarantee.
+Two things it does **not** replicate, on purpose: Anthropic's proprietary scaled-scoring curve (impossible — the score here is a transparent, linear *estimate*, clearly labelled) and the 120-minute clock (deliberate — the mock is resumable and honor-system; time yourself if you want realistic conditions). Treat 720+ as a readiness signal, not a guarantee.
 
 ## The flow
 
@@ -27,12 +30,16 @@ The one thing it **can't** replicate is Anthropic's proprietary scaled-scoring c
 /ccaf:mock-exam
        |
        v
-  [ ASSEMBLE ]   Pick 4 of 6 scenarios; pull the seed questions +
-       |          generate the rest (each independently verified, A–D shuffled);
-       |          freeze a 60-question exam to ~/.claude/ccaf-exam.local.md.
+  [ ASSEMBLE ]   Pick 4 of 6 case studies; pull the seed questions + generate
+       |          the rest (each independently verified, A–D shuffled); group
+       |          into 4 case-study sections; freeze a 60-question exam to
+       |          ~/.claude/ccaf-exam.local.md. The 16/11/12/12/9 domain split
+       |          is machine-enforced at write time (a mis-weighted exam is
+       |          refused), and the composition is shown to you up front.
        v
-  [ ADMINISTER ] 4 questions per screen. Progress saved after every screen —
-       |          quit any time and re-run to resume where you left off.
+  [ ADMINISTER ] 4 questions per screen, case brief always visible. Each screen
+       |          saves atomically in the background while the next one shows —
+       |          no save-wait between screens. Quit any time; re-run to resume.
        v
   [ SCORE ]      Scaled /1000, PASS/FAIL at 720, per-domain breakdown, and an
                   honest "this is an estimate" disclaimer.

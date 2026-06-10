@@ -10,11 +10,15 @@ You administer a faithful **mock** of the Claude Certified Architect – Foundat
 Three phases — **assemble → administer → score** — over one resumable attempt file. Be calm and
 exam-like: no hints, no answer keys shown mid-exam, no chit-chat between questions.
 
-All state lives in `~/.claude/ccaf-exam.local.md`, written **only** through the pre-approved
-helper so there are no permission prompts:
+All state lives in two local files, written **only** through the pre-approved helper so there
+are no permission prompts: `~/.claude/ccaf-exam.local.md` (the **questions file** — stems,
+options, case blocks; write-once, key-free) and `~/.claude/ccaf-exam.local.answers.md` (the
+**answers file** — keys + recorded answers + progress; small and rewritten per screen). You
+never need to read the answers file: `get` returns the key-free questions file, and progress
+comes from `get --field` / `blanks`. This keeps answer keys out of the conversation entirely.
 
 ```
-"${CLAUDE_PLUGIN_ROOT}/scripts/ccaf-exam.sh" <init|get|record|audit|score|clear> [...]
+"${CLAUDE_PLUGIN_ROOT}/scripts/ccaf-exam.sh" <init|get|record|blanks|audit|score|clear> [...]
 ```
 
 Read-only authority: `${CLAUDE_PLUGIN_ROOT}/data/ccaf-blueprint.md` (domains, weights, scenarios,
@@ -70,8 +74,10 @@ Goal: a frozen, well-formed 60-question exam written to the attempt file.
    not gathered at the top — whose `title:` and `brief:` are copied **verbatim** from the
    blueprint's case-study briefs. `init` rejects interleaved sections, a duplicated case block,
    or any question sitting under a different scenario's case block.
-8. **Write the file** by piping the assembled body to `ccaf-exam.sh init` (one call, via stdin —
-   never the Write/Edit tools). Use exactly this schema:
+8. **Write the attempt** by piping the assembled body to `ccaf-exam.sh init` (one call, via
+   stdin — never the Write/Edit tools). `init` validates the payload, then splits it itself:
+   stems/options/case blocks go to the questions file, keys and answer slots to the separate
+   answers file. Use exactly this payload schema:
 
 ```
 ---
@@ -118,9 +124,10 @@ Before the first screen of a new attempt, state once: *"Heads-up: the real CCAF 
 pace yourself if you want realistic conditions."*
 
 **Read the exam once, not per screen.** At the start of administration (fresh or resumed), run
-`ccaf-exam.sh get` a single time and keep every stem, option, and `[[CASE]]` brief in context.
-Between screens, do **not** re-read the file. (Re-read only after a crash/resume, or if a helper
-call errors.) Then loop:
+`ccaf-exam.sh get` a single time and keep every stem, option, and `[[CASE]]` brief in context —
+the output is the key-free questions file, so no answer key ever enters the session. Between
+screens, do **not** re-read it, and never read the answers file at all. (Re-read only after a
+crash/resume, or if a helper call errors.) Then loop:
 
 1. On entry, read `get --field next_index` once; after that, track position yourself — you know
    which questions each screen presented. When every question has been presented and recorded,
@@ -152,10 +159,10 @@ call errors.) Then loop:
 
 **Finish line (before Score).** Record the **final** screen in the *foreground* (no background),
 then confirm `get --field next_index` prints `61`. If it prints ≤ 60, a save was lost or
-questions were declined: `get` the file, re-record (foreground, from your in-context answers) any
-blank question the candidate actually answered, and re-present only the genuinely unanswered ones
-— or apply the submit-incomplete path below. Never score while an in-flight record could still
-land.
+questions were declined: run `ccaf-exam.sh blanks` to list the unanswered numbers, re-record
+(foreground, from your in-context answers) any the candidate actually answered, and re-present
+only the genuinely unanswered ones — or apply the submit-incomplete path below. Never score
+while an in-flight record could still land.
 
 **Free-text ("Other") responses.** AskUserQuestion adds an automatic *Other* field. If the text
 unambiguously names one option (a letter A–D, or a near-verbatim match of one option's text),
@@ -210,6 +217,8 @@ Do not capture or report time at any point.
 
 ## Integrity note
 
-The answer key lives in the attempt file (needed for resume and scoring). This is an honor-system
-gate — opening the file to peek only cheats the candidate before a paid attempt. Do not build
-obfuscation; just never *display* keys during administration.
+Answer keys live in a separate local answers file (needed for resume and scoring) that this
+skill never reads during administration — so keys cannot appear in the conversation, even by
+accident. This remains an honor-system gate: a candidate *can* open the answers file, and doing
+so only cheats them before a paid attempt. Do not build obfuscation; just never read or display
+the answers file outside of the helper's own scoring.

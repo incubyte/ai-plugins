@@ -75,7 +75,7 @@ Discard any in-progress or completed attempt and assemble a brand-new exam.
 
 **Resume:** the attempt persists to `~/.claude/ccaf-exam.local.md`. Close your terminal mid-exam and re-run `/ccaf:mock-exam` — it greets you with "Welcome back" and continues from the next unanswered question.
 
-**Honor system:** untimed, self-serve, nothing reported or shared. The answer key lives in the attempt file so resume and scoring work — peeking only cheats you before a paid exam.
+**Honor system:** untimed, self-serve, nothing reported or shared. The answer key lives in a separate local answers file (`~/.claude/ccaf-exam.local.answers.md`) that is never shown — and never even read — during the exam; it exists so resume and scoring work. Peeking at it only cheats you before a paid exam.
 
 ## How scoring works
 

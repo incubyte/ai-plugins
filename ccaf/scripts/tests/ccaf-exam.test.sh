@@ -17,7 +17,11 @@ PASS_COUNT=0
 FAIL_COUNT=0
 WORK=""
 
-setup() { WORK="$(mktemp -d)"; export CCAF_EXAM_FILE="$WORK/ccaf-exam.local.md"; }
+setup() {
+  WORK="$(mktemp -d)"
+  export CCAF_EXAM_FILE="$WORK/ccaf-exam.local.md"
+  ANS_FILE="${CCAF_EXAM_FILE%.md}.answers.md"   # mirrors the helper's derivation
+}
 teardown() { [[ -n "$WORK" && -d "$WORK" ]] && rm -rf "$WORK"; }
 
 assert_eq() {
@@ -105,13 +109,17 @@ assert_eq "domain weights sum to 60"     "60" "$WEIGHTSUM"
 assert_contains "blueprint names 720 pass" "$(cat "$BLUEPRINT")" "pass = 720"
 assert_contains "blueprint has out-of-scope list" "$(cat "$BLUEPRINT")" "Out-of-scope topics"
 
-echo "== Slice 5.2: init + get =="
+echo "== Slice 5.2: init + get (split files) =="
 setup
 make_exam 4 0
-assert_file_exists "exam file written" "$CCAF_EXAM_FILE"
+assert_file_exists "questions file written" "$CCAF_EXAM_FILE"
+assert_file_exists "answers file written"   "$ANS_FILE"
 assert_eq "status in_progress"  "in_progress" "$(field status)"
 assert_eq "total persisted"     "4"           "$(field total)"
 assert_eq "next_index starts 1" "1"           "$(field next_index)"
+assert_eq "questions file holds no answer keys" "0" "$(grep -c '^answer_key:' "$CCAF_EXAM_FILE" || true)"
+assert_eq "questions file holds no user answers" "0" "$(grep -c '^user_answer:' "$CCAF_EXAM_FILE" || true)"
+assert_eq "get output is key-free" "0" "$(bash "$HELPER" get | grep -c '^answer_key:' || true)"
 teardown
 
 echo "== Slice 5.3 + 5.5: record advances next_index (resume cursor) =="
@@ -223,11 +231,30 @@ if printf -- '---\nstatus: in_progress\ntotal: 3\nscenarios: a\nnext_index: 1\n-
 else
   echo "  PASS: init rejects body with blocks != total"; PASS_COUNT=$((PASS_COUNT + 1))
 fi
-if [[ -f "$CCAF_EXAM_FILE" ]]; then
-  echo "  FAIL: rejected init must not write the file"; FAIL_COUNT=$((FAIL_COUNT + 1))
+if [[ -f "$CCAF_EXAM_FILE" || -f "$ANS_FILE" ]]; then
+  echo "  FAIL: rejected init must write neither file"; FAIL_COUNT=$((FAIL_COUNT + 1))
 else
-  echo "  PASS: rejected init writes nothing"; PASS_COUNT=$((PASS_COUNT + 1))
+  echo "  PASS: rejected init writes neither file"; PASS_COUNT=$((PASS_COUNT + 1))
 fi
+teardown
+
+echo "== Split files: record touches only the answers file =="
+setup; make_exam 8 0
+cp "$CCAF_EXAM_FILE" "$WORK/questions.before"
+bash "$HELPER" record --q 1 --answer A --q 2 --answer B >/dev/null
+if cmp -s "$CCAF_EXAM_FILE" "$WORK/questions.before"; then
+  echo "  PASS: questions file is byte-identical after record"; PASS_COUNT=$((PASS_COUNT + 1))
+else
+  echo "  FAIL: record must never rewrite the questions file"; FAIL_COUNT=$((FAIL_COUNT + 1))
+fi
+assert_eq "answers recorded in answers file" "2" "$(grep -cE '^[0-9]+ D[1-5] [A-D] [A-D]$' "$ANS_FILE" || true)"
+teardown
+
+echo "== Split files: blanks lists unanswered question numbers =="
+setup; make_exam 4 1
+assert_eq "blanks -> 2 3 4" "2 3 4" "$(bash "$HELPER" blanks | tr '\n' ' ' | sed 's/ $//')"
+bash "$HELPER" record --q 3 --answer C >/dev/null
+assert_eq "blanks shrinks after record" "2 4" "$(bash "$HELPER" blanks | tr '\n' ' ' | sed 's/ $//')"
 teardown
 
 echo "== Perf: batched record (one call per screen) =="
@@ -297,7 +324,8 @@ else
 fi
 teardown
 setup; make_exam 60 60
-sed -i.bak 's/^answer_key: B$/answer_key: A/' "$CCAF_EXAM_FILE" && rm -f "$CCAF_EXAM_FILE.bak"   # A=30, B=0
+# Keys now live in the answers file (column 3): turn every B key into A -> A=30, B=0.
+sed -i.bak 's/^\([0-9][0-9]* D[1-5]\) B /\1 A /' "$ANS_FILE" && rm -f "$ANS_FILE.bak"
 if bash "$HELPER" score >/dev/null 2>&1; then
   echo "  FAIL: degenerate key distribution should fail validation"; FAIL_COUNT=$((FAIL_COUNT + 1))
 else
@@ -377,13 +405,13 @@ bash "$HELPER" score >/dev/null
 assert_eq "status -> completed" "completed" "$(field status)"
 teardown
 
-echo "== Slice 5.6: clear removes the file =="
+echo "== Slice 5.6: clear removes both files =="
 setup; make_exam 4 0
 bash "$HELPER" clear >/dev/null
-if [[ -f "$CCAF_EXAM_FILE" ]]; then
-  echo "  FAIL: clear removed file"; FAIL_COUNT=$((FAIL_COUNT + 1))
+if [[ -f "$CCAF_EXAM_FILE" || -f "$ANS_FILE" ]]; then
+  echo "  FAIL: clear must remove both attempt files"; FAIL_COUNT=$((FAIL_COUNT + 1))
 else
-  echo "  PASS: clear removed file"; PASS_COUNT=$((PASS_COUNT + 1))
+  echo "  PASS: clear removed both attempt files"; PASS_COUNT=$((PASS_COUNT + 1))
 fi
 teardown
 

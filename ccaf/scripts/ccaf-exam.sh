@@ -224,7 +224,7 @@ validate_payload() {
   fi
   # The question bank is reference-only (it ships in the repo, answers included,
   # so anyone may have read it) — bank questions must never be served.
-  if grep -qE '^(source: authored|id: seed-)' "$file"; then
+  if grep -qE '^(source: authored|id: seed-|id: ref-)' "$file"; then
     echo "bank questions are reference-only: found 'source: authored' / 'id: seed-*' in the exam"; return 1
   fi
   if [[ "$total" -eq 60 ]]; then
@@ -247,7 +247,7 @@ validate_pair() {
   [[ "$blocks" -eq "$qt" ]] || { echo "questions file has $blocks blocks but total=$qt"; return 1; }
   lines="$(grep -cE '^[0-9]+ D[1-5] [A-D] ([A-D]|-)$' "$ANSWERS_FILE" || true)"
   [[ "$lines" -eq "$qt" ]] || { echo "answers file has $lines well-formed lines but total=$qt"; return 1; }
-  if grep -qE '^(source: authored|id: seed-)' "$EXAM_FILE"; then
+  if grep -qE '^(source: authored|id: seed-|id: ref-)' "$EXAM_FILE"; then
     echo "bank questions are reference-only: found 'source: authored' / 'id: seed-*' in the exam"; return 1
   fi
   if [[ "$qt" -eq 60 ]]; then

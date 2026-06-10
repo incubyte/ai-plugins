@@ -2,7 +2,7 @@
 
 CCAF is a Claude Code plugin that administers a faithful **mock** of the **Claude Certified Architect – Foundations** exam — right in your terminal — and gives you an honest readiness verdict before you book the real (paid) exam.
 
-**Why this exists.** Incubyte is having everyone get CCAF-certified, with a simple rule: *practice first, and only sit the real exam once you can reliably score 720+.* Instead of every engineer hand-rolling a quiz from the exam-guide PDF, this plugin makes that practice-and-gate a single command, consistent for the whole team.
+**Why this exists.** Incubyte is having everyone get CCAF-certified, with a simple rule: *practice first, and only sit the real exam once you can reliably score 720+.* Instead of every engineer hand-rolling their own practice quiz, this plugin makes that practice-and-gate a single command, consistent for the whole team. All content is self-authored or publicly corroborated — no Anthropic exam material is reproduced.
 
 **What you get.** One command, `/ccaf:mock-exam`: a 60-question weighted mock that mirrors the real exam's structure, a scaled `/1000` score with the **720** pass line, and a per-domain breakdown that tells you exactly what to study. Resumable, untimed, fully offline.
 
@@ -97,7 +97,7 @@ ccaf/
 │   └── ccaf-exam/
 │       └── SKILL.md               # engine: assemble → administer → score (internal)
 ├── data/
-│   ├── ccaf-blueprint.md          # domains, weights, scenarios, paraphrased syllabus, scoring
+│   ├── ccaf-blueprint.md          # public exam mechanics + self-authored syllabus, scenarios, scoring
 │   └── ccaf-question-bank.md      # 12 self-authored reference questions (anchors only — never served)
 ├── scripts/
 │   ├── ccaf-exam.sh               # silent state helper (init / get / record / score / clear)

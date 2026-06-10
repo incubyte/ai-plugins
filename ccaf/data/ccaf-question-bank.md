@@ -1,14 +1,16 @@
-# CCAF Mock Exam — Seed Question Bank
+# CCAF Mock Exam — Reference Question Bank
 
-A curated set of **12 self-authored seed questions** spanning the five domains and the scenario
-contexts. They seed assembled exams (as anchors) and set the style/difficulty reference for
-generated questions. Stable and version-controlled — not regenerated at runtime. The assembler
-may shuffle option order at serve time (invariant 4.5); the `correct` letter below refers to the
-option text, not a fixed position.
+A curated set of **12 self-authored reference questions** spanning the five domains and the
+scenario contexts. They are **anchors only**: the assembler reads them as few-shot references for
+style, difficulty, and distractor construction — they are **never copied into an assembled exam**
+(every served question is generated fresh; the state helper rejects any `id: seed-*` /
+`source: authored` block). Rationale: this file ships in the plugin with answers and explanations,
+so a candidate may have read it — serving these questions would inflate scores. Stable and
+version-controlled — not regenerated at runtime. The `correct` letter refers to the option text.
 
 Each entry: stable `id`, `source: authored`, `domain` (D1–D5), `scenario` slug, `stem`, four
 `options`, the `correct` letter, and an `explanation` that says why the right answer is right and
-why the distractors are wrong.
+why the distractors are wrong — the explanation tone is part of what generated questions anchor to.
 
 ```yaml
 questions:
@@ -244,16 +246,17 @@ questions:
       that are only caught intermittently.
 ```
 
-## Domain coverage of the seed bank
+## Anchor coverage of the reference bank
 
-| Domain | Seed questions |
-| ------ | -------------- |
+| Domain | Reference questions |
+| ------ | ------------------- |
 | D1     | seed-01, seed-07 |
 | D2     | seed-02, seed-09 |
 | D3     | seed-04, seed-05, seed-06, seed-10 |
 | D4     | seed-11, seed-12 |
 | D5     | seed-03, seed-08 |
 
-Scenarios covered by seeds: `customer-support`, `code-generation`, `multi-agent-research`,
-`claude-code-ci` (4 of 6). The two uncovered scenarios — `developer-productivity`,
-`structured-extraction` — are filled entirely by generated questions when selected.
+Scenarios with anchor examples: `customer-support`, `code-generation`, `multi-agent-research`,
+`claude-code-ci` (4 of 6). For `developer-productivity` and `structured-extraction`, anchor on
+the nearest-domain references plus the blueprint's case-study briefs. Either way, every served
+question is generated fresh — these 12 never appear in an exam.

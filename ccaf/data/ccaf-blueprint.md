@@ -345,10 +345,12 @@ vision/image analysis; streaming / SSE implementation; rate limits / quotas / pr
 OAuth / key rotation / auth protocols; specific cloud-provider configs; benchmarking / model
 comparison; prompt-caching internals (beyond "it exists"); tokenization specifics.
 
-## Few-shot anchors
+## Few-shot anchors (reference-only)
 
-The 12 self-authored seed questions in `ccaf-question-bank.md` are the style,
-difficulty, and explanation-tone anchors. Generated questions should match their shape:
+The 12 self-authored questions in `ccaf-question-bank.md` are the style, difficulty, and
+explanation-tone anchors — **they are never served in an exam** (the bank is readable by any
+candidate, so serving it would inflate scores; the state helper rejects bank questions at write
+time). Generated questions should match their shape without reusing their stems or options:
 a realistic production scenario, one clearly-correct option, and three distractors that a
 candidate with incomplete knowledge might plausibly pick (build distractors from the anti-patterns
 flagged in the syllabus above). Explanations say why the right answer is right **and** why each

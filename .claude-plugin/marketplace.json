@@ -17,7 +17,7 @@
     {
       "name": "ccaf",
       "source": "./ccaf",
-      "description": "CCAF (Claude Certified Architect – Foundations) mock-exam readiness gate. /ccaf:mock-exam assembles a 60-question case-study-framed mock with machine-enforced domain weighting (self-authored seed questions + verified generated ones), administers it 4 per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line plus a per-domain breakdown."
+      "description": "CCAF (Claude Certified Architect – Foundations) mock-exam readiness gate. /ccaf:mock-exam assembles a 60-question case-study-framed mock with machine-enforced domain weighting — every question generated fresh per attempt and independently verified — administers it 4 per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line plus a per-domain breakdown."
     },
     {
       "name": "discovery",

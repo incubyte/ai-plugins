@@ -238,6 +238,20 @@ else
 fi
 teardown
 
+echo "== Reference bank: bank questions are never served =="
+setup
+if printf -- '---\nstatus: in_progress\ntotal: 1\nscenarios: a\nnext_index: 1\n---\n[[Q1]]\ndomain: D1\nscenario: a\nsource: authored\nid: seed-01\nstem: s\nA) a\nB) b\nC) c\nD) d\nanswer_key: A\nuser_answer:\n' | bash "$HELPER" init >/dev/null 2>&1; then
+  echo "  FAIL: init must reject source: authored / id: seed-* blocks"; FAIL_COUNT=$((FAIL_COUNT + 1))
+else
+  echo "  PASS: init rejects bank questions (source: authored / id: seed-*)"; PASS_COUNT=$((PASS_COUNT + 1))
+fi
+if [[ -f "$CCAF_EXAM_FILE" || -f "$ANS_FILE" ]]; then
+  echo "  FAIL: rejected bank-question init must write nothing"; FAIL_COUNT=$((FAIL_COUNT + 1))
+else
+  echo "  PASS: rejected bank-question init writes nothing"; PASS_COUNT=$((PASS_COUNT + 1))
+fi
+teardown
+
 echo "== Split files: record touches only the answers file =="
 setup; make_exam 8 0
 cp "$CCAF_EXAM_FILE" "$WORK/questions.before"

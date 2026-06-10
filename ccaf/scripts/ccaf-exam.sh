@@ -54,8 +54,8 @@ set -eo pipefail
 #   [[Q1]]
 #   domain: D1
 #   scenario: customer-support
-#   source: authored
-#   id: seed-01
+#   source: generated            # always generated — bank questions are reference-only
+#   id: gen-01
 #   stem: ...
 #   A) ...
 #   B) ...
@@ -222,6 +222,11 @@ validate_payload() {
   if [[ "$blocks" -ne "$total" || "$keys" -ne "$total" || "$uas" -ne "$total" ]]; then
     echo "body mismatch: total=$total but blocks=$blocks keys=$keys user_answers=$uas"; return 1
   fi
+  # The question bank is reference-only (it ships in the repo, answers included,
+  # so anyone may have read it) — bank questions must never be served.
+  if grep -qE '^(source: authored|id: seed-)' "$file"; then
+    echo "bank questions are reference-only: found 'source: authored' / 'id: seed-*' in the exam"; return 1
+  fi
   if [[ "$total" -eq 60 ]]; then
     if ! reason="$(check_composition_questions "$file")"; then echo "$reason"; return 1; fi
     if ! reason="$(check_key_spread "$file" payload)"; then echo "$reason"; return 1; fi
@@ -242,6 +247,9 @@ validate_pair() {
   [[ "$blocks" -eq "$qt" ]] || { echo "questions file has $blocks blocks but total=$qt"; return 1; }
   lines="$(grep -cE '^[0-9]+ D[1-5] [A-D] ([A-D]|-)$' "$ANSWERS_FILE" || true)"
   [[ "$lines" -eq "$qt" ]] || { echo "answers file has $lines well-formed lines but total=$qt"; return 1; }
+  if grep -qE '^(source: authored|id: seed-)' "$EXAM_FILE"; then
+    echo "bank questions are reference-only: found 'source: authored' / 'id: seed-*' in the exam"; return 1
+  fi
   if [[ "$qt" -eq 60 ]]; then
     if ! reason="$(check_composition_questions "$EXAM_FILE")"; then echo "$reason"; return 1; fi
     if ! reason="$(check_key_spread "$ANSWERS_FILE" answers)"; then echo "$reason"; return 1; fi

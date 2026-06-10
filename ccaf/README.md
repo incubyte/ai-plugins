@@ -30,12 +30,13 @@ Two things it does **not** replicate, on purpose: Anthropic's proprietary scaled
 /ccaf:mock-exam
        |
        v
-  [ ASSEMBLE ]   Pick 4 of 6 case studies; pull the seed questions + generate
-       |          the rest (each independently verified, A–D shuffled); group
-       |          into 4 case-study sections; freeze a 60-question exam to
-       |          ~/.claude/ccaf-exam.local.md. The 16/11/12/12/9 domain split
-       |          is machine-enforced at write time (a mis-weighted exam is
-       |          refused), and the composition is shown to you up front.
+  [ ASSEMBLE ]   Pick 4 of 6 case studies; generate all 60 questions fresh
+       |          (anchored to the reference bank, each independently verified,
+       |          A–D shuffled); group into 4 case-study sections; freeze the
+       |          exam to ~/.claude/ccaf-exam.local.md. The 16/11/12/12/9
+       |          domain split is machine-enforced at write time (a
+       |          mis-weighted exam is refused), and the composition is shown
+       |          to you up front.
        v
   [ ADMINISTER ] 4 questions per screen, case brief always visible. Each screen
        |          saves atomically in the background while the next one shows —
@@ -97,7 +98,7 @@ ccaf/
 │       └── SKILL.md               # engine: assemble → administer → score (internal)
 ├── data/
 │   ├── ccaf-blueprint.md          # domains, weights, scenarios, paraphrased syllabus, scoring
-│   └── ccaf-question-bank.md      # 12 self-authored seed questions (seeds + anchors)
+│   └── ccaf-question-bank.md      # 12 self-authored reference questions (anchors only — never served)
 ├── scripts/
 │   ├── ccaf-exam.sh               # silent state helper (init / get / record / score / clear)
 │   └── tests/
@@ -109,8 +110,8 @@ ccaf/
 
 ## Notes
 
-- **Question sourcing.** The 12 self-authored seed questions seed the bank and anchor style/difficulty; the rest are generated from the blueprint syllabus and pass an independent verifier (re-solve cold, plausible distractors, shuffled positions) before being served.
-- **Roadmap.** v1 leans on a small seed bank + generation; growing a larger verified bank, adding a short per-domain "practice" mode, and verifying the full lifecycle end-to-end are the next steps (tracked in `docs/specs/ccaf-mock-exam.md`).
+- **Question sourcing.** Every question in every attempt is **generated fresh** from the blueprint syllabus and passes an independent verifier (re-solve cold, plausible distractors, shuffled positions) before being served. The 12 self-authored questions in the bank are style/difficulty anchors only — they never appear in an exam (machine-enforced), because the bank ships in this repo with answers, and re-serving readable questions would inflate your readiness signal.
+- **Roadmap.** v1 generates everything per attempt anchored to a small reference bank; growing a larger verified anchor bank, adding a short per-domain "practice" mode, and verifying the full lifecycle end-to-end are the next steps (tracked in `docs/specs/ccaf-mock-exam.md`).
 
 ## License
 

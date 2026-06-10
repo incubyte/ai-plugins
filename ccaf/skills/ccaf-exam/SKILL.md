@@ -1,6 +1,6 @@
 ---
 name: ccaf-exam
-description: "Engine for the /ccaf:mock-exam mock exam. Assembles a 60-question CCAF mock (curated seed questions + verified generated ones), administers it 4 questions per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line. Use when running or resuming /ccaf:mock-exam."
+description: "Engine for the /ccaf:mock-exam mock exam. Assembles a 60-question CCAF mock (all questions generated fresh per attempt, anchored to a self-authored reference bank and independently verified), administers it 4 questions per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line. Use when running or resuming /ccaf:mock-exam."
 user-invocable: false
 ---
 
@@ -22,8 +22,8 @@ comes from `get --field` / `blanks`. This keeps answer keys out of the conversat
 ```
 
 Read-only authority: `${CLAUDE_PLUGIN_ROOT}/data/ccaf-blueprint.md` (domains, weights, scenarios,
-in/out-of-scope, scoring) and `${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` (the 12 curated
-seed questions). Read both before assembling.
+in/out-of-scope, scoring) and `${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` (12 self-authored
+**reference** questions — style/difficulty anchors only, never served). Read both before assembling.
 
 ## On startup — resume / fresh / recover
 
@@ -49,22 +49,24 @@ Goal: a frozen, well-formed 60-question exam written to the attempt file.
    don't always pick the same four). The six slugs and their case-study briefs are in the blueprint.
 2. **Domain quotas (hard constraint).** Exactly: **D1=16, D2=11, D3=12, D4=12, D5=9** (= 60).
    `init` enforces this deterministically and refuses a mis-weighted exam.
-3. **Seed anchors.** Include the seed questions whose `scenario` is among the four chosen
-   (use them as-is). They count toward their domain quotas.
-4. **Generate the remainder** up to 60, honoring the quotas and spread across the chosen scenarios.
-   Each generated question:
+3. **Reference anchors — never served.** Read the 12 bank questions as few-shot anchors for
+   style, difficulty, and distractor construction only. Do **not** copy any bank question — or a
+   near-verbatim variant of one — into the exam: the bank ships in the repo with answers and
+   explanations, so candidates may have already read it. Every served question is freshly
+   generated (`init` rejects any `source: authored` / `id: seed-*` block).
+4. **Generate all 60 questions**, honoring the quotas and spread across the chosen scenarios.
+   Each question:
    - is set inside its scenario's **case-study brief** (answerable from brief + stem; may add
      detail, must never contradict the brief);
    - tests a task statement for its tagged domain (see blueprint), stays strictly **in-scope**, and
      never touches an **out-of-scope** topic;
    - has one clearly-correct option and three plausible-but-wrong distractors;
-   - matches the seed questions' style and difficulty (use them as few-shot anchors).
-5. **Verify each generated question independently.** For each, run an *independent* check that did
+   - matches the bank questions' style and difficulty without reusing their stems or options.
+5. **Verify every question independently.** For each, run an *independent* check that did
    **not** see your authoring rationale — prefer spawning a fresh subagent via the Task tool that
    receives only the question + options and must (a) pick the single defensible answer and (b) flag
    any second-correct or implausible distractor. Reject and regenerate any question that fails
-   (budget ~3 tries); if it still fails, substitute another in-domain question or an unused seed.
-   Curated seed questions are pre-verified and skip this check.
+   (budget ~3 tries); if it still fails, substitute a fresh in-domain question.
 6. **Shuffle answer positions.** For every question (seed and generated), place the correct option
    at a varied A–D position — keep each letter at roughly 15 (stay within 13–17) so the key
    carries no positional pattern. (`init` rejects a degenerate spread.)
@@ -92,8 +94,8 @@ brief: <copied verbatim from the blueprint — one logical line>
 [[Q1]]
 domain: D3
 scenario: code-generation
-source: authored
-id: seed-04
+source: generated
+id: gen-01
 stem: <question text — keep to one logical line; no blank lines inside the block>
 A) <option>
 B) <option>
@@ -107,9 +109,10 @@ user_answer:
 
 Rules for the body: one `[[CASE:<slug>]]` block (with `title:` + `brief:`) before each scenario
 section; one `[[Q<n>]]` block per question numbered 1..60 in order; each question block has
-`domain:`, `scenario:`, `source:` (`authored` or `generated`), `id:`, `stem:`, the four options,
-`answer_key:` (the correct letter after shuffling), and an empty `user_answer:`. Keep every block
-free of blank lines — the helper parses `user_answer:` as the question-block terminator.
+`domain:`, `scenario:`, `source: generated` (always — bank questions are never served), a fresh
+`id:` (`gen-<n>`), `stem:`, the four options, `answer_key:` (the correct letter after shuffling),
+and an empty `user_answer:`. Keep every block free of blank lines — the helper parses
+`user_answer:` as the question-block terminator.
 
 After writing, run `ccaf-exam.sh audit` → must end `composition=OK` (it also prints the per-domain
 histogram). `init` itself refuses a malformed body, a quota violation, a missing case block, a

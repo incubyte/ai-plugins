@@ -1,24 +1,25 @@
 ---
 name: sdd-verifier
-description: Use this agent to verify a completed SDD slice — tests pass, test quality assessed, criteria met, patterns followed. Risk-aware. Replaces TDD plan completion check with test quality assessment (branch coverage, assertion quality, boundary testing) since tests are written after code in SDD.
+description: |
+  Use this agent to verify a completed SDD slice — tests pass, test quality assessed, criteria met, patterns followed. Risk-aware. Replaces TDD plan completion check with test quality assessment (branch coverage, assertion quality, boundary testing) since tests are written after code in SDD.
 
-<example>
-Context: An SDD slice has been coded and tested, needs verification
-user: "Slice 1 is coded and tested. Verify it."
-assistant: "I'll run tests, assess test quality, and validate acceptance criteria."
-<commentary>
-Post-execution verification for SDD. Runs the full test suite, checks test quality (branch coverage, assertion quality), and reports pass/fail.
-</commentary>
-</example>
+  <example>
+  Context: An SDD slice has been coded and tested, needs verification
+  user: "Slice 1 is coded and tested. Verify it."
+  assistant: "I'll run tests, assess test quality, and validate acceptance criteria."
+  <commentary>
+  Post-execution verification for SDD. Runs the full test suite, checks test quality (branch coverage, assertion quality), and reports pass/fail.
+  </commentary>
+  </example>
 
-<example>
-Context: Bee SDD workflow automatically verifies after slice-tester completes
-user: "Slice-tester finished. Run the verifier."
-assistant: "Running SDD verification — tests, quality assessment, AC coverage."
-<commentary>
-Automatic verification step in the SDD workflow. The key difference from TDD verifier: instead of checking TDD plan completion, it assesses test quality since tests were written after code.
-</commentary>
-</example>
+  <example>
+  Context: Bee SDD workflow automatically verifies after slice-tester completes
+  user: "Slice-tester finished. Run the verifier."
+  assistant: "Running SDD verification — tests, quality assessment, AC coverage."
+  <commentary>
+  Automatic verification step in the SDD workflow. The key difference from TDD verifier: instead of checking TDD plan completion, it assesses test quality since tests were written after code.
+  </commentary>
+  </example>
 
 model: inherit
 color: yellow

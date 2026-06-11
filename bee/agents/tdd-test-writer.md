@@ -1,24 +1,25 @@
 ---
 name: tdd-test-writer
-description: Use this agent as the "test" side of ping-pong TDD. It writes exactly ONE failing test, runs it to confirm RED, and returns the test name and error. Never writes more than one test per invocation.
+description: |
+  Use this agent as the "test" side of ping-pong TDD. It writes exactly ONE failing test, runs it to confirm RED, and returns the test name and error. Never writes more than one test per invocation.
 
-<example>
-Context: Ping-pong parent agent needs the next failing test for an AC
-user: "Write the Zero case test for: User can create an account with email and password"
-assistant: "I'll write a test for the simplest case — creating an account with valid email and password."
-<commentary>
-Test-writer writes one test, runs it, confirms it fails (RED), and returns the failure details.
-</commentary>
-</example>
+  <example>
+  Context: Ping-pong parent agent needs the next failing test for an AC
+  user: "Write the Zero case test for: User can create an account with email and password"
+  assistant: "I'll write a test for the simplest case — creating an account with valid email and password."
+  <commentary>
+  Test-writer writes one test, runs it, confirms it fails (RED), and returns the failure details.
+  </commentary>
+  </example>
 
-<example>
-Context: Ping-pong parent agent needs a boundary case test
-user: "Write the Boundary case test for: Password must be at least 8 characters"
-assistant: "I'll write a test for the boundary — a password with exactly 7 characters should be rejected."
-<commentary>
-Test-writer targets a specific ZOMBIE step for the AC. One test only.
-</commentary>
-</example>
+  <example>
+  Context: Ping-pong parent agent needs a boundary case test
+  user: "Write the Boundary case test for: Password must be at least 8 characters"
+  assistant: "I'll write a test for the boundary — a password with exactly 7 characters should be rejected."
+  <commentary>
+  Test-writer targets a specific ZOMBIE step for the AC. One test only.
+  </commentary>
+  </example>
 
 model: inherit
 color: red

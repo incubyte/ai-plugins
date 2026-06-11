@@ -1,24 +1,25 @@
 ---
 name: tdd-planner-onion
-description: Use this agent to generate an outside-in TDD plan for onion/hexagonal architecture. One plan per slice. Use when architecture decision is onion or hexagonal.
+description: |
+  Use this agent to generate an outside-in TDD plan for onion/hexagonal architecture. One plan per slice. Use when architecture decision is onion or hexagonal.
 
-<example>
-Context: Architecture-advisor recommended onion architecture for a feature
-user: "Architecture is onion. Generate the TDD plan for slice 1."
-assistant: "I'll create an outside-in TDD plan starting from the outer integration test."
-<commentary>
-Architecture decision is onion/hexagonal. This planner generates a double-loop TDD plan: outer test first, then layer by layer inward.
-</commentary>
-</example>
+  <example>
+  Context: Architecture-advisor recommended onion architecture for a feature
+  user: "Architecture is onion. Generate the TDD plan for slice 1."
+  assistant: "I'll create an outside-in TDD plan starting from the outer integration test."
+  <commentary>
+  Architecture decision is onion/hexagonal. This planner generates a double-loop TDD plan: outer test first, then layer by layer inward.
+  </commentary>
+  </example>
 
-<example>
-Context: Complex domain logic with explicit port boundaries needed
-user: "Plan the TDD for the payment processing feature"
-assistant: "I'll generate an onion TDD plan with pure domain core and explicit ports."
-<commentary>
-Payment processing has complex domain logic. Onion planner ensures pure domain, explicit ports, and thin adapters.
-</commentary>
-</example>
+  <example>
+  Context: Complex domain logic with explicit port boundaries needed
+  user: "Plan the TDD for the payment processing feature"
+  assistant: "I'll generate an onion TDD plan with pure domain core and explicit ports."
+  <commentary>
+  Payment processing has complex domain logic. Onion planner ensures pure domain, explicit ports, and thin adapters.
+  </commentary>
+  </example>
 
 model: inherit
 color: blue

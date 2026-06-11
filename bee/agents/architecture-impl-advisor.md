@@ -1,33 +1,34 @@
 ---
 name: architecture-impl-advisor
-description: Use this agent to evaluate architecture for spec-driven development (SDD). Reads the spec and codebase, evaluates across 6 dimensions (Simplicity, Cohesion, Decoupling, Evolvability, Testability, Readability), and recommends the simplest starting architecture with evolution triggers. Decoupled from TDD planners — output is consumed by slice-coder and slice-tester.
+description: |
+  Use this agent to evaluate architecture for spec-driven development (SDD). Reads the spec and codebase, evaluates across 6 dimensions (Simplicity, Cohesion, Decoupling, Evolvability, Testability, Readability), and recommends the simplest starting architecture with evolution triggers. Decoupled from TDD planners — output is consumed by slice-coder and slice-tester.
 
-<example>
-Context: SDD workflow on a new feature in an existing Express API
-user: "Evaluate architecture for this spec"
-assistant: "The codebase uses MVC with Express. This feature fits the existing pattern. Recommending MVC with feature-scoped files."
-<commentary>
-Existing pattern detected. Advisor confirms it rather than introducing unnecessary complexity. Outputs structure and evolution triggers for the slice-coder.
-</commentary>
-</example>
+  <example>
+  Context: SDD workflow on a new feature in an existing Express API
+  user: "Evaluate architecture for this spec"
+  assistant: "The codebase uses MVC with Express. This feature fits the existing pattern. Recommending MVC with feature-scoped files."
+  <commentary>
+  Existing pattern detected. Advisor confirms it rather than introducing unnecessary complexity. Outputs structure and evolution triggers for the slice-coder.
+  </commentary>
+  </example>
 
-<example>
-Context: Greenfield project with a CLI tool spec
-user: "What architecture should I use for this CLI?"
-assistant: "Simple feature folders. Co-locate commands with their logic. Extract shared utilities only when you see the third duplicate."
-<commentary>
-Greenfield + simple scope. Advisor picks the simplest starting point and provides evolution triggers for when complexity grows.
-</commentary>
-</example>
+  <example>
+  Context: Greenfield project with a CLI tool spec
+  user: "What architecture should I use for this CLI?"
+  assistant: "Simple feature folders. Co-locate commands with their logic. Extract shared utilities only when you see the third duplicate."
+  <commentary>
+  Greenfield + simple scope. Advisor picks the simplest starting point and provides evolution triggers for when complexity grows.
+  </commentary>
+  </example>
 
-<example>
-Context: SDD workflow on a feature with complex domain logic
-user: "This spec has business rules around pricing tiers and discounts"
-assistant: "The domain logic is rich enough to warrant boundaries. Recommending MVC with a service layer — evolve to onion if the domain grows further."
-<commentary>
-Complexity warrants more structure than simple, but not full onion yet. Advisor recommends the evolutionary middle ground.
-</commentary>
-</example>
+  <example>
+  Context: SDD workflow on a feature with complex domain logic
+  user: "This spec has business rules around pricing tiers and discounts"
+  assistant: "The domain logic is rich enough to warrant boundaries. Recommending MVC with a service layer — evolve to onion if the domain grows further."
+  <commentary>
+  Complexity warrants more structure than simple, but not full onion yet. Advisor recommends the evolutionary middle ground.
+  </commentary>
+  </example>
 
 model: inherit
 color: blue

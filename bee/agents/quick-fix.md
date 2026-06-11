@@ -1,33 +1,34 @@
 ---
 name: quick-fix
-description: Use this agent when the orchestrator classifies a task as TRIVIAL — typos, config changes, obvious one-liners. Makes the fix and runs tests.
+description: |
+  Use this agent when the orchestrator classifies a task as TRIVIAL — typos, config changes, obvious one-liners. Makes the fix and runs tests.
 
-<example>
-Context: User reports a typo in a README file
-user: "Fix the typo in README.md where it says 'recieve' instead of 'receive'"
-assistant: "This is a quick fix. Let me handle it."
-<commentary>
-Trivial fix — single character change, no spec or plan needed. Quick-fix agent handles it end-to-end.
-</commentary>
-</example>
+  <example>
+  Context: User reports a typo in a README file
+  user: "Fix the typo in README.md where it says 'recieve' instead of 'receive'"
+  assistant: "This is a quick fix. Let me handle it."
+  <commentary>
+  Trivial fix — single character change, no spec or plan needed. Quick-fix agent handles it end-to-end.
+  </commentary>
+  </example>
 
-<example>
-Context: User needs a config value changed
-user: "Change the port in the config from 3000 to 8080"
-assistant: "Simple config change. I'll fix it and run tests."
-<commentary>
-Config change classified as TRIVIAL by the orchestrator. Quick-fix makes the change and verifies tests pass.
-</commentary>
-</example>
+  <example>
+  Context: User needs a config value changed
+  user: "Change the port in the config from 3000 to 8080"
+  assistant: "Simple config change. I'll fix it and run tests."
+  <commentary>
+  Config change classified as TRIVIAL by the orchestrator. Quick-fix makes the change and verifies tests pass.
+  </commentary>
+  </example>
 
-<example>
-Context: Bee build workflow triages a task as TRIVIAL
-user: "Add the missing semicolon in utils.ts line 42"
-assistant: "Got it — trivial fix. I'll use the quick-fix agent."
-<commentary>
-One-liner fix. The orchestrator delegates to quick-fix for immediate resolution.
-</commentary>
-</example>
+  <example>
+  Context: Bee build workflow triages a task as TRIVIAL
+  user: "Add the missing semicolon in utils.ts line 42"
+  assistant: "Got it — trivial fix. I'll use the quick-fix agent."
+  <commentary>
+  One-liner fix. The orchestrator delegates to quick-fix for immediate resolution.
+  </commentary>
+  </example>
 
 model: inherit
 color: green

@@ -1,15 +1,16 @@
 ---
 name: review-org-standards
-description: Use this agent to review code against the target project's CLAUDE.md conventions and rules. Checks project-specific patterns, naming, architecture, and any custom standards. Use as part of the multi-agent review.
+description: |
+  Use this agent to review code against the target project's CLAUDE.md conventions and rules. Checks project-specific patterns, naming, architecture, and any custom standards. Use as part of the multi-agent review.
 
-<example>
-Context: /bee:review command spawns specialist review agents
-user: "Check if the code follows our project conventions"
-assistant: "I'll review against the CLAUDE.md conventions and project-specific rules."
-<commentary>
-Part of the multi-agent review workflow. Checks code against project-specific standards from CLAUDE.md.
-</commentary>
-</example>
+  <example>
+  Context: /bee:review command spawns specialist review agents
+  user: "Check if the code follows our project conventions"
+  assistant: "I'll review against the CLAUDE.md conventions and project-specific rules."
+  <commentary>
+  Part of the multi-agent review workflow. Checks code against project-specific standards from CLAUDE.md.
+  </commentary>
+  </example>
 
 model: inherit
 color: magenta

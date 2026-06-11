@@ -1,33 +1,34 @@
 ---
 name: architecture-advisor
-description: Use this agent to evaluate architecture options when the task warrants a decision. Most tasks just follow existing patterns. Includes YAGNI check. Use for FEATURE and EPIC workflows after spec confirmation.
+description: |
+  Use this agent to evaluate architecture options when the task warrants a decision. Most tasks just follow existing patterns. Includes YAGNI check. Use for FEATURE and EPIC workflows after spec confirmation.
 
-<example>
-Context: Spec is confirmed and the codebase has an existing MVC pattern
-user: "The spec is ready. What architecture should we use?"
-assistant: "The codebase uses MVC and this fits. No architecture change needed."
-<commentary>
-Most tasks follow existing patterns. Architecture-advisor confirms the existing pattern rather than introducing unnecessary complexity.
-</commentary>
-</example>
+  <example>
+  Context: Spec is confirmed and the codebase has an existing MVC pattern
+  user: "The spec is ready. What architecture should we use?"
+  assistant: "The codebase uses MVC and this fits. No architecture change needed."
+  <commentary>
+  Most tasks follow existing patterns. Architecture-advisor confirms the existing pattern rather than introducing unnecessary complexity.
+  </commentary>
+  </example>
 
-<example>
-Context: New subsystem that doesn't fit existing patterns
-user: "We need to add a real-time event processing pipeline"
-assistant: "This requires an architecture decision. Let me evaluate options."
-<commentary>
-New subsystem with event-driven needs. Architecture-advisor presents options with tradeoffs for the developer to choose.
-</commentary>
-</example>
+  <example>
+  Context: New subsystem that doesn't fit existing patterns
+  user: "We need to add a real-time event processing pipeline"
+  assistant: "This requires an architecture decision. Let me evaluate options."
+  <commentary>
+  New subsystem with event-driven needs. Architecture-advisor presents options with tradeoffs for the developer to choose.
+  </commentary>
+  </example>
 
-<example>
-Context: Feature has distinct read and write concerns
-user: "Build a reporting dashboard with separate write and query paths"
-assistant: "This has distinct read/write sides. Let me check if CQRS makes sense."
-<commentary>
-CQRS candidate. Architecture-advisor runs the preliminary CQRS check before pattern selection.
-</commentary>
-</example>
+  <example>
+  Context: Feature has distinct read and write concerns
+  user: "Build a reporting dashboard with separate write and query paths"
+  assistant: "This has distinct read/write sides. Let me check if CQRS makes sense."
+  <commentary>
+  CQRS candidate. Architecture-advisor runs the preliminary CQRS check before pattern selection.
+  </commentary>
+  </example>
 
 model: inherit
 color: blue

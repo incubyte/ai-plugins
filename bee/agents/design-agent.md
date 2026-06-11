@@ -1,33 +1,34 @@
 ---
 name: design-agent
-description: Use this agent to produce a design brief for UI-involved projects. For existing design systems, it reads and documents what exists. For greenfield projects, it interviews the developer and proposes a cohesive design direction.
+description: |
+  Use this agent to produce a design brief for UI-involved projects. For existing design systems, it reads and documents what exists. For greenfield projects, it interviews the developer and proposes a cohesive design direction.
 
-<example>
-Context: Context-gatherer detected Tailwind and shadcn components in the project
-user: "Add a dashboard page to the app"
-assistant: "I see UI signals in the codebase. Let me produce a design brief from the existing design system."
-<commentary>
-UI-involved feature with an existing design system. Design-agent extracts and documents the system so downstream agents produce visually consistent output.
-</commentary>
-</example>
+  <example>
+  Context: Context-gatherer detected Tailwind and shadcn components in the project
+  user: "Add a dashboard page to the app"
+  assistant: "I see UI signals in the codebase. Let me produce a design brief from the existing design system."
+  <commentary>
+  UI-involved feature with an existing design system. Design-agent extracts and documents the system so downstream agents produce visually consistent output.
+  </commentary>
+  </example>
 
-<example>
-Context: Greenfield project with no design system but UI components needed
-user: "Build a landing page for our new SaaS product"
-assistant: "No design system detected. I'll interview you about visual preferences to create a design brief."
-<commentary>
-Greenfield UI work. Design-agent runs in interview mode to establish a design direction before speccing begins.
-</commentary>
-</example>
+  <example>
+  Context: Greenfield project with no design system but UI components needed
+  user: "Build a landing page for our new SaaS product"
+  assistant: "No design system detected. I'll interview you about visual preferences to create a design brief."
+  <commentary>
+  Greenfield UI work. Design-agent runs in interview mode to establish a design direction before speccing begins.
+  </commentary>
+  </example>
 
-<example>
-Context: Bee build workflow detects UI-involved task during context gathering
-user: "Add a settings page with user profile editing"
-assistant: "UI work detected. Let me document the design system first."
-<commentary>
-The build orchestrator triggers the design-agent when context-gatherer reports UI-involved: yes. The brief constrains all downstream UI decisions.
-</commentary>
-</example>
+  <example>
+  Context: Bee build workflow detects UI-involved task during context gathering
+  user: "Add a settings page with user profile editing"
+  assistant: "UI work detected. Let me document the design system first."
+  <commentary>
+  The build orchestrator triggers the design-agent when context-gatherer reports UI-involved: yes. The brief constrains all downstream UI decisions.
+  </commentary>
+  </example>
 
 model: inherit
 color: cyan

@@ -1,15 +1,16 @@
 ---
 name: review-code-quality
-description: Use this agent to review code against clean code principles — SRP, DRY, YAGNI, naming, small functions, error handling, dependency direction. Use as part of the multi-agent review.
+description: |
+  Use this agent to review code against clean code principles — SRP, DRY, YAGNI, naming, small functions, error handling, dependency direction. Use as part of the multi-agent review.
 
-<example>
-Context: /bee:review command spawns specialist review agents
-user: "Review the code quality of the orders module"
-assistant: "I'll analyze the code against clean code principles."
-<commentary>
-Part of the multi-agent review workflow. Focuses on SRP, DRY, YAGNI, naming, and dependency direction.
-</commentary>
-</example>
+  <example>
+  Context: /bee:review command spawns specialist review agents
+  user: "Review the code quality of the orders module"
+  assistant: "I'll analyze the code against clean code principles."
+  <commentary>
+  Part of the multi-agent review workflow. Focuses on SRP, DRY, YAGNI, naming, and dependency direction.
+  </commentary>
+  </example>
 
 model: inherit
 color: magenta

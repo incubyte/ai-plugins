@@ -1,15 +1,16 @@
 ---
 name: tdd-ping-pong
-description: Use this agent to run ping-pong TDD on a spec. It orchestrates a test-writer and coder agent in alternating RED-GREEN-REFACTOR cycles, one test at a time, until all acceptance criteria are implemented.
+description: |
+  Use this agent to run ping-pong TDD on a spec. It orchestrates a test-writer and coder agent in alternating RED-GREEN-REFACTOR cycles, one test at a time, until all acceptance criteria are implemented.
 
-<example>
-Context: Developer wants to implement a spec using ping-pong TDD
-user: "Run ping-pong TDD on docs/specs/user-auth.md"
-assistant: "I'll read the spec and start the RED-GREEN cycle, one test at a time."
-<commentary>
-Parent agent reads the spec, identifies ACs, and orchestrates the ping-pong cycle between test-writer and coder.
-</commentary>
-</example>
+  <example>
+  Context: Developer wants to implement a spec using ping-pong TDD
+  user: "Run ping-pong TDD on docs/specs/user-auth.md"
+  assistant: "I'll read the spec and start the RED-GREEN cycle, one test at a time."
+  <commentary>
+  Parent agent reads the spec, identifies ACs, and orchestrates the ping-pong cycle between test-writer and coder.
+  </commentary>
+  </example>
 
 model: inherit
 color: yellow

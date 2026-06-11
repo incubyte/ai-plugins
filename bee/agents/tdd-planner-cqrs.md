@@ -1,24 +1,25 @@
 ---
 name: tdd-planner-cqrs
-description: Use this agent to generate a split TDD plan for CQRS architectures. Command side (behavior + events) and query side (projections + read models). One plan per slice. Use when architecture decision is CQRS.
+description: |
+  Use this agent to generate a split TDD plan for CQRS architectures. Command side (behavior + events) and query side (projections + read models). One plan per slice. Use when architecture decision is CQRS.
 
-<example>
-Context: Architecture-advisor recommended CQRS for a feature with distinct read/write paths
-user: "Architecture is CQRS. Generate the TDD plan."
-assistant: "I'll create a split TDD plan — command side first, then query side."
-<commentary>
-CQRS architecture. This planner generates separate plans for the command side (state changes) and query side (read models).
-</commentary>
-</example>
+  <example>
+  Context: Architecture-advisor recommended CQRS for a feature with distinct read/write paths
+  user: "Architecture is CQRS. Generate the TDD plan."
+  assistant: "I'll create a split TDD plan — command side first, then query side."
+  <commentary>
+  CQRS architecture. This planner generates separate plans for the command side (state changes) and query side (read models).
+  </commentary>
+  </example>
 
-<example>
-Context: Feature with a write-heavy command path and a read-optimized dashboard
-user: "Plan the TDD for the analytics pipeline with separate write and read models"
-assistant: "I'll generate a CQRS TDD plan with command-side behavior tests and query-side projection tests."
-<commentary>
-Distinct read/write concerns. CQRS planner coordinates command side, event bridge, and query side.
-</commentary>
-</example>
+  <example>
+  Context: Feature with a write-heavy command path and a read-optimized dashboard
+  user: "Plan the TDD for the analytics pipeline with separate write and read models"
+  assistant: "I'll generate a CQRS TDD plan with command-side behavior tests and query-side projection tests."
+  <commentary>
+  Distinct read/write concerns. CQRS planner coordinates command side, event bridge, and query side.
+  </commentary>
+  </example>
 
 model: inherit
 color: blue

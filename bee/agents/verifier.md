@@ -1,24 +1,25 @@
 ---
 name: verifier
-description: Use this agent to verify a completed slice — tests pass, criteria met, patterns followed. Risk-aware. Use after execution of each slice.
+description: |
+  Use this agent to verify a completed slice — tests pass, criteria met, patterns followed. Risk-aware. Use after execution of each slice.
 
-<example>
-Context: A TDD plan slice has been executed and needs verification
-user: "Slice 1 is done. Verify it."
-assistant: "I'll run tests, check plan completion, and validate acceptance criteria."
-<commentary>
-Post-execution verification. Verifier runs the full test suite, checks AC coverage, and reports pass/fail.
-</commentary>
-</example>
+  <example>
+  Context: A TDD plan slice has been executed and needs verification
+  user: "Slice 1 is done. Verify it."
+  assistant: "I'll run tests, check plan completion, and validate acceptance criteria."
+  <commentary>
+  Post-execution verification. Verifier runs the full test suite, checks AC coverage, and reports pass/fail.
+  </commentary>
+  </example>
 
-<example>
-Context: Bee build workflow automatically verifies after slice execution
-user: "Execute the TDD plan and verify each slice"
-assistant: "Slice 1 complete. Running verification now."
-<commentary>
-Automatic verification step in the build workflow. Catches issues while context is fresh.
-</commentary>
-</example>
+  <example>
+  Context: Bee build workflow automatically verifies after slice execution
+  user: "Execute the TDD plan and verify each slice"
+  assistant: "Slice 1 complete. Running verification now."
+  <commentary>
+  Automatic verification step in the build workflow. Catches issues while context is fresh.
+  </commentary>
+  </example>
 
 model: inherit
 color: yellow

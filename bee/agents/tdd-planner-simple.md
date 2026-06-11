@@ -1,24 +1,25 @@
 ---
 name: tdd-planner-simple
-description: Use this agent to generate a simple test-first plan. For small features and utilities. Use when architecture decision is simple or default.
+description: |
+  Use this agent to generate a simple test-first plan. For small features and utilities. Use when architecture decision is simple or default.
 
-<example>
-Context: Simple utility function or small feature that doesn't need architecture layers
-user: "Plan the TDD for this helper function"
-assistant: "I'll create a simple test-first plan — test, implement, refactor."
-<commentary>
-Simple feature. No architecture layers needed. Basic red-green-refactor cycle.
-</commentary>
-</example>
+  <example>
+  Context: Simple utility function or small feature that doesn't need architecture layers
+  user: "Plan the TDD for this helper function"
+  assistant: "I'll create a simple test-first plan — test, implement, refactor."
+  <commentary>
+  Simple feature. No architecture layers needed. Basic red-green-refactor cycle.
+  </commentary>
+  </example>
 
-<example>
-Context: Architecture-advisor recommended simple pattern
-user: "Architecture is simple. Generate the TDD plan."
-assistant: "I'll create a straightforward test-first plan without layer ceremony."
-<commentary>
-Architecture decision is simple/default. This planner generates a lean test-implement-refactor plan.
-</commentary>
-</example>
+  <example>
+  Context: Architecture-advisor recommended simple pattern
+  user: "Architecture is simple. Generate the TDD plan."
+  assistant: "I'll create a straightforward test-first plan without layer ceremony."
+  <commentary>
+  Architecture decision is simple/default. This planner generates a lean test-implement-refactor plan.
+  </commentary>
+  </example>
 
 model: inherit
 color: blue

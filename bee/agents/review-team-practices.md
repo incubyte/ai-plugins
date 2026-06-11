@@ -1,15 +1,16 @@
 ---
 name: review-team-practices
-description: Use this agent to review team practices — commit message quality and PR review substance. Identifies rubber-stamp reviews and low-quality commit messages. Use as part of the multi-agent review.
+description: |
+  Use this agent to review team practices — commit message quality and PR review substance. Identifies rubber-stamp reviews and low-quality commit messages. Use as part of the multi-agent review.
 
-<example>
-Context: /bee:review command spawns specialist review agents
-user: "Review our team practices"
-assistant: "I'll analyze commit message quality and PR review substance."
-<commentary>
-Part of the multi-agent review workflow. Identifies team health signals from git history and PR reviews.
-</commentary>
-</example>
+  <example>
+  Context: /bee:review command spawns specialist review agents
+  user: "Review our team practices"
+  assistant: "I'll analyze commit message quality and PR review substance."
+  <commentary>
+  Part of the multi-agent review workflow. Identifies team health signals from git history and PR reviews.
+  </commentary>
+  </example>
 
 model: inherit
 color: magenta

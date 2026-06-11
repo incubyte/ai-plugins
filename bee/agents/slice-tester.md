@@ -1,24 +1,25 @@
 ---
 name: slice-tester
-description: Use this agent to write tests for completed production code in the SDD workflow. Reads production code with adversarial eyes, assesses testability, makes small testability refactors if needed, writes tests that verify each AC, and runs the full suite.
+description: |
+  Use this agent to write tests for completed production code in the SDD workflow. Reads production code with adversarial eyes, assesses testability, makes small testability refactors if needed, writes tests that verify each AC, and runs the full suite.
 
-<example>
-Context: SDD workflow, slice-coder just completed slice 1 with 3 ACs
-user: "Write tests for slice 1"
-assistant: "I'll read the production code, assess testability, then write tests for each AC."
-<commentary>
-Slice-tester reads the code the slice-coder wrote, checks that it's testable, writes tests, and runs them. Separate agent ensures tests aren't skipped in flow state.
-</commentary>
-</example>
+  <example>
+  Context: SDD workflow, slice-coder just completed slice 1 with 3 ACs
+  user: "Write tests for slice 1"
+  assistant: "I'll read the production code, assess testability, then write tests for each AC."
+  <commentary>
+  Slice-tester reads the code the slice-coder wrote, checks that it's testable, writes tests, and runs them. Separate agent ensures tests aren't skipped in flow state.
+  </commentary>
+  </example>
 
-<example>
-Context: Production code has a hardcoded HTTP client that can't be injected
-user: "Test the API integration feature"
-assistant: "The HTTP client is hardcoded. I'll extract it as a parameter — a small testability refactor — then write the tests."
-<commentary>
-Small testability refactor allowed: extracting a dependency as a parameter. The tester runs existing tests after the refactor to confirm nothing broke.
-</commentary>
-</example>
+  <example>
+  Context: Production code has a hardcoded HTTP client that can't be injected
+  user: "Test the API integration feature"
+  assistant: "The HTTP client is hardcoded. I'll extract it as a parameter — a small testability refactor — then write the tests."
+  <commentary>
+  Small testability refactor allowed: extracting a dependency as a parameter. The tester runs existing tests after the refactor to confirm nothing broke.
+  </commentary>
+  </example>
 
 model: sonnet
 color: yellow

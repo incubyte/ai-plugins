@@ -1,7 +1,7 @@
 {
   "name": "bee",
   "description": "Bee — a spec-driven TDD workflow navigator for AI-assisted development. Guides developers through the right level of process: triage, spec, architecture, TDD planning, execution, verification, and review.",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "author": {
     "name": "Incubyte"
   },

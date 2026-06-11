@@ -2,7 +2,7 @@
 
 CCAF is a Claude Code plugin that helps you **prepare for** and **mock-test** against the **Claude Certified Architect – Foundations** exam — right in your terminal — so you get an honest readiness verdict before you book the real (paid) exam.
 
-**Why this exists.** Incubyte is having everyone get CCAF-certified, with a simple rule: *practice first, and only sit the real exam once you can reliably score 720+.* Instead of every engineer hand-rolling a quiz from the exam-guide PDF, this plugin makes that learn-and-gate flow a couple of commands, consistent for the whole team.
+**Why this exists.** Incubyte is having everyone get CCAF-certified, with a simple rule: *practice first, and only sit the real exam once you can reliably score 720+.* Instead of every engineer hand-rolling a quiz from the exam-guide PDF, this plugin makes that learn-and-gate flow a couple of commands, consistent for the whole team. All content is self-authored or publicly corroborated — no Anthropic exam material is reproduced.
 
 **What you get — two commands, one loop:**
 
@@ -25,11 +25,14 @@ CCAF is a Claude Code plugin that helps you **prepare for** and **mock-test** ag
 | 60 questions | ✅ 60 per attempt |
 | 5 domains, weighted 27 / 18 / 20 / 20 / 15 | ✅ same distribution (D1=16, D2=11, D3=12, D4=12, D5=9) |
 | 4 of 6 scenarios, chosen at random | ✅ same |
+| Questions organized around case studies | ✅ 4 case-study sections; the case brief stays visible on every screen |
 | Single-select, 1 correct + 3 distractors | ✅ same |
 | No penalty for guessing | ✅ unanswered = incorrect |
+| Answers revisable before submit | ✅ ask to change any earlier answer mid-exam |
 | Scaled 100–1000, pass = 720 | ✅ `scaled = 100 + 15 × correct`; pass at ≥ 42/60 |
+| 120-minute time limit | ❌ untimed by design — it shows the 120-min / ~2-min-per-question budget up front so you can self-pace |
 
-The one thing it **can't** replicate is Anthropic's proprietary scaled-scoring curve — so the score is a transparent, linear *estimate*, clearly labelled. Treat 720+ as a readiness signal, not a guarantee.
+Two things it does **not** replicate, on purpose: Anthropic's proprietary scaled-scoring curve (impossible — the score here is a transparent, linear *estimate*, clearly labelled) and the 120-minute clock (deliberate — the mock is resumable and honor-system; time yourself if you want realistic conditions). Treat 720+ as a readiness signal, not a guarantee.
 
 ## The flow
 
@@ -37,12 +40,17 @@ The one thing it **can't** replicate is Anthropic's proprietary scaled-scoring c
 /ccaf:mock-exam
        |
        v
-  [ ASSEMBLE ]   Pick 4 of 6 scenarios; pull the seed questions +
-       |          generate the rest (each independently verified, A–D shuffled);
-       |          freeze a 60-question exam to ~/.claude/ccaf-exam.local.md.
+  [ ASSEMBLE ]   Pick 4 of 6 case studies; generate all 60 questions fresh
+       |          (anchored to the reference bank, each independently verified,
+       |          A–D shuffled); group into 4 case-study sections; freeze the
+       |          exam to ~/.claude/ccaf-exam.local.md. The 16/11/12/12/9
+       |          domain split is machine-enforced at write time (a
+       |          mis-weighted exam is refused), and the composition is shown
+       |          to you up front.
        v
-  [ ADMINISTER ] 4 questions per screen. Progress saved after every screen —
-       |          quit any time and re-run to resume where you left off.
+  [ ADMINISTER ] 4 questions per screen, case brief always visible. Each screen
+       |          saves atomically in the background while the next one shows —
+       |          no save-wait between screens. Quit any time; re-run to resume.
        v
   [ SCORE ]      Scaled /1000, PASS/FAIL at 720, per-domain breakdown, and an
                   honest "this is an estimate" disclaimer.
@@ -95,7 +103,7 @@ Discard any in-progress or completed attempt and assemble a brand-new exam.
 
 **Resume:** the attempt persists to `~/.claude/ccaf-exam.local.md`. Close your terminal mid-exam and re-run `/ccaf:mock-exam` — it greets you with "Welcome back" and continues from the next unanswered question.
 
-**Honor system:** untimed, self-serve, nothing reported or shared. The answer key lives in the attempt file so resume and scoring work — peeking only cheats you before a paid exam.
+**Honor system:** untimed, self-serve, nothing reported or shared. The answer key lives in a separate local answers file (`~/.claude/ccaf-exam.local.answers.md`) that is never shown — and never even read — during the exam; it exists so resume and scoring work. Peeking at it only cheats you before a paid exam.
 
 ## How scoring works
 
@@ -121,8 +129,8 @@ ccaf/
 │   └── ccaf-exam/
 │       └── SKILL.md               # exam engine: assemble → administer → score (internal)
 ├── data/
-│   ├── ccaf-blueprint.md          # domains, weights, scenarios, paraphrased syllabus, scoring
-│   └── ccaf-question-bank.md      # 12 self-authored seed questions (seeds + anchors)
+│   ├── ccaf-blueprint.md          # public exam mechanics + self-authored syllabus, scenarios, scoring
+│   └── ccaf-question-bank.md      # 12 self-authored reference questions (anchors only — never served)
 ├── scripts/
 │   ├── ccaf-exam.sh               # silent state helper (init / get / record / score / clear)
 │   └── tests/
@@ -134,9 +142,9 @@ ccaf/
 
 ## Notes
 
-- **Question sourcing.** The 12 self-authored seed questions seed the bank and anchor style/difficulty; the rest are generated from the blueprint syllabus and pass an independent verifier (re-solve cold, plausible distractors, shuffled positions) before being served.
+- **Question sourcing.** Every question in every attempt is **generated fresh** from the blueprint syllabus and passes an independent verifier (re-solve cold, plausible distractors, shuffled positions) before being served. The 12 self-authored questions in the bank are style/difficulty anchors only — they never appear in an exam (machine-enforced), because the bank ships in this repo with answers, and re-serving readable questions would inflate your readiness signal.
 - **How `prepare` teaches.** The tutor reads the same blueprint as its curriculum, teaches one task statement per turn, and verifies by retrieval. Its apply-to-scenario checks are authored on demand by a small `ccaf-check-author` subagent (built from the syllabus anti-patterns), keeping the main teaching thread lean. Nothing is written to disk.
-- **Roadmap.** Growing a larger verified question bank, broadening the tutor's coverage across all 30 task statements, and verifying the full lifecycle end-to-end are the next steps (tracked in `docs/specs/ccaf-mock-exam.md`).
+- **Roadmap.** v1 generates everything per attempt anchored to a small reference bank; growing a larger verified anchor bank, adding a short per-domain "practice" mode, and verifying the full lifecycle end-to-end are the next steps (tracked in `docs/specs/ccaf-mock-exam.md`).
 
 ## License
 

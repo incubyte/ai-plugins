@@ -6,9 +6,12 @@ readiness before booking the real (paid) exam.
 
 ## Layout
 
-- `commands/mock-exam.md` — the `/ccaf:mock-exam` command (loads the engine skill).
+- `commands/prepare.md` — the `/ccaf:prepare` command (loads the tutor skill).
+- `commands/mock-exam.md` — the `/ccaf:mock-exam` command (loads the exam engine skill).
+- `skills/ccaf-tutor/SKILL.md` — the conversational teaching engine (topic menu → teach → check → adapt); stateless.
 - `skills/ccaf-exam/SKILL.md` — the assemble → administer → score engine.
-- `data/ccaf-blueprint.md` — domains, weights, scenarios, the syllabus, scope lists, scoring.
+- `agents/ccaf-check-author.md` — mini-agent the tutor spawns to author one scenario check at a time.
+- `data/ccaf-blueprint.md` — domains, weights, scenarios, the syllabus, scope lists, scoring. Shared curriculum for both commands.
 - `data/ccaf-question-bank.md` — 12 self-authored reference questions; style/difficulty anchors only, never served in an exam (helper-enforced).
 - `scripts/ccaf-exam.sh` — silent state helper (init / get / record / blanks / audit / score / clear); never use Write/Edit on the attempt files. `init` takes one payload (with keys) and splits it: questions file (write-once) + answers file (hot, ~60 lines) — so `record` rewrites only the tiny answers file and `get` output is key-free. Guards: `init` validates the payload — and, for 60-question exams, enforces the blueprint composition (domain quotas 16/11/12/12/9, 4 scenarios in contiguous sections each headed by its own `[[CASE:]]` brief — so a screen's brief always matches its questions — non-degenerate key spread) — and refuses to overwrite an in-progress attempt (unless `--force`); `record` takes one or more `--q/--answer` pairs atomically (one call per screen) and requires an in-progress attempt; `score` cross-validates the pair and requires `--partial` to score with unanswered questions. All writes serialize through a directory lock (stale locks are stolen), so mid-exam `record` calls run **in the background** while the next screen shows; the final screen records in the foreground and completion is verified before scoring.
 - `scripts/tests/ccaf-exam.test.sh` — shell test harness for the data files + helper logic.

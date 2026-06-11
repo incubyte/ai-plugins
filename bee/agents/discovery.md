@@ -1,33 +1,34 @@
 ---
 name: discovery
-description: Use this agent as a PM persona that interviews users and produces a client-shareable PRD. Works standalone via /bee:discover or internally via /bee:sdd. Explores the why, what, and how of a requirement before speccing.
+description: |
+  Use this agent as a PM persona that interviews users and produces a client-shareable PRD. Works standalone via /bee:discover or internally via /bee:sdd. Explores the why, what, and how of a requirement before speccing.
 
-<example>
-Context: User has a vague idea and needs requirements exploration
-user: "I want to build a reporting dashboard for our clients"
-assistant: "Let me start a discovery session to understand the requirements before we spec."
-<commentary>
-Vague requirement with high decision density. Discovery agent interviews to produce a PRD before speccing begins.
-</commentary>
-</example>
+  <example>
+  Context: User has a vague idea and needs requirements exploration
+  user: "I want to build a reporting dashboard for our clients"
+  assistant: "Let me start a discovery session to understand the requirements before we spec."
+  <commentary>
+  Vague requirement with high decision density. Discovery agent interviews to produce a PRD before speccing begins.
+  </commentary>
+  </example>
 
-<example>
-Context: User provides meeting notes or a transcript to synthesize
-user: "Here are the notes from our product meeting about the new onboarding flow"
-assistant: "I'll synthesize these notes into a structured PRD."
-<commentary>
-Rich input provided. Discovery agent switches to synthesis mode — extracts key decisions and identifies gaps.
-</commentary>
-</example>
+  <example>
+  Context: User provides meeting notes or a transcript to synthesize
+  user: "Here are the notes from our product meeting about the new onboarding flow"
+  assistant: "I'll synthesize these notes into a structured PRD."
+  <commentary>
+  Rich input provided. Discovery agent switches to synthesis mode — extracts key decisions and identifies gaps.
+  </commentary>
+  </example>
 
-<example>
-Context: Bee build workflow identifies high decision density during triage
-user: "Build a multi-tenant billing system"
-assistant: "This has a lot of unknowns. Let me run a discovery session first."
-<commentary>
-EPIC-sized task with many decisions to make. The orchestrator invokes discovery before speccing to reduce ambiguity.
-</commentary>
-</example>
+  <example>
+  Context: Bee build workflow identifies high decision density during triage
+  user: "Build a multi-tenant billing system"
+  assistant: "This has a lot of unknowns. Let me run a discovery session first."
+  <commentary>
+  EPIC-sized task with many decisions to make. The orchestrator invokes discovery before speccing to reduce ambiguity.
+  </commentary>
+  </example>
 
 model: inherit
 color: cyan

@@ -1,24 +1,25 @@
 ---
 name: qc-planner
-description: Use this agent to synthesize review agent outputs into a prioritized test plan. Scores hotspots, inventories existing tests, assesses testability, and produces a fixed-format plan.
+description: |
+  Use this agent to synthesize review agent outputs into a prioritized test plan. Scores hotspots, inventories existing tests, assesses testability, and produces a fixed-format plan.
 
-<example>
-Context: Review agents have completed their analysis and results need synthesis
-user: "Synthesize the review results into a test plan"
-assistant: "I'll score hotspots, inventory existing tests, and produce a prioritized test plan."
-<commentary>
-Post-review synthesis. QC planner takes behavioral, test, and coupling analysis and produces actionable test priorities.
-</commentary>
-</example>
+  <example>
+  Context: Review agents have completed their analysis and results need synthesis
+  user: "Synthesize the review results into a test plan"
+  assistant: "I'll score hotspots, inventory existing tests, and produce a prioritized test plan."
+  <commentary>
+  Post-review synthesis. QC planner takes behavioral, test, and coupling analysis and produces actionable test priorities.
+  </commentary>
+  </example>
 
-<example>
-Context: /bee:qc command delegates to this agent after spawning review agents
-user: "Run quality coverage analysis on the codebase"
-assistant: "I'll analyze hotspots and produce a prioritized test plan."
-<commentary>
-Part of the qc workflow. Receives analysis from review agents and synthesizes into a plan at docs/specs/qc-plan.md.
-</commentary>
-</example>
+  <example>
+  Context: /bee:qc command delegates to this agent after spawning review agents
+  user: "Run quality coverage analysis on the codebase"
+  assistant: "I'll analyze hotspots and produce a prioritized test plan."
+  <commentary>
+  Part of the qc workflow. Receives analysis from review agents and synthesizes into a plan at docs/specs/qc-plan.md.
+  </commentary>
+  </example>
 
 model: inherit
 color: blue

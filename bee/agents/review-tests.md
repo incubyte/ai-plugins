@@ -1,15 +1,16 @@
 ---
 name: review-tests
-description: Use this agent to review test quality — vanity test detection, assertion quality, mocking discipline, behavior-based testing, isolation, naming, frontend-specific checks, and coverage gaps. Use as part of the multi-agent review.
+description: |
+  Use this agent to review test quality — vanity test detection, assertion quality, mocking discipline, behavior-based testing, isolation, naming, frontend-specific checks, and coverage gaps. Use as part of the multi-agent review.
 
-<example>
-Context: /bee:review command spawns specialist review agents
-user: "Review the test quality in this project"
-assistant: "I'll analyze test naming, isolation, coverage gaps, and behavior-based testing."
-<commentary>
-Part of the multi-agent review workflow. Focuses on whether tests describe behavior, not implementation.
-</commentary>
-</example>
+  <example>
+  Context: /bee:review command spawns specialist review agents
+  user: "Review the test quality in this project"
+  assistant: "I'll analyze test naming, isolation, coverage gaps, and behavior-based testing."
+  <commentary>
+  Part of the multi-agent review workflow. Focuses on whether tests describe behavior, not implementation.
+  </commentary>
+  </example>
 
 model: inherit
 color: magenta

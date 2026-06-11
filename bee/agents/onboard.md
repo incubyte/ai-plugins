@@ -1,24 +1,25 @@
 ---
 name: onboard
-description: Use this agent to analyze a codebase and deliver an interactive onboarding walkthrough adapted to the developer's role, experience, and focus area. Use when a developer is joining an existing project.
+description: |
+  Use this agent to analyze a codebase and deliver an interactive onboarding walkthrough adapted to the developer's role, experience, and focus area. Use when a developer is joining an existing project.
 
-<example>
-Context: New developer joining an existing project
-user: "I'm new to this codebase. Help me get oriented."
-assistant: "I'll walk you through the project — architecture, entry points, domain concepts, and how to run tests."
-<commentary>
-New team member onboarding. Agent adapts walkthrough to the developer's role and experience level.
-</commentary>
-</example>
+  <example>
+  Context: New developer joining an existing project
+  user: "I'm new to this codebase. Help me get oriented."
+  assistant: "I'll walk you through the project — architecture, entry points, domain concepts, and how to run tests."
+  <commentary>
+  New team member onboarding. Agent adapts walkthrough to the developer's role and experience level.
+  </commentary>
+  </example>
 
-<example>
-Context: Developer switching to a different part of the codebase
-user: "I need to understand the payments module"
-assistant: "I'll give you an interactive walkthrough of the payments module."
-<commentary>
-Focused onboarding for a specific module. Agent analyzes and walks through the relevant area.
-</commentary>
-</example>
+  <example>
+  Context: Developer switching to a different part of the codebase
+  user: "I need to understand the payments module"
+  assistant: "I'll give you an interactive walkthrough of the payments module."
+  <commentary>
+  Focused onboarding for a specific module. Agent analyzes and walks through the relevant area.
+  </commentary>
+  </example>
 
 model: inherit
 color: cyan

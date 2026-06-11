@@ -1,24 +1,25 @@
 ---
 name: reviewer
-description: Use this agent to review the complete body of work after all slices are done. Risk-aware ship recommendation. Use after all slices are verified complete.
+description: |
+  Use this agent to review the complete body of work after all slices are done. Risk-aware ship recommendation. Use after all slices are verified complete.
 
-<example>
-Context: All slices verified and the feature is ready for final review
-user: "All slices are done and verified. Do the final review."
-assistant: "I'll review the complete body of work — spec coverage, code quality, test quality, and ship recommendation."
-<commentary>
-Final review after all slices pass verification. Reviewer looks at the whole picture, not individual slices.
-</commentary>
-</example>
+  <example>
+  Context: All slices verified and the feature is ready for final review
+  user: "All slices are done and verified. Do the final review."
+  assistant: "I'll review the complete body of work — spec coverage, code quality, test quality, and ship recommendation."
+  <commentary>
+  Final review after all slices pass verification. Reviewer looks at the whole picture, not individual slices.
+  </commentary>
+  </example>
 
-<example>
-Context: Bee build workflow triggers final review automatically
-user: "Feature complete. What's the ship recommendation?"
-assistant: "Running the final review with risk-aware assessment."
-<commentary>
-Automatic final step in the build workflow. Produces a ship/no-ship recommendation based on risk level.
-</commentary>
-</example>
+  <example>
+  Context: Bee build workflow triggers final review automatically
+  user: "Feature complete. What's the ship recommendation?"
+  assistant: "Running the final review with risk-aware assessment."
+  <commentary>
+  Automatic final step in the build workflow. Produces a ship/no-ship recommendation based on risk level.
+  </commentary>
+  </example>
 
 model: inherit
 color: yellow

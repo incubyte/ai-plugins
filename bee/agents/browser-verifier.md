@@ -1,24 +1,25 @@
 ---
 name: browser-verifier
-description: Use this agent to verify a running app in the browser — checks acceptance criteria, console errors, runtime exceptions, and visual state via browser MCP tools. Supports Claude-in-Chrome (primary) and chrome-devtools-mcp (fallback). Operates in dev mode (failures only) or test mode (full report with screenshots).
+description: |
+  Use this agent to verify a running app in the browser — checks acceptance criteria, console errors, runtime exceptions, and visual state via browser MCP tools. Supports Claude-in-Chrome (primary) and chrome-devtools-mcp (fallback). Operates in dev mode (failures only) or test mode (full report with screenshots).
 
-<example>
-Context: Feature is deployed to dev server and needs browser-based verification
-user: "Verify the login page works against the spec"
-assistant: "I'll open the app in Chrome and verify each acceptance criterion."
-<commentary>
-Browser-based verification against spec. Opens the running app, interacts with it, checks console for errors, takes screenshots.
-</commentary>
-</example>
+  <example>
+  Context: Feature is deployed to dev server and needs browser-based verification
+  user: "Verify the login page works against the spec"
+  assistant: "I'll open the app in Chrome and verify each acceptance criterion."
+  <commentary>
+  Browser-based verification against spec. Opens the running app, interacts with it, checks console for errors, takes screenshots.
+  </commentary>
+  </example>
 
-<example>
-Context: Bee browser-test command delegates to this agent for each spec
-user: "Run browser tests for the checkout flow"
-assistant: "I'll verify each acceptance criterion in the browser."
-<commentary>
-Delegated by the browser-test command. Verifies ACs one by one in a real browser.
-</commentary>
-</example>
+  <example>
+  Context: Bee browser-test command delegates to this agent for each spec
+  user: "Run browser tests for the checkout flow"
+  assistant: "I'll verify each acceptance criterion in the browser."
+  <commentary>
+  Delegated by the browser-test command. Verifies ACs one by one in a real browser.
+  </commentary>
+  </example>
 
 model: inherit
 color: blue

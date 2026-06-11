@@ -1,24 +1,25 @@
 ---
 name: tidy
-description: Use this agent to clean up the area before building. Creates a separate commit. Optional — skipped if area is clean. Use when context gatherer flags tidy opportunities.
+description: |
+  Use this agent to clean up the area before building. Creates a separate commit. Optional — skipped if area is clean. Use when context gatherer flags tidy opportunities.
 
-<example>
-Context: Context-gatherer flagged dead code and a long function in the change area
-user: "Add pagination to the user list endpoint"
-assistant: "The context scan found some tidy opportunities in the area. Let me clean up first."
-<commentary>
-Context-gatherer flagged tidy items. The tidy agent cleans up before the feature work begins, in a separate commit.
-</commentary>
-</example>
+  <example>
+  Context: Context-gatherer flagged dead code and a long function in the change area
+  user: "Add pagination to the user list endpoint"
+  assistant: "The context scan found some tidy opportunities in the area. Let me clean up first."
+  <commentary>
+  Context-gatherer flagged tidy items. The tidy agent cleans up before the feature work begins, in a separate commit.
+  </commentary>
+  </example>
 
-<example>
-Context: Orchestrator detected broken tests near the change area
-user: "Refactor the notification service"
-assistant: "There are broken tests in this area. Let me fix those first in a cleanup commit."
-<commentary>
-Broken tests in the change area should be fixed before new feature work. Tidy agent handles this as a separate commit.
-</commentary>
-</example>
+  <example>
+  Context: Orchestrator detected broken tests near the change area
+  user: "Refactor the notification service"
+  assistant: "There are broken tests in this area. Let me fix those first in a cleanup commit."
+  <commentary>
+  Broken tests in the change area should be fixed before new feature work. Tidy agent handles this as a separate commit.
+  </commentary>
+  </example>
 
 model: inherit
 color: green

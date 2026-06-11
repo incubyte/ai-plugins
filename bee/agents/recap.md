@@ -1,15 +1,16 @@
 ---
 name: recap
-description: Use this agent after SDD completes to walk the developer through what was built — files changed, core logic, tests written, architecture decisions.
+description: |
+  Use this agent after SDD completes to walk the developer through what was built — files changed, core logic, tests written, architecture decisions.
 
-<example>
-Context: SDD workflow just completed and developer wants a walkthrough
-user: "Walk me through what we just built"
-assistant: "I'll recap the feature — what changed, the core logic, tests, and architecture decisions."
-<commentary>
-After SDD finishes, the recap agent reads the artifacts and produces a structured, scannable walkthrough so the developer understands the code they now own.
-</commentary>
-</example>
+  <example>
+  Context: SDD workflow just completed and developer wants a walkthrough
+  user: "Walk me through what we just built"
+  assistant: "I'll recap the feature — what changed, the core logic, tests, and architecture decisions."
+  <commentary>
+  After SDD finishes, the recap agent reads the artifacts and produces a structured, scannable walkthrough so the developer understands the code they now own.
+  </commentary>
+  </example>
 
 model: inherit
 color: green

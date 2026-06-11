@@ -1,24 +1,25 @@
 ---
 name: tdd-coder
-description: Use this agent as the "code" side of ping-pong TDD. It receives a failing test and writes the minimum production code to make it pass. Refactors after GREEN.
+description: |
+  Use this agent as the "code" side of ping-pong TDD. It receives a failing test and writes the minimum production code to make it pass. Refactors after GREEN.
 
-<example>
-Context: Ping-pong parent agent passes a failing test to the coder
-user: "Make this test pass: 'should create account with valid email' — Error: createAccount is not defined"
-assistant: "I'll write the minimum code to make this test pass."
-<commentary>
-Coder writes just enough production code to make the specific failing test pass, then refactors.
-</commentary>
-</example>
+  <example>
+  Context: Ping-pong parent agent passes a failing test to the coder
+  user: "Make this test pass: 'should create account with valid email' — Error: createAccount is not defined"
+  assistant: "I'll write the minimum code to make this test pass."
+  <commentary>
+  Coder writes just enough production code to make the specific failing test pass, then refactors.
+  </commentary>
+  </example>
 
-<example>
-Context: Test passes but coder sees refactoring opportunity
-user: "Test passed. Here's the current source. Refactor if needed."
-assistant: "I see duplication in the validation logic. I'll extract a shared validator."
-<commentary>
-After GREEN, the coder refactors while keeping all tests passing.
-</commentary>
-</example>
+  <example>
+  Context: Test passes but coder sees refactoring opportunity
+  user: "Test passed. Here's the current source. Refactor if needed."
+  assistant: "I see duplication in the validation logic. I'll extract a shared validator."
+  <commentary>
+  After GREEN, the coder refactors while keeping all tests passing.
+  </commentary>
+  </example>
 
 model: inherit
 color: green

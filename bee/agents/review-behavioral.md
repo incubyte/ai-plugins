@@ -1,15 +1,16 @@
 ---
 name: review-behavioral
-description: Use this agent to analyze git history to find hotspots (high-churn + high-complexity files) and temporal coupling (files that change together). Use as part of the multi-agent review.
+description: |
+  Use this agent to analyze git history to find hotspots (high-churn + high-complexity files) and temporal coupling (files that change together). Use as part of the multi-agent review.
 
-<example>
-Context: /bee:review command spawns specialist review agents
-user: "Find the hotspots in this codebase"
-assistant: "I'll analyze git history for high-churn, high-complexity files and temporal coupling."
-<commentary>
-Part of the multi-agent review workflow. Uses git history to identify where problems cluster.
-</commentary>
-</example>
+  <example>
+  Context: /bee:review command spawns specialist review agents
+  user: "Find the hotspots in this codebase"
+  assistant: "I'll analyze git history for high-churn, high-complexity files and temporal coupling."
+  <commentary>
+  Part of the multi-agent review workflow. Uses git history to identify where problems cluster.
+  </commentary>
+  </example>
 
 model: inherit
 color: magenta

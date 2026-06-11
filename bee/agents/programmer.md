@@ -1,24 +1,25 @@
 ---
 name: programmer
-description: Use this agent to write code for a TDD plan slice — writes failing tests, makes them pass, refactors. Follows strict RED-GREEN-REFACTOR one test at a time. Use after TDD plan is reviewed and approved.
+description: |
+  Use this agent to write code for a TDD plan slice — writes failing tests, makes them pass, refactors. Follows strict RED-GREEN-REFACTOR one test at a time. Use after TDD plan is reviewed and approved.
 
-<example>
-Context: TDD plan for a feature slice has been reviewed and approved
-user: "Execute the TDD plan at docs/specs/feature-slice-1-tdd-plan.md"
-assistant: "I'll execute the TDD plan step by step — one test at a time, RED-GREEN-REFACTOR."
-<commentary>
-Post-planning execution. The programmer works through the TDD plan mechanically, writing quality code guided by preloaded skills.
-</commentary>
-</example>
+  <example>
+  Context: TDD plan for a feature slice has been reviewed and approved
+  user: "Execute the TDD plan at docs/specs/feature-slice-1-tdd-plan.md"
+  assistant: "I'll execute the TDD plan step by step — one test at a time, RED-GREEN-REFACTOR."
+  <commentary>
+  Post-planning execution. The programmer works through the TDD plan mechanically, writing quality code guided by preloaded skills.
+  </commentary>
+  </example>
 
-<example>
-Context: Bee build workflow transitions from planning to execution
-user: "TDD plan reviewed. Let's build."
-assistant: "Starting execution of the TDD plan for this slice."
-<commentary>
-Delegated by the build orchestrator after TDD plan review. The programmer returns when the slice is complete.
-</commentary>
-</example>
+  <example>
+  Context: Bee build workflow transitions from planning to execution
+  user: "TDD plan reviewed. Let's build."
+  assistant: "Starting execution of the TDD plan for this slice."
+  <commentary>
+  Delegated by the build orchestrator after TDD plan review. The programmer returns when the slice is complete.
+  </commentary>
+  </example>
 
 model: sonnet
 color: green

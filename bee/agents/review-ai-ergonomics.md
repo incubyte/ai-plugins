@@ -1,15 +1,16 @@
 ---
 name: review-ai-ergonomics
-description: Use this agent to review code for how well LLMs can work with it — context window friendliness, explicitness, module boundaries, test-as-spec, naming, and documentation quality. Use as part of the multi-agent review.
+description: |
+  Use this agent to review code for how well LLMs can work with it — context window friendliness, explicitness, module boundaries, test-as-spec, naming, and documentation quality. Use as part of the multi-agent review.
 
-<example>
-Context: /bee:review command spawns specialist review agents
-user: "How LLM-friendly is this codebase?"
-assistant: "I'll analyze context window friendliness, explicitness, and module boundaries."
-<commentary>
-Part of the multi-agent review workflow. Evaluates how well the code supports AI-assisted development.
-</commentary>
-</example>
+  <example>
+  Context: /bee:review command spawns specialist review agents
+  user: "How LLM-friendly is this codebase?"
+  assistant: "I'll analyze context window friendliness, explicitness, and module boundaries."
+  <commentary>
+  Part of the multi-agent review workflow. Evaluates how well the code supports AI-assisted development.
+  </commentary>
+  </example>
 
 model: inherit
 color: magenta

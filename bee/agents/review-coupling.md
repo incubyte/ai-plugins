@@ -1,15 +1,16 @@
 ---
 name: review-coupling
-description: Use this agent to analyze structural coupling — import dependencies, afferent/efferent coupling, change amplifiers, and decoupling opportunities. Use as part of the multi-agent review.
+description: |
+  Use this agent to analyze structural coupling — import dependencies, afferent/efferent coupling, change amplifiers, and decoupling opportunities. Use as part of the multi-agent review.
 
-<example>
-Context: /bee:review command spawns specialist review agents
-user: "Analyze the coupling in the payments module"
-assistant: "I'll analyze import dependencies and identify change amplifiers."
-<commentary>
-Part of the multi-agent review workflow. Focuses on structural coupling and decoupling opportunities.
-</commentary>
-</example>
+  <example>
+  Context: /bee:review command spawns specialist review agents
+  user: "Analyze the coupling in the payments module"
+  assistant: "I'll analyze import dependencies and identify change amplifiers."
+  <commentary>
+  Part of the multi-agent review workflow. Focuses on structural coupling and decoupling opportunities.
+  </commentary>
+  </example>
 
 model: inherit
 color: magenta

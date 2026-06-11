@@ -1,33 +1,34 @@
 ---
 name: context-gatherer
-description: Use this agent to read a codebase and understand patterns, conventions, and the area being changed. Run before planning. Use for any task beyond TRIVIAL.
+description: |
+  Use this agent to read a codebase and understand patterns, conventions, and the area being changed. Run before planning. Use for any task beyond TRIVIAL.
 
-<example>
-Context: Bee build workflow needs to understand the codebase before speccing a feature
-user: "Add user authentication to the app"
-assistant: "Let me scan the codebase first to understand what we're working with."
-<commentary>
-Feature-sized task. Context-gatherer runs before spec-builder to understand existing patterns, test infrastructure, and the change area.
-</commentary>
-</example>
+  <example>
+  Context: Bee build workflow needs to understand the codebase before speccing a feature
+  user: "Add user authentication to the app"
+  assistant: "Let me scan the codebase first to understand what we're working with."
+  <commentary>
+  Feature-sized task. Context-gatherer runs before spec-builder to understand existing patterns, test infrastructure, and the change area.
+  </commentary>
+  </example>
 
-<example>
-Context: Developer asks for a code review and the codebase needs scanning
-user: "Review the code quality of the payments module"
-assistant: "I'll analyze the codebase structure first."
-<commentary>
-Review workflow needs codebase context. Context-gatherer provides the structural understanding that review agents build on.
-</commentary>
-</example>
+  <example>
+  Context: Developer asks for a code review and the codebase needs scanning
+  user: "Review the code quality of the payments module"
+  assistant: "I'll analyze the codebase structure first."
+  <commentary>
+  Review workflow needs codebase context. Context-gatherer provides the structural understanding that review agents build on.
+  </commentary>
+  </example>
 
-<example>
-Context: Architecture assessment needs codebase analysis
-user: "Assess the architecture of this project"
-assistant: "Let me read the codebase to understand the current architecture."
-<commentary>
-Architecture commands delegate to context-gatherer for initial codebase analysis before deeper assessment.
-</commentary>
-</example>
+  <example>
+  Context: Architecture assessment needs codebase analysis
+  user: "Assess the architecture of this project"
+  assistant: "Let me read the codebase to understand the current architecture."
+  <commentary>
+  Architecture commands delegate to context-gatherer for initial codebase analysis before deeper assessment.
+  </commentary>
+  </example>
 
 model: inherit
 color: cyan

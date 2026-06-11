@@ -1,24 +1,25 @@
 ---
 name: tdd-planner-mvc
-description: Use this agent to generate a TDD plan for MVC architecture. One plan per slice. Use when architecture decision is MVC.
+description: |
+  Use this agent to generate a TDD plan for MVC architecture. One plan per slice. Use when architecture decision is MVC.
 
-<example>
-Context: Architecture-advisor confirmed the codebase uses MVC
-user: "Codebase is MVC. Generate the TDD plan for this feature."
-assistant: "I'll create a layer-by-layer TDD plan for MVC: controller, service, model."
-<commentary>
-MVC architecture confirmed. This planner generates outside-in tests through MVC layers.
-</commentary>
-</example>
+  <example>
+  Context: Architecture-advisor confirmed the codebase uses MVC
+  user: "Codebase is MVC. Generate the TDD plan for this feature."
+  assistant: "I'll create a layer-by-layer TDD plan for MVC: controller, service, model."
+  <commentary>
+  MVC architecture confirmed. This planner generates outside-in tests through MVC layers.
+  </commentary>
+  </example>
 
-<example>
-Context: Standard web app with controllers, services, and models
-user: "Plan the TDD for the user profile update feature"
-assistant: "I'll generate an MVC TDD plan with thin controllers and focused services."
-<commentary>
-Standard MVC feature. Planner ensures thin controllers, business logic in services, data in models.
-</commentary>
-</example>
+  <example>
+  Context: Standard web app with controllers, services, and models
+  user: "Plan the TDD for the user profile update feature"
+  assistant: "I'll generate an MVC TDD plan with thin controllers and focused services."
+  <commentary>
+  Standard MVC feature. Planner ensures thin controllers, business logic in services, data in models.
+  </commentary>
+  </example>
 
 model: inherit
 color: blue

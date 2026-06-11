@@ -1,33 +1,34 @@
 ---
 name: spec-builder
-description: Use this agent to interview the developer and build a spec. Depth adapts to task size and risk. Use for FEATURE and EPIC workflows after context gathering.
+description: |
+  Use this agent to interview the developer and build a spec. Depth adapts to task size and risk. Use for FEATURE and EPIC workflows after context gathering.
 
-<example>
-Context: Bee build workflow has gathered context and is ready to spec a feature
-user: "Add user authentication with email and password"
-assistant: "Let me interview you to build a spec for the authentication feature."
-<commentary>
-FEATURE-sized task. Spec-builder interviews the developer, writes testable acceptance criteria, and saves to docs/specs/.
-</commentary>
-</example>
+  <example>
+  Context: Bee build workflow has gathered context and is ready to spec a feature
+  user: "Add user authentication with email and password"
+  assistant: "Let me interview you to build a spec for the authentication feature."
+  <commentary>
+  FEATURE-sized task. Spec-builder interviews the developer, writes testable acceptance criteria, and saves to docs/specs/.
+  </commentary>
+  </example>
 
-<example>
-Context: EPIC task needs to be sliced into vertical increments
-user: "Build a complete e-commerce checkout flow"
-assistant: "This is a large feature. I'll interview you and break it into vertical slices with clear acceptance criteria."
-<commentary>
-EPIC-sized task. Spec-builder conducts a thorough interview, slices vertically, and produces a multi-slice spec.
-</commentary>
-</example>
+  <example>
+  Context: EPIC task needs to be sliced into vertical increments
+  user: "Build a complete e-commerce checkout flow"
+  assistant: "This is a large feature. I'll interview you and break it into vertical slices with clear acceptance criteria."
+  <commentary>
+  EPIC-sized task. Spec-builder conducts a thorough interview, slices vertically, and produces a multi-slice spec.
+  </commentary>
+  </example>
 
-<example>
-Context: Discovery document exists and spec-builder should build on it
-user: "We finished discovery. Now let's write the spec for Phase 1."
-assistant: "I'll read the discovery doc and build a spec for Phase 1's capabilities."
-<commentary>
-Post-discovery speccing. Spec-builder reads the discovery document and specs only the requested phase.
-</commentary>
-</example>
+  <example>
+  Context: Discovery document exists and spec-builder should build on it
+  user: "We finished discovery. Now let's write the spec for Phase 1."
+  assistant: "I'll read the discovery doc and build a spec for Phase 1's capabilities."
+  <commentary>
+  Post-discovery speccing. Spec-builder reads the discovery document and specs only the requested phase.
+  </commentary>
+  </example>
 
 model: inherit
 color: cyan

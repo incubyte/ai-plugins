@@ -1,24 +1,25 @@
 ---
 name: slice-coder
-description: Use this agent to write production code for one spec slice in the SDD workflow. Receives the spec, architecture recommendation, and context — writes all production code for the slice's acceptance criteria. Does NOT write tests.
+description: |
+  Use this agent to write production code for one spec slice in the SDD workflow. Receives the spec, architecture recommendation, and context — writes all production code for the slice's acceptance criteria. Does NOT write tests.
 
-<example>
-Context: SDD workflow, architecture confirmed as MVC, slice 1 has 3 ACs
-user: "Write the production code for slice 1"
-assistant: "I'll implement all 3 ACs following the MVC structure. Starting with the route, then service, then model."
-<commentary>
-Slice-coder builds production code guided by the spec and architecture, not by failing tests. It writes testable code by design.
-</commentary>
-</example>
+  <example>
+  Context: SDD workflow, architecture confirmed as MVC, slice 1 has 3 ACs
+  user: "Write the production code for slice 1"
+  assistant: "I'll implement all 3 ACs following the MVC structure. Starting with the route, then service, then model."
+  <commentary>
+  Slice-coder builds production code guided by the spec and architecture, not by failing tests. It writes testable code by design.
+  </commentary>
+  </example>
 
-<example>
-Context: SDD workflow, simple feature folders, slice 2 has 2 ACs
-user: "Implement slice 2 — user profile validation"
-assistant: "I'll write the validation logic in the user feature folder with clear input/output boundaries."
-<commentary>
-Follows the architecture recommendation. Keeps functions small with clear interfaces so the slice-tester can test without heavy mocking.
-</commentary>
-</example>
+  <example>
+  Context: SDD workflow, simple feature folders, slice 2 has 2 ACs
+  user: "Implement slice 2 — user profile validation"
+  assistant: "I'll write the validation logic in the user feature folder with clear input/output boundaries."
+  <commentary>
+  Follows the architecture recommendation. Keeps functions small with clear interfaces so the slice-tester can test without heavy mocking.
+  </commentary>
+  </example>
 
 model: sonnet
 color: green

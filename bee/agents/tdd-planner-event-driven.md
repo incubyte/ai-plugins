@@ -1,24 +1,25 @@
 ---
 name: tdd-planner-event-driven
-description: Use this agent to generate a contract-first TDD plan for event-driven architectures. One plan per slice. Use when architecture decision is event-driven or message-based.
+description: |
+  Use this agent to generate a contract-first TDD plan for event-driven architectures. One plan per slice. Use when architecture decision is event-driven or message-based.
 
-<example>
-Context: Architecture-advisor recommended event-driven for a webhook processing feature
-user: "Architecture is event-driven. Generate the TDD plan."
-assistant: "I'll create a contract-first TDD plan starting with event schemas."
-<commentary>
-Event-driven architecture. This planner generates plans starting from event contracts, then producers, then consumers.
-</commentary>
-</example>
+  <example>
+  Context: Architecture-advisor recommended event-driven for a webhook processing feature
+  user: "Architecture is event-driven. Generate the TDD plan."
+  assistant: "I'll create a contract-first TDD plan starting with event schemas."
+  <commentary>
+  Event-driven architecture. This planner generates plans starting from event contracts, then producers, then consumers.
+  </commentary>
+  </example>
 
-<example>
-Context: Feature centered on async message processing
-user: "Plan the TDD for the notification queue processor"
-assistant: "I'll generate an event-driven TDD plan with contract-first approach."
-<commentary>
-Message-based feature. Planner ensures event contracts are defined first, then producer/consumer tests.
-</commentary>
-</example>
+  <example>
+  Context: Feature centered on async message processing
+  user: "Plan the TDD for the notification queue processor"
+  assistant: "I'll generate an event-driven TDD plan with contract-first approach."
+  <commentary>
+  Message-based feature. Planner ensures event contracts are defined first, then producer/consumer tests.
+  </commentary>
+  </example>
 
 model: inherit
 color: blue

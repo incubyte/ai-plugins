@@ -1,0 +1,9 @@
+{
+  "name": "create-book",
+  "description": "Analyze source code and produce a comprehensive technical book with an Astro website. Generates markdown chapters and a polished web reader with dark/light mode, mermaid diagrams, and responsive navigation.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Incubyte"
+  },
+  "license": "Proprietary"
+}

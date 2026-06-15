@@ -1,0 +1,125 @@
+---
+---
+
+<!-- Fullscreen overlay for zoomed diagrams -->
+<div id="diagram-overlay" class="fixed inset-0 z-[100] hidden bg-black/80 backdrop-blur-sm items-center justify-center">
+  <!-- Controls bar -->
+  <div id="diagram-controls" class="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-[var(--color-charcoal)]/90 rounded-lg px-2 py-1 shadow-lg">
+    <button data-zoom="in" class="px-2 py-1 text-white/80 hover:text-white text-lg font-mono" aria-label="Zoom in">+</button>
+    <button data-zoom="out" class="px-2 py-1 text-white/80 hover:text-white text-lg font-mono" aria-label="Zoom out">&minus;</button>
+    <button data-zoom="reset" class="px-2 py-1 text-white/70 hover:text-white text-xs" aria-label="Reset zoom">Reset</button>
+    <span class="text-white/40 mx-1">|</span>
+    <span id="zoom-level" class="text-white/60 text-xs w-10 text-center">100%</span>
+    <span class="text-white/40 mx-1">|</span>
+    <button id="diagram-close-btn" class="px-2 py-1 text-white/80 hover:text-white text-lg" aria-label="Close">&times;</button>
+  </div>
+
+  <div class="text-white/40 text-xs absolute bottom-4 left-1/2 -translate-x-1/2">Scroll to zoom &middot; Drag to pan &middot; Esc to close</div>
+
+  <!-- Pan/zoom container -->
+  <div id="diagram-viewport" class="w-[85vw] h-[85vh] overflow-hidden rounded-xl bg-white dark:bg-[var(--color-dark-surface)]">
+    <div id="diagram-pan-target" class="w-full h-full flex items-center justify-center p-8">
+    </div>
+  </div>
+</div>
+
+<script>
+  import panzoom from 'panzoom';
+
+  let pzInstance: ReturnType<typeof panzoom> | null = null;
+
+  function setupDiagramZoom() {
+    const overlay = document.getElementById('diagram-overlay');
+    const panTarget = document.getElementById('diagram-pan-target');
+    const zoomLabel = document.getElementById('zoom-level');
+    if (!overlay || !panTarget || !zoomLabel) return;
+
+    document.querySelectorAll('pre.mermaid').forEach((el) => {
+      (el as HTMLElement).style.cursor = 'zoom-in';
+      el.addEventListener('click', () => {
+        panTarget.replaceChildren();
+        const svg = el.querySelector('svg');
+        if (svg) {
+          const clone = svg.cloneNode(true) as SVGElement;
+          clone.removeAttribute('width');
+          clone.removeAttribute('height');
+          clone.style.width = '100%';
+          clone.style.height = 'auto';
+          clone.style.maxHeight = '80vh';
+          panTarget.appendChild(clone);
+        }
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+
+        if (pzInstance) {
+          pzInstance.dispose();
+        }
+        pzInstance = panzoom(panTarget, {
+          maxZoom: 5,
+          minZoom: 0.3,
+          smoothScroll: false,
+          zoomDoubleClickSpeed: 1,
+        });
+        pzInstance.on('zoom', () => {
+          const t = pzInstance!.getTransform();
+          zoomLabel.textContent = Math.round(t.scale * 100) + '%';
+        });
+        zoomLabel.textContent = '100%';
+      });
+    });
+
+    document.querySelector('[data-zoom="in"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (pzInstance) {
+        pzInstance.smoothZoom(window.innerWidth / 2, window.innerHeight / 2, 1.3);
+      }
+    });
+    document.querySelector('[data-zoom="out"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (pzInstance) {
+        pzInstance.smoothZoom(window.innerWidth / 2, window.innerHeight / 2, 0.7);
+      }
+    });
+    document.querySelector('[data-zoom="reset"]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (pzInstance) {
+        pzInstance.moveTo(0, 0);
+        pzInstance.zoomAbs(0, 0, 1);
+        zoomLabel!.textContent = '100%';
+      }
+    });
+
+    function closeOverlay() {
+      if (pzInstance) {
+        pzInstance.dispose();
+        pzInstance = null;
+      }
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+    }
+
+    overlay.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target === overlay) {
+        closeOverlay();
+      }
+    });
+
+    document.getElementById('diagram-close-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeOverlay();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !overlay.classList.contains('hidden')) {
+        closeOverlay();
+      }
+    });
+  }
+
+  if (document.readyState === 'complete') {
+    setTimeout(setupDiagramZoom, 500);
+  } else {
+    window.addEventListener('load', () => setTimeout(setupDiagramZoom, 500));
+  }
+</script>

@@ -1,0 +1,104 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Header from '../components/Header.astro';
+import DiagramZoom from '../components/DiagramZoom.astro';
+import type { PartConfig, ChapterConfig } from '../book.config';
+
+interface Props {
+  title: string;
+  description: string;
+  chapterNumber: number;
+  slug: string;
+  headings: { depth: number; slug: string; text: string }[];
+  prev: ChapterConfig | null;
+  next: ChapterConfig | null;
+  part?: PartConfig;
+}
+
+const { title, description, chapterNumber, headings, prev, next, part } = Astro.props;
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/';
+const roman = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+---
+
+<BaseLayout title={`Ch ${chapterNumber}: ${title}`} description={description}>
+  <Header />
+
+  <div class="max-w-4xl mx-auto px-4 md:px-8 py-8 md:py-14 lg:grid lg:grid-cols-[1fr_220px] lg:gap-10">
+    <article>
+      {part && (
+        <div class="mb-6">
+          <span class="text-xs font-semibold uppercase tracking-wider text-[var(--color-terracotta)]">
+            Part {roman[part.number]} &mdash; {part.title}
+          </span>
+        </div>
+      )}
+
+      <h1 class="text-2xl md:text-3xl font-bold font-[var(--font-serif)] text-[var(--color-charcoal)] dark:text-[var(--color-cream)] mb-2">
+        Chapter {chapterNumber}: {title}
+      </h1>
+      <p class="text-[var(--color-muted)] mb-10">{description}</p>
+
+      <div class="prose prose-lg dark:prose-invert max-w-none
+        prose-headings:font-[var(--font-serif)]
+        prose-h3:text-xl prose-h3:mt-10 prose-h3:mb-4
+        prose-p:leading-relaxed
+        prose-a:text-[var(--color-terracotta)] prose-a:no-underline hover:prose-a:underline
+        prose-strong:text-[var(--color-charcoal)] dark:prose-strong:text-[var(--color-cream)]
+        prose-code:text-sm
+        prose-pre:bg-[var(--color-beige)] dark:prose-pre:bg-[var(--color-dark-surface)]
+        prose-table:text-sm
+        prose-th:text-left
+      ">
+        <slot />
+      </div>
+
+      <nav class="mt-16 pt-8 border-t border-[var(--color-border)] dark:border-[#333] flex justify-between gap-4">
+        {prev ? (
+          <a href={`${base}${prev.slug}/`} class="group flex flex-col">
+            <span class="text-xs text-[var(--color-muted)]">&larr; Previous</span>
+            <span class="text-[var(--color-charcoal)] dark:text-[var(--color-cream)] group-hover:text-[var(--color-terracotta)] font-medium transition-colors">
+              {prev.title}
+            </span>
+          </a>
+        ) : <div />}
+        {next ? (
+          <a href={`${base}${next.slug}/`} class="group flex flex-col text-right">
+            <span class="text-xs text-[var(--color-muted)]">Next &rarr;</span>
+            <span class="text-[var(--color-charcoal)] dark:text-[var(--color-cream)] group-hover:text-[var(--color-terracotta)] font-medium transition-colors">
+              {next.title}
+            </span>
+          </a>
+        ) : <div />}
+      </nav>
+    </article>
+
+    <aside class="hidden lg:block">
+      <nav class="sticky top-20">
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-[var(--color-muted)] mb-3">On this page</h4>
+        <ul class="space-y-1.5 text-sm">
+          {headings.filter(h => h.depth <= 3).map(h => (
+            <li class={h.depth === 3 ? 'ml-3' : ''}>
+              <a
+                href={`#${h.slug}`}
+                class="text-[var(--color-secondary)] dark:text-[var(--color-muted)] hover:text-[var(--color-terracotta)] transition-colors"
+              >
+                {h.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
+  </div>
+
+  <DiagramZoom />
+
+  <script>
+    import mermaid from 'mermaid';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+      securityLevel: 'loose',
+    });
+  </script>
+</BaseLayout>

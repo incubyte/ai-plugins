@@ -1,0 +1,100 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import { bookTitle, bookSubtitle, bookDescription, audience, highlights, parts, chapters } from '../book.config';
+
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/';
+---
+
+<BaseLayout
+  title={`${bookTitle} — ${bookSubtitle}`}
+  description={bookDescription}
+>
+  <Header />
+
+  <main class="max-w-4xl mx-auto px-4 md:px-8 py-12 md:py-20">
+
+    <div class="text-center mb-20">
+      <h1 class="text-3xl md:text-4xl font-bold font-[var(--font-serif)] text-[var(--color-charcoal)] dark:text-[var(--color-cream)] mb-6 leading-tight">
+        {bookTitle}
+      </h1>
+      <p class="text-xl text-[var(--color-muted)] mb-2 italic">{bookSubtitle}</p>
+      <p class="text-lg text-[var(--color-secondary)] dark:text-[var(--color-muted)] max-w-2xl mx-auto leading-relaxed mb-8">
+        {bookDescription}
+      </p>
+      <a
+        href={`${base}${chapters[0].slug}/`}
+        class="inline-flex items-center gap-2 px-6 py-3 bg-[var(--color-terracotta)] text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
+      >
+        Start reading
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+
+    <section class="mb-20">
+      <h2 class="text-2xl font-bold font-[var(--font-serif)] text-[var(--color-charcoal)] dark:text-[var(--color-cream)] mb-8">
+        What you'll learn
+      </h2>
+      <div class="grid md:grid-cols-2 gap-6">
+        {highlights.map(({ title, text }) => (
+          <div class="p-5 rounded-lg border border-[var(--color-border)] dark:border-[#333]">
+            <h3 class="font-semibold text-[var(--color-charcoal)] dark:text-[var(--color-cream)] mb-2">{title}</h3>
+            <p class="text-sm text-[var(--color-secondary)] dark:text-[var(--color-muted)] leading-relaxed">{text}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section class="mb-20">
+      <h2 class="text-2xl font-bold font-[var(--font-serif)] text-[var(--color-charcoal)] dark:text-[var(--color-cream)] mb-6">
+        Who this is for
+      </h2>
+      <div class="space-y-4 text-[var(--color-secondary)] dark:text-[var(--color-muted)]">
+        {audience.map(({ role, description }) => (
+          <p><strong class="text-[var(--color-charcoal)] dark:text-[var(--color-cream)]">{role}.</strong> {description}</p>
+        ))}
+      </div>
+    </section>
+
+    <section class="mb-20">
+      <h2 class="text-2xl font-bold font-[var(--font-serif)] text-[var(--color-charcoal)] dark:text-[var(--color-cream)] mb-8">
+        Table of contents
+      </h2>
+      {parts.map((part) => {
+        const partChapters = chapters.filter(c => part.chapters.includes(c.number));
+        return (
+          <div class="mb-10">
+            <div class="flex items-baseline gap-3 mb-1">
+              <span class="text-xs font-semibold uppercase tracking-wider text-[var(--color-terracotta)]">Part {part.number}</span>
+              <h3 class="text-lg font-bold text-[var(--color-charcoal)] dark:text-[var(--color-cream)] font-[var(--font-serif)]">{part.title}</h3>
+            </div>
+            <p class="text-sm italic text-[var(--color-muted)] mb-4">{part.epigraph}</p>
+
+            <div class="space-y-2">
+              {partChapters.map((ch) => (
+                <a
+                  href={`${base}${ch.slug}/`}
+                  class="group flex items-start gap-3 p-3 -mx-3 rounded-lg hover:bg-[var(--color-beige)] dark:hover:bg-[var(--color-dark-surface)] transition-colors"
+                >
+                  <span class="text-sm font-mono text-[var(--color-muted)] mt-0.5 w-6 shrink-0 text-right">{ch.number}</span>
+                  <div>
+                    <span class="text-[var(--color-charcoal)] dark:text-[var(--color-cream)] group-hover:text-[var(--color-terracotta)] font-medium transition-colors">
+                      {ch.title}
+                    </span>
+                    <p class="text-sm text-[var(--color-muted)] mt-0.5">{ch.description}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </section>
+
+    <footer class="text-center text-sm text-[var(--color-muted)] border-t border-[var(--color-border)] dark:border-[#333] pt-8 pb-12">
+      <p>{bookTitle} &mdash; {bookSubtitle}</p>
+    </footer>
+  </main>
+</BaseLayout>

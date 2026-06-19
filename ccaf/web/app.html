@@ -529,7 +529,9 @@ button:disabled { opacity: .45; cursor: default; }
   <div class="start-header">
     <h1>CCAF Mock Exam</h1>
     <p>Claude Certified Architect – Foundations &nbsp;|&nbsp; 60 questions &nbsp;|&nbsp; 120 minutes</p>
+    <p class="import-hint">Colleague shared an exam? <button class="btn-link" onclick="App.openImport()">Import JSON file</button> &nbsp;·&nbsp; <button class="btn-link" onclick="App.openFolder()">Open exams folder</button></p>
   </div>
+  <input type="file" id="import-input" accept=".json" style="display:none" onchange="App.handleImportFile(event)">
   <div id="exam-list" class="exam-list">
     <div class="spinner">Loading exams…</div>
   </div>
@@ -712,12 +714,18 @@ async function initStart() {
       : (isNew ? `<span class="badge badge-new">New</span>` : '');
     const actions = e.completed
       ? `<button class="btn-ghost"        onclick="App.reviewExam('${e.id}')">Review</button>
-         <button class="btn-primary"      onclick="App.retakeExam('${e.id}')">Retake</button>`
-      : `<button class="btn-primary"      onclick="App.startExam('${e.id}')">${isNew ? 'Start' : 'Take'}</button>`;
+         <button class="btn-primary"      onclick="App.retakeExam('${e.id}')">Retake</button>
+         <button class="btn-ghost"        onclick="App.exportExam('${e.id}')">Export</button>
+         <button class="btn-ghost"        onclick="App.renameExam('${e.id}')">Rename</button>
+         <button class="btn-danger-ghost" onclick="App.deleteExam('${e.id}')">Delete</button>`
+      : `<button class="btn-primary"      onclick="App.startExam('${e.id}')">${isNew ? 'Start' : 'Take'}</button>
+         <button class="btn-ghost"        onclick="App.exportExam('${e.id}')">Export</button>
+         <button class="btn-ghost"        onclick="App.renameExam('${e.id}')">Rename</button>
+         <button class="btn-danger-ghost" onclick="App.deleteExam('${e.id}')">Delete</button>`;
     return `
       <div class="card exam-card ${isNew ? 'highlighted' : ''}">
         <div class="exam-meta">
-          <strong>${esc(e.id)}</strong>
+          <strong>${esc(e.name || e.id)}</strong>
           <div class="scenarios">${(e.scenarios || []).join(' · ')}</div>
           <div class="ts">${fmtDate(e.generated_at)}</div>
         </div>
@@ -1012,6 +1020,95 @@ function renderRecommendation(r) {
   byId('domain-rows').appendChild(rec);
 }
 
+// ── Export ────────────────────────────────────────────────────────────────────
+function exportExam(id) {
+  const a = document.createElement('a');
+  a.href = `${API}/exam/${id}`;
+  a.download = `${id}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// ── Rename exam ───────────────────────────────────────────────────────────────
+async function renameExam(id) {
+  const cached = examCache.find(e => e.id === id);
+  const currentName = cached ? (cached.name || id) : id;
+  const newName = window.prompt('Rename exam:', currentName);
+  if (newName === null || newName.trim() === currentName.trim()) return;
+  const trimmed = newName.trim();
+  if (!trimmed) return;
+  try {
+    const r = await fetch(`${API}/exam/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: trimmed }),
+    });
+    if (r.ok) initStart();
+    else { const j = await r.json(); alert(`Rename failed: ${j.error}`); }
+  } catch { alert('Rename failed: could not reach the server.'); }
+}
+
+// ── Delete exam ───────────────────────────────────────────────────────────────
+async function deleteExam(id) {
+  const cached = examCache.find(e => e.id === id);
+  const displayName = cached ? (cached.name || id) : id;
+  if (!window.confirm(`Delete "${displayName}"?\n\nThis cannot be undone.`)) return;
+  try {
+    const r = await fetch(`${API}/exam/${id}`, { method: 'DELETE' });
+    if (r.ok) initStart();
+    else { const j = await r.json(); alert(`Delete failed: ${j.error}`); }
+  } catch { alert('Delete failed: could not reach the server.'); }
+}
+
+// ── Open exams folder ─────────────────────────────────────────────────────────
+async function openFolder() {
+  try {
+    const r = await fetch(`${API}/reveal`);
+    if (!r.ok) { const j = await r.json(); alert(`Could not open folder: ${j.error}`); }
+  } catch { alert('Could not open folder: server not reachable.'); }
+}
+
+// ── Import ────────────────────────────────────────────────────────────────────
+function openImport() {
+  byId('import-input').click();
+}
+
+async function handleImportFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = ''; // reset so the same file can be re-selected later
+
+  let exam;
+  try {
+    exam = JSON.parse(await file.text());
+  } catch (e) {
+    alert(`Could not parse JSON: ${e.message}`);
+    return;
+  }
+
+  if (!exam.id || !Array.isArray(exam.sections) || !exam.total) {
+    alert('Invalid exam file — missing required fields (id, sections, total).');
+    return;
+  }
+
+  try {
+    const r = await fetch(`${API}/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(exam),
+    });
+    const result = await r.json();
+    if (!r.ok) {
+      alert(`Import failed: ${result.error}`);
+      return;
+    }
+    initStart(); // refresh exam list with the newly imported exam
+  } catch {
+    alert('Import failed: could not reach the server.');
+  }
+}
+
 // ── Retake ────────────────────────────────────────────────────────────────────
 // Reuses the same exam JSON and stored keys — no Claude generation required.
 // startExam resets all state (answers, flags, timer) before loading.
@@ -1117,6 +1214,12 @@ window.App = {
   startExam,
   retakeExam,
   reviewExam,
+  exportExam,
+  renameExam,
+  deleteExam,
+  openFolder,
+  openImport,
+  handleImportFile,
   navTo,
   selectOption,
   toggleFlag,

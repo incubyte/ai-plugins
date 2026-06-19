@@ -12,7 +12,7 @@ readiness before booking the real (paid) exam.
 
 ```bash
 bash scripts/tests/ccaf-exam.test.sh   # shell state helper (init/get/record/score/clear)
-python3 scripts/tests/server.test.py   # web server (parser, HTTP routes, submit)
+python3 scripts/tests/server.test.py   # web server (parser, HTTP routes, import, submit)
 ```
 
 `ccaf-exam.test.sh` exercises `scripts/ccaf-exam.sh` end-to-end: data-file structure,
@@ -20,7 +20,7 @@ init/get/record/score/clear, resume cursor, scoring math, composition enforcemen
 concurrency guards. Isolated via `CCAF_EXAM_FILE` env var — it never touches `~/.claude/`.
 
 `server.test.py` exercises `web/server.py`: `parse_questions_file`, `parse_answers_file`,
-and all HTTP routes (ping, exams list, exam/result fetch, submit). Each test class
+and all HTTP routes (ping, exams list, exam/result fetch, import, submit). Each test class
 spins up its own ephemeral-port server instance and cleans up after itself.
 
 ## Layout
@@ -33,9 +33,9 @@ spins up its own ephemeral-port server instance and cleans up after itself.
 - `data/ccaf-blueprint.md` — domains, weights, scenarios, the syllabus, scope lists, scoring. Shared curriculum for both commands.
 - `data/ccaf-question-bank.md` — 12 self-authored reference questions; style/difficulty anchors only, never served in an exam (helper-enforced).
 - `scripts/ccaf-exam.sh` — silent state helper (init / get / record / blanks / audit / score / clear); never use Write/Edit on the attempt files.
-- `scripts/start-web-server.sh` — web mode launcher: generates a timestamped exam ID, exports the current exam pair to `~/.claude/ccaf-exams/<ID>.json` via `web/server.py`, starts the Python server on port **8765**, opens the browser.
+- `scripts/start-web-server.sh` — web mode launcher: generates a timestamped exam ID, exports the current exam pair to `~/Documents/CCAF Exams/<ID>.json` via `web/server.py`, starts or reuses the Python server on port **8765**, opens the browser.
 - `scripts/tests/ccaf-exam.test.sh` — shell test harness for the data files + helper logic.
-- `web/server.py` — Python stdlib HTTP server (no external deps). Two modes: `export` (parse exam files → write JSON with Base64-obfuscated keys) and `serve` (API for the browser app: GET `/`, `/ping`, `/exams`, `/exam/<id>`, `/result/<id>`; POST `/submit`). Shuts itself down after receiving `POST /submit`.
+- `web/server.py` — Python stdlib HTTP server (no external deps). Two modes: `export` (parse exam files → write JSON with Base64-obfuscated keys) and `serve` (API for the browser app: GET `/`, `/ping`, `/exams`, `/exam/<id>`, `/result/<id>`, `/reveal`; POST `/submit`, `/import`). Shuts itself down after receiving `POST /submit`. `/reveal` opens the exam folder in Finder/file manager.
 - `web/app.html` — self-contained single-file browser exam app (HTML + vanilla JS + inline CSS). Start screen (exam library), exam screen (free navigation, flagging, 120-min enforced timer), result screen (per-domain CSS bar chart).
 
 ## Conventions
@@ -45,7 +45,7 @@ spins up its own ephemeral-port server instance and cleans up after itself.
   answers + progress — small, rewritten per screen, never read during administration).
 - **Never use Write/Edit on the attempt files.** All reads/writes go through `ccaf-exam.sh`
   subcommands so that answer keys stay out of the conversation context and atomic rewrites are guaranteed.
-- **Web mode** (`/ccaf:mock-exam --web`): after assembly, `start-web-server.sh` exports the exam to `~/.claude/ccaf-exams/` as JSON (with Base64-obfuscated keys), starts a Python stdlib server on port **8765**, and opens the browser. The server shuts itself down after receiving the submit POST. Saved exams accumulate in `~/.claude/ccaf-exams/`; results alongside as `<id>-result.json`.
+- **Web mode** (`/ccaf:mock-exam --web`): after assembly, `start-web-server.sh` exports the exam to `~/Documents/CCAF Exams/` as JSON (with Base64-obfuscated keys), starts a Python stdlib server on port **8765**, and opens the browser. The server shuts itself down after receiving the submit POST. Saved exams accumulate in `~/Documents/CCAF Exams/`; results alongside as `<id>-result.json`. Server reuse: if port 8765 is already responding to `/ping`, the script skips starting a new process. The "Open exams folder" link on the start screen calls `GET /reveal` to open the folder in Finder (macOS) or file manager (Linux).
 - The exam file path is overridable: `CCAF_EXAM_FILE=/path/to/file bash scripts/ccaf-exam.sh …`
   (the answers file path derives automatically from it). The test suite uses this.
 - Untimed, honor-system, fully offline. Self-serve: nothing is reported or persisted as history.

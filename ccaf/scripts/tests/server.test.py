@@ -257,6 +257,142 @@ class TestHTTPRoutes(unittest.TestCase):
         status, _, _ = self.req('GET', '/no-such-route')
         self.assertEqual(status, 404)
 
+    def test_import_saves_and_retrieves_exam(self):
+        exam = {
+            'id': 'ccaf-import-test',
+            'generated_at': '2026-06-19T00:00:00',
+            'scenarios': ['s1'],
+            'total': 1,
+            'sections': [{'scenario': 's1', 'title': 'T', 'brief': 'B', 'questions': []}],
+        }
+        status, _, body = self.req('POST', '/import', exam)
+        self.assertEqual(status, 200)
+        self.assertTrue(json.loads(body).get('ok'))
+
+        status2, _, body2 = self.req('GET', '/exam/ccaf-import-test')
+        self.assertEqual(status2, 200)
+        self.assertEqual(json.loads(body2)['id'], 'ccaf-import-test')
+
+    def test_import_duplicate_is_409(self):
+        exam = {
+            'id': 'ccaf-dup-test',
+            'generated_at': '2026-06-19T00:00:00',
+            'scenarios': [],
+            'total': 1,
+            'sections': [{'scenario': 's1', 'title': 'T', 'brief': 'B', 'questions': []}],
+        }
+        self.req('POST', '/import', exam)          # first
+        status, _, _ = self.req('POST', '/import', exam)  # duplicate
+        self.assertEqual(status, 409)
+
+    def test_import_invalid_id_rejected(self):
+        status, _, _ = self.req('POST', '/import', {'id': '../etc/bad', 'sections': [], 'total': 1})
+        self.assertEqual(status, 400)
+
+    def test_import_missing_fields_rejected(self):
+        status, _, _ = self.req('POST', '/import', {'id': 'valid-id'})
+        self.assertEqual(status, 400)
+
+    def test_import_question_missing_key_rejected(self):
+        exam = {
+            'id': 'ccaf-nokey-test',
+            'generated_at': '2026-06-19T00:00:00',
+            'scenarios': ['s1'],
+            'total': 1,
+            'sections': [{
+                'scenario': 's1', 'title': 'T', 'brief': 'B',
+                'questions': [{
+                    'n': 1, 'domain': 'D1', 'stem': 'Q?',
+                    'options': {'A': 'a', 'B': 'b', 'C': 'c', 'D': 'd'},
+                    # no 'key' — would silently mis-score every answer
+                }],
+            }],
+        }
+        status, _, body = self.req('POST', '/import', exam)
+        self.assertEqual(status, 400)
+        self.assertIn('key', json.loads(body)['error'])
+        # and nothing was written
+        status2, _, _ = self.req('GET', '/exam/ccaf-nokey-test')
+        self.assertEqual(status2, 404)
+
+    def test_import_well_formed_question_accepted(self):
+        exam = {
+            'id': 'ccaf-goodq-test',
+            'generated_at': '2026-06-19T00:00:00',
+            'scenarios': ['s1'],
+            'total': 1,
+            'sections': [{
+                'scenario': 's1', 'title': 'T', 'brief': 'B',
+                'questions': [{
+                    'n': 1, 'domain': 'D1', 'stem': 'Q?',
+                    'options': {'A': 'a', 'B': 'b', 'C': 'c', 'D': 'd'},
+                    'key': 'Qg==',
+                }],
+            }],
+        }
+        status, _, body = self.req('POST', '/import', exam)
+        self.assertEqual(status, 200)
+        self.assertTrue(json.loads(body).get('ok'))
+
+    def test_rename_exam(self):
+        exam = {
+            'id': 'ccaf-rename-test',
+            'name': 'Original Name',
+            'generated_at': '2026-06-19T00:00:00',
+            'scenarios': [],
+            'total': 1,
+            'sections': [{'scenario': 's1', 'title': 'T', 'brief': 'B', 'questions': []}],
+        }
+        self.req('POST', '/import', exam)
+        status, _, _ = self.req('PATCH', '/exam/ccaf-rename-test', {'name': 'New Name'})
+        self.assertEqual(status, 200)
+        _, _, body = self.req('GET', '/exam/ccaf-rename-test')
+        self.assertEqual(json.loads(body)['name'], 'New Name')
+
+    def test_rename_nonexistent_is_404(self):
+        status, _, _ = self.req('PATCH', '/exam/ccaf-ghost-id', {'name': 'Valid Name'})
+        self.assertEqual(status, 404)
+
+    def test_rename_empty_name_rejected(self):
+        status, _, _ = self.req('PATCH', '/exam/ccaf-any-id', {'name': '   '})
+        self.assertEqual(status, 400)
+
+    def test_delete_exam(self):
+        exam = {
+            'id': 'ccaf-to-delete',
+            'generated_at': '2026-06-19T00:00:00',
+            'scenarios': [],
+            'total': 1,
+            'sections': [{'scenario': 's1', 'title': 'T', 'brief': 'B', 'questions': []}],
+        }
+        self.req('POST', '/import', exam)
+        status, _, _ = self.req('DELETE', '/exam/ccaf-to-delete')
+        self.assertEqual(status, 200)
+        status2, _, _ = self.req('GET', '/exam/ccaf-to-delete')
+        self.assertEqual(status2, 404)
+
+    def test_delete_nonexistent_is_404(self):
+        status, _, _ = self.req('DELETE', '/exam/ccaf-no-such-exam')
+        self.assertEqual(status, 404)
+
+    def test_reveal_returns_json(self):
+        status, ct, _ = self.req('GET', '/reveal')
+        self.assertNotEqual(status, 404)
+        self.assertIn('application/json', ct)
+
+    def test_import_appears_in_exams_list(self):
+        exam = {
+            'id': 'ccaf-list-check',
+            'generated_at': '2026-06-19T00:00:00',
+            'scenarios': [],
+            'total': 1,
+            'sections': [{'scenario': 's1', 'title': 'T', 'brief': 'B', 'questions': []}],
+        }
+        self.req('POST', '/import', exam)
+        status, _, body = self.req('GET', '/exams')
+        ids = [e['id'] for e in json.loads(body)]
+        self.assertIn('ccaf-list-check', ids)
+
 
 class TestSubmit(unittest.TestCase):
     """Each test gets its own server instance — POST /submit triggers shutdown."""

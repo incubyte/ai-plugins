@@ -68,6 +68,7 @@ set -eo pipefail
 
 EXAM_FILE="${CCAF_EXAM_FILE:-$HOME/.claude/ccaf-exam.local.md}"
 ANSWERS_FILE="${EXAM_FILE%.md}.answers.md"
+WEB_ID_FILE="${EXAM_FILE%.md}.web-id"
 LOCK_DIR="$EXAM_FILE.lock"
 
 die() { echo "ccaf-exam: $*" >&2; exit 1; }
@@ -172,9 +173,10 @@ check_composition_questions() {
   # Case-study structure: each [[CASE:slug]] appears exactly once and directly
   # heads a contiguous run of its own questions — so the brief shown above a
   # screen always belongs to that screen's questions, never a previous case.
+  # Slug grammar [a-z0-9-]+ — keep in sync with web/server.py parse_questions_file.
   local struct
   struct="$(awk '
-    /^\[\[CASE:[a-z-]+\]\]$/ {
+    /^\[\[CASE:[a-z0-9-]+\]\]$/ {
       c = $0; sub(/^\[\[CASE:/, "", c); sub(/\]\]$/, "", c)
       if (seen[c]++) { print "case block " c " appears more than once (sections must be contiguous)"; exit }
       cur = c; next
@@ -411,7 +413,7 @@ cmd_score() {
 
 cmd_clear() {
   acquire_lock
-  rm -f "$EXAM_FILE" "$ANSWERS_FILE"
+  rm -f "$EXAM_FILE" "$ANSWERS_FILE" "$WEB_ID_FILE"
   echo "Exam cleared."
 }
 

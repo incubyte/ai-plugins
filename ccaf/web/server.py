@@ -200,6 +200,7 @@ def cmd_export(args):
 
     exam_data = {
         "id": args.exam_id,
+        "name": args.name or args.exam_id,
         "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S"),
         "scenarios": scenarios_list,
         "domain_distribution": domain_dist,
@@ -263,12 +264,31 @@ class ExamHandler(BaseHTTPRequestHandler):
         elif path.startswith("/result/"):
             self._serve_result(path[8:])
 
+        elif path == "/reveal":
+            self._reveal_folder()
+
+        else:
+            self._json({"error": "not found"}, 404)
+
+    def do_DELETE(self):
+        path = self.path.split("?")[0].rstrip("/") or "/"
+        if path.startswith("/exam/"):
+            self._handle_delete(path[6:])
+        else:
+            self._json({"error": "not found"}, 404)
+
+    def do_PATCH(self):
+        path = self.path.split("?")[0].rstrip("/") or "/"
+        if path.startswith("/exam/"):
+            self._handle_patch_exam(path[6:])
         else:
             self._json({"error": "not found"}, 404)
 
     def do_POST(self):
         if self.path == "/submit":
             self._handle_submit()
+        elif self.path == "/import":
+            self._handle_import()
         else:
             self._json({"error": "not found"}, 404)
 
@@ -295,6 +315,7 @@ class ExamHandler(BaseHTTPRequestHandler):
                     pass
             exams.append({
                 "id": exam_id,
+                "name": data.get("name", exam_id),
                 "generated_at": data.get("generated_at", ""),
                 "scenarios": data.get("scenarios", []),
                 "total": data.get("total", 60),
@@ -356,6 +377,114 @@ class ExamHandler(BaseHTTPRequestHandler):
         self._json({"ok": True})
         threading.Thread(target=self.server.shutdown, daemon=True).start()
 
+    def _handle_delete(self, exam_id):
+        if not re.match(r"^[a-zA-Z0-9_-]+$", exam_id):
+            self._json({"error": "invalid exam id"}, 400)
+            return
+        exam_path = os.path.join(self.server.exam_dir, f"{exam_id}.json")
+        if not os.path.exists(exam_path):
+            self._json({"error": "not found"}, 404)
+            return
+        os.remove(exam_path)
+        result_path = os.path.join(self.server.exam_dir, f"{exam_id}-result.json")
+        if os.path.exists(result_path):
+            os.remove(result_path)
+        self._json({"ok": True})
+
+    def _handle_patch_exam(self, exam_id):
+        if not re.match(r"^[a-zA-Z0-9_-]+$", exam_id):
+            self._json({"error": "invalid exam id"}, 400)
+            return
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            updates = json.loads(body)
+        except (ValueError, json.JSONDecodeError) as e:
+            self._json({"error": str(e)}, 400)
+            return
+        new_name = updates.get("name", "")
+        if not isinstance(new_name, str) or not new_name.strip():
+            self._json({"error": "name must be a non-empty string"}, 400)
+            return
+        exam_path = os.path.join(self.server.exam_dir, f"{exam_id}.json")
+        if not os.path.exists(exam_path):
+            self._json({"error": "not found"}, 404)
+            return
+        try:
+            with open(exam_path, encoding="utf-8") as fh:
+                exam = json.load(fh)
+            exam["name"] = new_name.strip()
+            with open(exam_path, "w", encoding="utf-8") as fh:
+                json.dump(exam, fh, indent=2, ensure_ascii=False)
+        except (OSError, json.JSONDecodeError) as e:
+            self._json({"error": str(e)}, 500)
+            return
+        self._json({"ok": True})
+
+    def _reveal_folder(self):
+        import platform
+        import subprocess
+        exam_dir = self.server.exam_dir
+        os.makedirs(exam_dir, exist_ok=True)
+        system = platform.system()
+        try:
+            if system == "Darwin":
+                subprocess.Popen(["open", exam_dir])
+            elif system == "Linux":
+                subprocess.Popen(["xdg-open", exam_dir])
+            else:
+                self._json({"error": "unsupported platform"}, 400)
+                return
+            self._json({"ok": True})
+        except OSError as e:
+            self._json({"error": str(e)}, 500)
+
+    def _handle_import(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            exam = json.loads(body)
+        except (ValueError, json.JSONDecodeError) as e:
+            self._json({"error": str(e)}, 400)
+            return
+
+        exam_id = exam.get("id", "")
+        if not re.match(r"^[a-zA-Z0-9_-]+$", exam_id):
+            self._json({"error": "invalid or missing exam id"}, 400)
+            return
+
+        if not isinstance(exam.get("sections"), list) or not exam.get("total"):
+            self._json({"error": "invalid exam: missing sections or total"}, 400)
+            return
+
+        # Validate every question the browser will score. A missing key/options/stem
+        # imports silently and then mis-scores (decodeKey yields '?', every answer
+        # marked wrong) with no error — so reject it at the boundary instead.
+        for section in exam["sections"]:
+            for q in section.get("questions", []):
+                missing = [f for f in ("key", "options", "stem") if not q.get(f)]
+                if missing:
+                    self._json({
+                        "error": f"invalid exam: question {q.get('n', '?')} "
+                                 f"missing {', '.join(missing)}"
+                    }, 400)
+                    return
+
+        out_path = os.path.join(self.server.exam_dir, f"{exam_id}.json")
+        if os.path.exists(out_path):
+            self._json({"error": "exam already exists", "id": exam_id}, 409)
+            return
+
+        try:
+            os.makedirs(self.server.exam_dir, exist_ok=True)
+            with open(out_path, "w", encoding="utf-8") as fh:
+                json.dump(exam, fh, indent=2, ensure_ascii=False)
+        except OSError as e:
+            self._json({"error": str(e)}, 500)
+            return
+
+        self._json({"ok": True, "id": exam_id})
+
 
 def cmd_serve(args):
     server = HTTPServer(("127.0.0.1", args.port), ExamHandler)
@@ -383,6 +512,7 @@ def main():
     exp.add_argument("--exam-id",   required=True, help="Exam identifier (e.g. ccaf-20260619-143022)")
     exp.add_argument("--exam-src",  required=True, help="Path prefix for exam files (without .md suffix)")
     exp.add_argument("--exam-dir",  required=True, help="Directory to write the JSON into")
+    exp.add_argument("--name",      default="",    help="Human-readable display name for this exam")
 
     srv = sub.add_parser("serve", help="Run the HTTP server")
     srv.add_argument("--port",        type=int, default=8765, help="TCP port (default 8765)")

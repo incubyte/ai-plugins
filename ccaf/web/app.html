@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCAF Mock Exam</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #f0f2f5;
+  --surface:   #ffffff;
+  --border:    #d1d5db;
+  --text:      #1f2937;
+  --muted:     #6b7280;
+  --primary:   #2563eb;
+  --primary-h: #1d4ed8;
+  --pass:      #16a34a;
+  --fail:      #dc2626;
+  --warn:      #d97706;
+  --sq-none:   #e5e7eb;
+  --sq-ans:    #2563eb;
+  --sq-flag:   #d97706;
+  --radius:    8px;
+  --shadow:    0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Shared layout ── */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+button {
+  cursor: pointer;
+  font: inherit;
+  border: none;
+  border-radius: var(--radius);
+  transition: background .15s, opacity .15s;
+}
+button:disabled { opacity: .45; cursor: default; }
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  padding: .55rem 1.25rem;
+  font-weight: 600;
+}
+.btn-primary:hover:not(:disabled) { background: var(--primary-h); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--primary);
+  padding: .5rem 1rem;
+  border: 1.5px solid var(--primary);
+  font-weight: 500;
+}
+.btn-ghost:hover:not(:disabled) { background: #eff6ff; }
+
+.btn-danger {
+  background: var(--fail);
+  color: #fff;
+  padding: .55rem 1.25rem;
+  font-weight: 600;
+}
+.btn-danger:hover:not(:disabled) { background: #b91c1c; }
+
+.btn-danger-ghost {
+  background: transparent;
+  color: var(--fail);
+  padding: .5rem 1rem;
+  border: 1.5px solid var(--fail);
+  font-weight: 500;
+}
+.btn-danger-ghost:hover:not(:disabled) { background: #fee2e2; }
+
+/* ── Start screen ── */
+#start-screen {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 2.5rem 1rem 3rem;
+}
+
+.start-header { text-align: center; margin-bottom: 2rem; }
+.start-header h1 { font-size: 1.9rem; font-weight: 700; }
+.start-header p  { color: var(--muted); margin-top: .4rem; }
+
+.exam-list { display: flex; flex-direction: column; gap: .75rem; }
+
+.exam-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+.exam-card.highlighted { border-color: var(--primary); border-width: 2px; }
+
+.exam-meta { flex: 1; min-width: 0; }
+.exam-meta strong { display: block; font-size: 1rem; }
+.exam-meta .scenarios {
+  color: var(--muted);
+  font-size: .85rem;
+  margin-top: .2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.exam-meta .ts { color: var(--muted); font-size: .8rem; margin-top: .15rem; }
+
+.badge {
+  display: inline-block;
+  padding: .2rem .55rem;
+  border-radius: 99px;
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  flex-shrink: 0;
+}
+.badge-pass { background: #dcfce7; color: var(--pass); }
+.badge-fail { background: #fee2e2; color: var(--fail); }
+.badge-new  { background: #eff6ff; color: var(--primary); }
+
+.exam-card-actions { display: flex; gap: .5rem; flex-shrink: 0; }
+
+.import-hint { color: var(--muted); font-size: .85rem; margin-top: .5rem; }
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+.btn-link:hover { color: var(--primary-h); }
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--muted);
+}
+
+/* ── Exam screen ── */
+#exam-screen { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* Top bar */
+.exam-topbar {
+  background: #1e293b;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .65rem 1.25rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.exam-topbar h2 { font-size: .95rem; font-weight: 600; flex: 1; min-width: 0; }
+
+.timer {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  padding: .3rem .7rem;
+  background: rgba(255,255,255,.1);
+  border-radius: var(--radius);
+}
+.timer.warn   { background: #78350f; color: #fde68a; }
+.timer.urgent { background: #7f1d1d; color: #fecaca; animation: pulse 1s infinite; }
+
+@keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.6 } }
+
+.progress-text { font-size: .8rem; color: #94a3b8; white-space: nowrap; }
+
+/* Warning banner */
+.warn-banner {
+  background: #78350f;
+  color: #fde68a;
+  text-align: center;
+  padding: .4rem;
+  font-weight: 600;
+  font-size: .9rem;
+  flex-shrink: 0;
+}
+
+/* Body: sidebar + main */
+.exam-body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.exam-sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.case-brief h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .4rem; }
+.case-brief .brief-title { font-weight: 700; font-size: .95rem; margin-bottom: .4rem; }
+.case-brief .brief-text { font-size: .82rem; color: #374151; line-height: 1.55; }
+
+.q-nav h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; }
+.q-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.q-sq {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: var(--sq-none);
+  color: #374151;
+  font-size: .72rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform .1s;
+  border: 2px solid transparent;
+}
+.q-sq:hover { transform: scale(1.15); }
+.q-sq.answered  { background: var(--sq-ans);  color: #fff; }
+.q-sq.flagged   { background: var(--sq-flag); color: #fff; }
+.q-sq.current   { border-color: #1e293b; box-shadow: 0 0 0 2px #1e293b; }
+.q-sq.answered.flagged { background: linear-gradient(135deg, var(--sq-ans) 50%, var(--sq-flag) 50%); }
+
+.legend { display: flex; flex-wrap: wrap; gap: .4rem .75rem; font-size: .73rem; color: var(--muted); }
+.legend-item { display: flex; align-items: center; gap: .25rem; }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+/* Main question area */
+.exam-main { overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+
+.q-header {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.q-number { font-size: .85rem; color: var(--muted); font-weight: 600; }
+.btn-flag {
+  margin-left: auto;
+  font-size: .8rem;
+  padding: .3rem .75rem;
+  border-radius: 99px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-weight: 500;
+}
+.btn-flag.flagged { border-color: var(--warn); color: var(--warn); background: #fffbeb; }
+
+.q-stem {
+  font-size: 1rem;
+  line-height: 1.65;
+  font-weight: 500;
+  padding: 1rem 1.25rem;
+  background: #f8fafc;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.options { display: flex; flex-direction: column; gap: .5rem; }
+
+.option-row {
+  display: flex;
+  align-items: flex-start;
+  gap: .85rem;
+  padding: .8rem 1rem;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  user-select: none;
+}
+.option-row:hover { background: #eff6ff; border-color: #93c5fd; }
+.option-row.selected { border-color: var(--primary); background: #eff6ff; }
+
+.option-letter {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: .05rem;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.option-row.selected .option-letter {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.option-text { font-size: .92rem; line-height: 1.5; }
+
+.q-actions {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.q-actions .spacer { flex: 1; }
+
+.q-submit-row {
+  text-align: right;
+  margin-top: .25rem;
+}
+
+/* ── Result screen ── */
+#result-screen {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 2.5rem 1rem 3rem;
+}
+
+.result-header { text-align: center; margin-bottom: 2rem; }
+.result-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.25rem; }
+
+.score-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: .75rem;
+}
+.score-number { font-size: 4rem; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+.score-denom  { font-size: 1.4rem; color: var(--muted); align-self: flex-end; padding-bottom: .4rem; }
+.verdict-badge {
+  font-size: 1.4rem;
+  font-weight: 800;
+  padding: .4rem 1.1rem;
+  border-radius: 99px;
+}
+.verdict-badge.pass { background: #dcfce7; color: var(--pass); }
+.verdict-badge.fail { background: #fee2e2; color: var(--fail); }
+
+.result-sub { color: var(--muted); font-size: .9rem; }
+
+.domain-breakdown { margin: 1.5rem 0; }
+.domain-breakdown h2 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+
+.domain-row { margin-bottom: .9rem; }
+.domain-label { display: flex; justify-content: space-between; font-size: .85rem; margin-bottom: .25rem; }
+.domain-name  { font-weight: 500; }
+.domain-score { color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar-track { background: var(--sq-none); border-radius: 99px; height: 10px; overflow: hidden; }
+.bar-fill  { height: 100%; border-radius: 99px; transition: width .6s ease; }
+.bar-strong { background: var(--pass); }
+.bar-mid    { background: var(--primary); }
+.bar-weak   { background: var(--fail); }
+
+.disclaimer {
+  font-size: .8rem;
+  color: var(--muted);
+  line-height: 1.55;
+  padding: 1rem;
+  border-radius: var(--radius);
+  background: #f9fafb;
+  border: 1px solid var(--border);
+  margin-top: 1.5rem;
+}
+
+.result-actions { display: flex; gap: .75rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap; }
+
+/* ── Review screen ── */
+#review-screen {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.review-header h1 { font-size: 1.4rem; font-weight: 700; flex: 1; }
+.review-summary { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+
+.review-section { margin-bottom: 2rem; }
+.review-section-header {
+  background: #1e293b;
+  color: #f8fafc;
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: .75rem 1.1rem;
+}
+.review-section-header h2 { font-size: .95rem; font-weight: 700; }
+.review-brief {
+  font-size: .82rem;
+  color: #94a3b8;
+  margin-top: .25rem;
+  line-height: 1.4;
+}
+
+.review-q {
+  border: 1px solid var(--border);
+  border-top: none;
+  padding: 1rem 1.1rem;
+  background: var(--surface);
+}
+.review-q:last-child { border-radius: 0 0 var(--radius) var(--radius); }
+
+.review-q-header {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: .6rem;
+  font-size: .82rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.review-verdict {
+  margin-left: auto;
+  font-weight: 700;
+  font-size: .85rem;
+}
+.review-verdict.correct { color: var(--pass); }
+.review-verdict.wrong   { color: var(--fail); }
+.review-verdict.skipped { color: var(--muted); }
+
+.review-stem {
+  font-size: .92rem;
+  line-height: 1.6;
+  margin-bottom: .75rem;
+  font-weight: 500;
+}
+
+.review-option {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  padding: .55rem .8rem;
+  border-radius: 6px;
+  border: 1.5px solid transparent;
+  margin-bottom: .35rem;
+  font-size: .88rem;
+  line-height: 1.45;
+}
+.review-option.correct-ans {
+  border-color: var(--pass);
+  background: #f0fdf4;
+}
+.review-option.wrong-ans {
+  border-color: var(--fail);
+  background: #fef2f2;
+}
+.review-option .opt-letter {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: .05rem;
+}
+.review-option.correct-ans .opt-letter { background: var(--pass); border-color: var(--pass); color: #fff; }
+.review-option.wrong-ans   .opt-letter { background: var(--fail); border-color: var(--fail); color: #fff; }
+
+.opt-tag {
+  margin-left: auto;
+  font-size: .73rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-left: .5rem;
+}
+.correct-ans .opt-tag { color: var(--pass); }
+.wrong-ans   .opt-tag { color: var(--fail); }
+
+/* ── Utility ── */
+.hidden { display: none !important; }
+.spinner { text-align: center; padding: 3rem; color: var(--muted); font-size: .95rem; }
+
+/* Confirm overlay */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.overlay-box {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+}
+.overlay-box h3 { font-size: 1.1rem; margin-bottom: .5rem; }
+.overlay-box p  { color: var(--muted); font-size: .9rem; margin-bottom: 1.25rem; line-height: 1.5; }
+.overlay-actions { display: flex; gap: .75rem; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ START SCREEN ═══════════════════════════ -->
+<div id="start-screen" class="hidden">
+  <div class="start-header">
+    <h1>CCAF Mock Exam</h1>
+    <p>Claude Certified Architect – Foundations &nbsp;|&nbsp; 60 questions &nbsp;|&nbsp; 120 minutes</p>
+  </div>
+  <div id="exam-list" class="exam-list">
+    <div class="spinner">Loading exams…</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ EXAM SCREEN ════════════════════════════ -->
+<div id="exam-screen" class="hidden">
+  <div class="exam-topbar">
+    <h2 id="exam-title">CCAF Mock Exam</h2>
+    <span id="progress-text" class="progress-text"></span>
+    <span id="timer" class="timer">2:00:00</span>
+  </div>
+  <div id="warn-banner" class="warn-banner hidden">⚠ 5 minutes remaining — finish up and submit</div>
+  <div class="exam-body">
+    <!-- Sidebar -->
+    <div class="exam-sidebar">
+      <div class="case-brief" id="case-brief">
+        <h3>Case Study</h3>
+        <div class="brief-title" id="brief-title">—</div>
+        <div class="brief-text"  id="brief-text">—</div>
+      </div>
+      <div class="q-nav">
+        <h3>Questions</h3>
+        <div class="q-grid" id="q-grid"></div>
+        <div class="legend" style="margin-top:.6rem">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--sq-none);border:1px solid #9ca3af"></span> Unanswered</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--sq-ans)"></span> Answered</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--sq-flag)"></span> Flagged</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="exam-main" id="exam-main">
+      <div class="spinner">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ RESULT SCREEN ══════════════════════════ -->
+<div id="result-screen" class="hidden">
+  <div class="result-header">
+    <h1>CCAF Mock Exam — Result</h1>
+    <div class="score-block">
+      <span class="score-number" id="res-score">—</span>
+      <span class="score-denom">/ 1000</span>
+      <span class="verdict-badge" id="res-verdict">—</span>
+    </div>
+    <p class="result-sub" id="res-correct"></p>
+  </div>
+
+  <div class="card domain-breakdown" style="padding:1.25rem">
+    <h2>Per-Domain Breakdown</h2>
+    <div id="domain-rows"></div>
+  </div>
+
+  <p class="disclaimer">
+    <strong>Estimated score only.</strong> This score is calculated as
+    <code>100 + 15 × correct</code> — a linear mapping over the real 100–1000 band. It is
+    <em>not</em> Anthropic's proprietary equating curve. Treat 720+ here as a readiness signal,
+    not a guarantee. Pass line: 720 (≥ 42 / 60 correct).
+  </p>
+
+  <div class="result-actions">
+    <button class="btn-ghost" onclick="location.reload()">Back to Exam Library</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ REVIEW SCREEN ══════════════════════════ -->
+<div id="review-screen" class="hidden">
+  <div class="review-header">
+    <h1>Exam Review</h1>
+    <div class="review-summary" id="review-summary"></div>
+    <button class="btn-ghost" onclick="location.reload()">← Library</button>
+  </div>
+  <div id="review-body"></div>
+</div>
+
+<!-- Confirm submit overlay -->
+<div id="submit-overlay" class="overlay hidden">
+  <div class="overlay-box">
+    <h3 id="overlay-title">Submit exam?</h3>
+    <p id="overlay-body"></p>
+    <div class="overlay-actions">
+      <button class="btn-ghost" onclick="App.closeOverlay()">Cancel</button>
+      <button class="btn-danger" id="overlay-confirm-btn">Submit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── Config ──────────────────────────────────────────────────────────────────
+const PORT = 8765;
+const API  = `http://localhost:${PORT}`;
+// NOTE: keep in sync with DOMAIN_NAMES in web/server.py
+const DOMAIN_NAMES = {
+  D1: 'Agentic Architecture & Orchestration',
+  D2: 'Tool Design & MCP Integration',
+  D3: 'Claude Code Configuration & Workflows',
+  D4: 'Prompt Engineering & Structured Output',
+  D5: 'Context Management & Reliability',
+};
+const TIMER_TOTAL = 120 * 60; // seconds
+const WARN_AT     = 5 * 60;   // seconds remaining for warning
+
+// ── State ────────────────────────────────────────────────────────────────────
+let examCache = [];  // mirror of the last /exams response for rename/delete lookups
+
+const examState = {
+  exam:        null,   // loaded exam JSON
+  allQ:        [],     // flattened question list [{...q, sectionIdx}]
+  answers:     {},     // {n: 'A'|'B'|'C'|'D'}
+  flags:       new Set(),
+  curIdx:      0,      // index into allQ
+  secondsLeft: TIMER_TOTAL,
+  timerTick:   null,
+  warnShown:   false,
+  submitted:   false,
+};
+
+// ── DOM helper ────────────────────────────────────────────────────────────────
+const byId = id => document.getElementById(id);
+
+// ── Screens ──────────────────────────────────────────────────────────────────
+function showScreen(name) {
+  ['start-screen','exam-screen','result-screen','review-screen'].forEach(id => {
+    byId(id).classList.toggle('hidden', id !== name + '-screen');
+  });
+}
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+function fmtTime(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'Z'); // server writes naive UTC; append Z for correct parsing
+  return d.toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'});
+}
+
+function decodeKey(b64) {
+  try { return atob(b64); } catch { return '?'; }
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Start Screen ─────────────────────────────────────────────────────────────
+async function initStart() {
+  showScreen('start');
+  const urlExam = new URLSearchParams(location.search).get('exam') || '';
+
+  let exams = [];
+  try {
+    const r = await fetch(`${API}/exams`);
+    exams = await r.json();
+  } catch {
+    byId('exam-list').innerHTML = `<div class="spinner">Could not connect to the exam server at localhost:${PORT}.<br>Make sure you launched the server via <code>/ccaf:mock-exam --web</code>.</div>`;
+    return;
+  }
+
+  if (!exams.length) {
+    byId('exam-list').innerHTML = `<div class="empty-state">No saved exams yet.<br>Run <code>/ccaf:mock-exam --web</code> in Claude Code to generate one.</div>`;
+    return;
+  }
+
+  examCache = exams;
+  byId('exam-list').innerHTML = exams.map(e => {
+    const isNew = e.id === urlExam;
+    const badge = e.completed
+      ? `<span class="badge ${e.verdict === 'PASS' ? 'badge-pass' : 'badge-fail'}">${esc(e.verdict) || ''} ${e.scaled != null ? esc(String(e.scaled)) : ''}</span>`
+      : (isNew ? `<span class="badge badge-new">New</span>` : '');
+    const actions = e.completed
+      ? `<button class="btn-ghost"        onclick="App.reviewExam('${e.id}')">Review</button>
+         <button class="btn-primary"      onclick="App.retakeExam('${e.id}')">Retake</button>`
+      : `<button class="btn-primary"      onclick="App.startExam('${e.id}')">${isNew ? 'Start' : 'Take'}</button>`;
+    return `
+      <div class="card exam-card ${isNew ? 'highlighted' : ''}">
+        <div class="exam-meta">
+          <strong>${esc(e.id)}</strong>
+          <div class="scenarios">${(e.scenarios || []).join(' · ')}</div>
+          <div class="ts">${fmtDate(e.generated_at)}</div>
+        </div>
+        ${badge}
+        <div class="exam-card-actions">${actions}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── Exam Loading ──────────────────────────────────────────────────────────────
+async function startExam(id) {
+  showScreen('exam');
+  byId('exam-main').innerHTML = '<div class="spinner">Loading exam…</div>';
+
+  let exam;
+  try {
+    const r = await fetch(`${API}/exam/${id}`);
+    if (!r.ok) throw new Error(r.status);
+    exam = await r.json();
+  } catch (e) {
+    byId('exam-main').innerHTML = `<div class="spinner">Failed to load exam: ${e.message}</div>`;
+    return;
+  }
+
+  examState.exam = exam;
+  examState.allQ = exam.sections.flatMap((sec, si) =>
+    sec.questions.map(q => ({ ...q, sectionIdx: si }))
+  );
+  examState.answers    = {};
+  examState.flags      = new Set();
+  examState.curIdx     = 0;
+  examState.secondsLeft = TIMER_TOTAL;
+  examState.warnShown  = false;
+  examState.submitted  = false;
+
+  byId('exam-title').textContent = 'CCAF Mock Exam — ' + exam.id;
+  renderQGrid();
+  renderQuestion();
+  startTimer();
+}
+
+// ── Timer ─────────────────────────────────────────────────────────────────────
+function startTimer() {
+  if (examState.timerTick) clearInterval(examState.timerTick);
+  updateTimerEl();
+  examState.timerTick = setInterval(() => {
+    examState.secondsLeft--;
+    updateTimerEl();
+    if (examState.secondsLeft <= WARN_AT && !examState.warnShown) {
+      examState.warnShown = true;
+      byId('warn-banner').classList.remove('hidden');
+    }
+    if (examState.secondsLeft <= 0) {
+      clearInterval(examState.timerTick);
+      autoSubmit();
+    }
+  }, 1000);
+}
+
+function updateTimerEl() {
+  const el = byId('timer');
+  el.textContent = fmtTime(Math.max(0, examState.secondsLeft));
+  el.className = 'timer';
+  if (examState.secondsLeft <= 60)         el.classList.add('urgent');
+  else if (examState.secondsLeft <= WARN_AT) el.classList.add('warn');
+}
+
+function stopTimer() {
+  if (examState.timerTick) { clearInterval(examState.timerTick); examState.timerTick = null; }
+}
+
+// ── Question render ───────────────────────────────────────────────────────────
+function updateSidebar(q) {
+  const sec = examState.exam.sections[q.sectionIdx];
+  byId('brief-title').textContent = sec.title || sec.scenario;
+  byId('brief-text').textContent  = sec.brief  || '';
+}
+
+function updateProgress() {
+  const answered = Object.keys(examState.answers).length;
+  byId('progress-text').textContent = `${answered} / ${examState.exam.total} answered`;
+}
+
+function renderQGrid() {
+  const grid = byId('q-grid');
+  grid.innerHTML = examState.allQ.map((q, idx) => {
+    const ans = examState.answers[q.n] != null;
+    const flg = examState.flags.has(q.n);
+    const cur = idx === examState.curIdx;
+    const cls = [ans && 'answered', flg && 'flagged', cur && 'current'].filter(Boolean).join(' ');
+    return `<div class="q-sq ${cls}" onclick="App.navTo(${idx})" title="Q${q.n}">${q.n}</div>`;
+  }).join('');
+}
+
+function renderQuestion() {
+  const q = examState.allQ[examState.curIdx];
+  if (!q) return;
+
+  updateSidebar(q);
+  updateProgress();
+
+  const flagged  = examState.flags.has(q.n);
+  const isLast   = examState.curIdx === examState.allQ.length - 1;
+
+  byId('exam-main').innerHTML = `
+    <div class="q-header">
+      <span class="q-number">Question ${q.n} of ${examState.exam.total} &nbsp;·&nbsp; ${q.domain_name || q.domain}</span>
+      <button class="btn-flag ${flagged ? 'flagged' : ''}" onclick="App.toggleFlag(${q.n})">
+        ${flagged ? '⚑ Flagged' : '⚐ Flag for review'}
+      </button>
+    </div>
+
+    <div class="q-stem">${esc(q.stem)}</div>
+
+    <div class="options">
+      ${['A','B','C','D'].map(ltr => {
+        const text = q.options[ltr] || '';
+        const sel  = examState.answers[q.n] === ltr;
+        return `
+          <div class="option-row ${sel ? 'selected' : ''}" onclick="App.selectOption(${q.n}, '${ltr}')">
+            <div class="option-letter">${ltr}</div>
+            <div class="option-text">${esc(text)}</div>
+          </div>`;
+      }).join('')}
+    </div>
+
+    <div class="q-actions">
+      <button class="btn-ghost" onclick="App.navTo(${examState.curIdx - 1})" ${examState.curIdx === 0 ? 'disabled' : ''}>← Previous</button>
+      <span class="spacer"></span>
+      <button class="btn-primary" onclick="App.navTo(${examState.curIdx + 1})" ${isLast ? 'disabled' : ''}>Next →</button>
+    </div>
+
+    <div class="q-submit-row">
+      <button class="btn-danger" style="font-size:.8rem;padding:.3rem .8rem"
+              onclick="App.confirmSubmit()">Submit Exam</button>
+    </div>
+  `;
+
+  renderQGrid();
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function navTo(idx) {
+  if (idx < 0 || idx >= examState.allQ.length) return;
+  examState.curIdx = idx;
+  renderQuestion();
+  byId('exam-main').scrollTop = 0;
+}
+
+// ── Answer / Flag ─────────────────────────────────────────────────────────────
+function selectOption(qn, letter) {
+  examState.answers[qn] = letter;
+  renderQuestion();
+}
+
+function toggleFlag(qn) {
+  if (examState.flags.has(qn)) examState.flags.delete(qn);
+  else examState.flags.add(qn);
+  renderQuestion();
+}
+
+// ── Submit flow ───────────────────────────────────────────────────────────────
+function confirmSubmit() {
+  if (examState.submitted) return;
+  const unanswered = examState.exam.total - Object.keys(examState.answers).length;
+  const flagged    = examState.flags.size;
+  let body = '';
+  if (unanswered > 0) body += `${unanswered} question(s) unanswered (will score as incorrect). `;
+  if (flagged > 0)    body += `${flagged} question(s) still flagged. `;
+  body += 'Are you sure you want to submit?';
+
+  byId('overlay-title').textContent = 'Submit exam?';
+  byId('overlay-body').textContent  = body;
+  byId('overlay-confirm-btn').onclick = () => doSubmit();
+  byId('submit-overlay').classList.remove('hidden');
+}
+
+function closeOverlay() {
+  byId('submit-overlay').classList.add('hidden');
+}
+
+function autoSubmit() {
+  if (examState.submitted) return;
+  byId('warn-banner').textContent = '⏱ Time is up — submitting your exam…';
+  byId('warn-banner').classList.remove('hidden');
+  doSubmit();
+}
+
+async function doSubmit() {
+  if (examState.submitted) return;
+  examState.submitted = true;
+  closeOverlay();
+  stopTimer();
+
+  const result = computeScore();
+  showScreen('result');
+  renderResult(result);
+
+  // POST to server (best-effort — exam is already scored in the browser)
+  try {
+    await fetch(`${API}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(result),
+    });
+  } catch { /* server may already be gone if this is a retry */ }
+}
+
+// ── Scoring ───────────────────────────────────────────────────────────────────
+function computeScore() {
+  const per_domain = {};
+  let correct = 0;
+
+  for (const sec of examState.exam.sections) {
+    for (const q of sec.questions) {
+      const d = q.domain;
+      if (!per_domain[d]) per_domain[d] = { correct: 0, total: 0 };
+      per_domain[d].total++;
+      const key = decodeKey(q.key);
+      if (examState.answers[q.n] === key) {
+        correct++;
+        per_domain[d].correct++;
+      }
+    }
+  }
+
+  const total   = examState.exam.total;
+  const scaled  = 100 + 15 * correct;
+  const verdict = scaled >= 720 ? 'PASS' : 'FAIL';
+
+  return {
+    exam_id: examState.exam.id,
+    answers: examState.answers,
+    correct,
+    total,
+    scaled,
+    verdict,
+    per_domain,
+  };
+}
+
+// ── Result Screen ─────────────────────────────────────────────────────────────
+function renderResult(r) {
+  byId('res-score').textContent   = r.scaled;
+  byId('res-correct').textContent = `${r.correct} of ${r.total} correct  ·  Pass line: 720`;
+
+  const vEl = byId('res-verdict');
+  vEl.textContent = r.verdict;
+  vEl.className   = `verdict-badge ${r.verdict === 'PASS' ? 'pass' : 'fail'}`;
+
+  const domainOrder = ['D1','D2','D3','D4','D5'];
+  byId('domain-rows').innerHTML = domainOrder
+    .filter(d => r.per_domain[d])
+    .map(d => {
+      const { correct, total } = r.per_domain[d];
+      const pct      = total ? Math.round(correct / total * 100) : 0;
+      const name     = DOMAIN_NAMES[d] || d;
+      const weakTag  = pct < 60 ? ' <span style="color:var(--fail);font-size:.75rem;font-weight:600">▲ Study this</span>' : '';
+      const barClass = pct >= 70 ? 'bar-strong' : pct >= 50 ? 'bar-mid' : 'bar-weak';
+      return `
+        <div class="domain-row">
+          <div class="domain-label">
+            <span class="domain-name">${d} — ${name}${weakTag}</span>
+            <span class="domain-score">${correct}/${total} (${pct}%)</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill ${barClass}" style="width:${pct}%"></div>
+          </div>
+        </div>`;
+    }).join('');
+
+  renderRecommendation(r);
+}
+
+function renderRecommendation(r) {
+  const domainOrder = ['D1','D2','D3','D4','D5'];
+  const rec = document.createElement('p');
+  if (r.verdict === 'FAIL') {
+    const weakest = domainOrder
+      .filter(d => r.per_domain[d])
+      .sort((a, b) => {
+        const pa = r.per_domain[a].correct / r.per_domain[a].total;
+        const pb = r.per_domain[b].correct / r.per_domain[b].total;
+        return pa - pb;
+      })[0];
+    rec.style.cssText = 'margin-top:.75rem;font-size:.9rem;color:var(--text)';
+    rec.innerHTML = `Your weakest area is <strong>${weakest} — ${DOMAIN_NAMES[weakest]}</strong>. Run <code>/ccaf:prepare ${weakest}</code> in Claude Code for targeted practice, then retake the mock.`;
+  } else {
+    rec.style.cssText = 'margin-top:.75rem;font-size:.9rem;color:var(--pass);font-weight:600';
+    rec.textContent = '✓ You\'re on track to pass — good luck on the real exam!';
+  }
+  byId('domain-rows').appendChild(rec);
+}
+
+// ── Retake ────────────────────────────────────────────────────────────────────
+// Reuses the same exam JSON and stored keys — no Claude generation required.
+// startExam resets all state (answers, flags, timer) before loading.
+function retakeExam(id) {
+  startExam(id);
+}
+
+// ── Review ────────────────────────────────────────────────────────────────────
+async function reviewExam(id) {
+  showScreen('review');
+  byId('review-body').innerHTML = '<div class="spinner">Loading…</div>';
+
+  let exam, result;
+  try {
+    const [er, rr] = await Promise.all([
+      fetch(`${API}/exam/${id}`),
+      fetch(`${API}/result/${id}`),
+    ]);
+    if (!er.ok) throw new Error(`Exam fetch failed: ${er.status}`);
+    if (!rr.ok) throw new Error(`Result fetch failed: ${rr.status}`);
+    exam   = await er.json();
+    result = await rr.json();
+  } catch (e) {
+    byId('review-body').innerHTML = `<div class="spinner">Failed to load: ${e.message}</div>`;
+    return;
+  }
+
+  renderReview(exam, result);
+}
+
+function renderReview(exam, result) {
+  const userAnswers = result.answers || {};  // {"1": "B", ...}
+
+  const vClass = result.verdict === 'PASS' ? 'badge-pass' : 'badge-fail';
+  byId('review-summary').innerHTML = `
+    <span class="badge ${vClass}">${result.verdict} ${result.scaled}</span>
+    <span style="color:var(--muted);font-size:.85rem">${result.correct}/${result.total} correct</span>`;
+
+  byId('review-body').innerHTML = exam.sections.map(sec => {
+    const qCards = sec.questions.map(q => {
+      const correctKey = decodeKey(q.key);
+      const userChoice = userAnswers[String(q.n)];
+      const gotItRight = userChoice === correctKey;
+      const skipped    = userChoice == null || userChoice === '';
+
+      const verdictLabel = skipped
+        ? '<span class="review-verdict skipped">— Skipped</span>'
+        : gotItRight
+          ? '<span class="review-verdict correct">✓ Correct</span>'
+          : '<span class="review-verdict wrong">✗ Wrong</span>';
+
+      const optionRows = ['A','B','C','D'].map(ltr => {
+        const text        = q.options[ltr] || '';
+        const isCorrect   = ltr === correctKey;
+        const isUserWrong = ltr === userChoice && !gotItRight;
+        const isUserRight = ltr === userChoice && gotItRight;
+
+        let cls = '', tag = '';
+        if (isUserRight) {
+          cls = 'correct-ans';
+          tag = '✓ Correct — Your answer';
+        } else if (isCorrect) {
+          cls = 'correct-ans';
+          tag = '✓ Correct answer';
+        } else if (isUserWrong) {
+          cls = 'wrong-ans';
+          tag = '✗ Your answer';
+        }
+
+        return `
+          <div class="review-option ${cls}">
+            <div class="opt-letter">${ltr}</div>
+            <div>${esc(text)}</div>
+            ${tag ? `<div class="opt-tag">${tag}</div>` : ''}
+          </div>`;
+      }).join('');
+
+      return `
+        <div class="review-q">
+          <div class="review-q-header">
+            <span>Q${q.n}</span>
+            <span>${q.domain} — ${q.domain_name || q.domain}</span>
+            ${verdictLabel}
+          </div>
+          <div class="review-stem">${esc(q.stem)}</div>
+          ${optionRows}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="review-section">
+        <div class="review-section-header">
+          <h2>${esc(sec.title || sec.scenario)}</h2>
+          <div class="review-brief">${esc(sec.brief)}</div>
+        </div>
+        ${qCards}
+      </div>`;
+  }).join('');
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+window.App = {
+  startExam,
+  retakeExam,
+  reviewExam,
+  navTo,
+  selectOption,
+  toggleFlag,
+  confirmSubmit,
+  closeOverlay,
+};
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+initStart();
+</script>
+</body>
+</html>

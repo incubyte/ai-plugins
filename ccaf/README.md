@@ -101,6 +101,12 @@ Answer the questions four to a screen. When you finish, you get your scaled scor
 
 Discard any in-progress or completed attempt and assemble a brand-new exam.
 
+```bash
+/ccaf:mock-exam --web
+```
+
+Assemble a new exam (or resume an in-progress one) and open it in a self-contained browser UI on port **8765**. The browser app handles navigation, flagging, and submission; your scaled score and per-domain breakdown are shown there. Combines with `fresh`: `fresh --web` discards any existing attempt before assembling. Exams accumulate in `~/Documents/CCAF Exams/` as JSON; the server shuts down after submit.
+
 **Resume:** the attempt persists to `~/.claude/ccaf-exam.local.md`. Close your terminal mid-exam and re-run `/ccaf:mock-exam` — it greets you with "Welcome back" and continues from the next unanswered question.
 
 **Honor system:** untimed, self-serve, nothing reported or shared. The answer key lives in a separate local answers file (`~/.claude/ccaf-exam.local.answers.md`) that is never shown — and never even read — during the exam; it exists so resume and scoring work. Peeking at it only cheats you before a paid exam.
@@ -133,8 +139,12 @@ ccaf/
 │   └── ccaf-question-bank.md      # 12 self-authored reference questions (anchors only — never served)
 ├── scripts/
 │   ├── ccaf-exam.sh               # silent state helper (init / get / record / score / clear)
+│   ├── start-web-server.sh        # web mode launcher: exports exam JSON, starts server, opens browser
 │   └── tests/
 │       └── ccaf-exam.test.sh      # shell test harness for the data files + helper logic
+├── web/
+│   ├── server.py                  # Python stdlib HTTP server (export + serve modes; no external deps)
+│   └── app.html                   # self-contained browser exam app (start screen, exam, result)
 ├── CLAUDE.md                      # plugin conventions
 ├── README.md
 └── LICENSE

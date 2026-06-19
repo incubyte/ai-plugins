@@ -1228,6 +1228,10 @@ window.App = {
 };
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+// Keep the server alive while the tab is open; it auto-shuts after IDLE_TIMEOUT
+// seconds of silence (handles crashes). The beacon fires immediately on close.
+setInterval(() => fetch(`${API}/heartbeat`).catch(() => {}), 10_000);
+window.addEventListener('beforeunload', () => navigator.sendBeacon(`${API}/shutdown`));
 initStart();
 </script>
 </body>

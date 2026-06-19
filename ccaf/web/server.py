@@ -142,6 +142,8 @@ def parse_answers_file(path):
 # Export mode
 # ---------------------------------------------------------------------------
 
+IDLE_TIMEOUT = 60  # seconds of browser silence before auto-shutdown
+
 # NOTE: keep in sync with DOMAIN_NAMES in web/app.html
 DOMAIN_NAMES = {
     "D1": "Agentic Architecture & Orchestration",
@@ -233,6 +235,20 @@ class ExamHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _cancel_idle_timer(self):
+        timer = getattr(self.server, '_idle_timer', None)
+        if timer:
+            timer.cancel()
+            self.server._idle_timer = None
+
+    def _reset_idle_timer(self):
+        self._cancel_idle_timer()
+        self.server._idle_timer = threading.Timer(
+            IDLE_TIMEOUT,
+            lambda: threading.Thread(target=self.server.shutdown, daemon=True).start(),
+        )
+        self.server._idle_timer.start()
+
     def do_GET(self):
         path = self.path.split("?")[0].rstrip("/") or "/"
 
@@ -264,6 +280,13 @@ class ExamHandler(BaseHTTPRequestHandler):
         elif path.startswith("/result/"):
             self._serve_result(path[8:])
 
+        elif path == "/heartbeat":
+            self._reset_idle_timer()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"ok")
+
         elif path == "/reveal":
             self._reveal_folder()
 
@@ -287,6 +310,10 @@ class ExamHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/submit":
             self._handle_submit()
+        elif self.path == "/shutdown":
+            self._cancel_idle_timer()
+            self._json({"ok": True})
+            threading.Thread(target=self.server.shutdown, daemon=True).start()
         elif self.path == "/import":
             self._handle_import()
         else:
@@ -375,6 +402,7 @@ class ExamHandler(BaseHTTPRequestHandler):
             return
 
         self._json({"ok": True})
+        self._cancel_idle_timer()
         threading.Thread(target=self.server.shutdown, daemon=True).start()
 
     def _handle_delete(self, exam_id):
@@ -490,6 +518,14 @@ def cmd_serve(args):
     server = HTTPServer(("127.0.0.1", args.port), ExamHandler)
     server.exam_dir = os.path.expanduser(args.exam_dir)
     server.plugin_root = args.plugin_root
+    server._idle_timer = None
+    # Arm immediately so a browser that closes before the first heartbeat
+    # (which fires after 10 s) still triggers shutdown.
+    server._idle_timer = threading.Timer(
+        IDLE_TIMEOUT,
+        lambda: threading.Thread(target=server.shutdown, daemon=True).start(),
+    )
+    server._idle_timer.start()
     print(f"CCAF exam server listening on http://localhost:{args.port}")
     try:
         server.serve_forever()

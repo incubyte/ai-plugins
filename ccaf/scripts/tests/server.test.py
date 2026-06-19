@@ -375,6 +375,11 @@ class TestHTTPRoutes(unittest.TestCase):
         status, _, _ = self.req('DELETE', '/exam/ccaf-no-such-exam')
         self.assertEqual(status, 404)
 
+    def test_heartbeat_resets_timer(self):
+        status, _, body = self.req('GET', '/heartbeat')
+        self.assertEqual(status, 200)
+        self.assertEqual(body, b'ok')
+
     def test_reveal_returns_json(self):
         status, ct, _ = self.req('GET', '/reveal')
         self.assertNotEqual(status, 404)
@@ -432,9 +437,37 @@ class TestSubmit(unittest.TestCase):
         result_path = os.path.join(self.exam_dir, f'{exam_id}-result.json')
         self.assertTrue(os.path.exists(result_path))
 
+    def test_submit_triggers_server_shutdown(self):
+        exam_id = 'ccaf-submit-shutdown-test'
+        with open(os.path.join(self.exam_dir, f'{exam_id}.json'), 'w') as fh:
+            json.dump({'id': exam_id, 'sections': [], 'total': 1}, fh)
+        result = {
+            'exam_id': exam_id,
+            'correct': 0,
+            'total': 1,
+            'scaled': 100,
+            'verdict': 'FAIL',
+            'per_domain': {},
+            'answers': {},
+        }
+        status, _, _ = self.req('POST', '/submit', result)
+        self.assertEqual(status, 200)
+        time.sleep(0.5)
+        with self.assertRaises(Exception):
+            self.req('GET', '/ping')
+
     def test_submit_invalid_exam_id_rejected(self):
         status, _, _ = self.req('POST', '/submit', {'exam_id': '../bad', 'correct': 0, 'total': 1})
         self.assertEqual(status, 400)
+
+    def test_shutdown_beacon_stops_server(self):
+        status, _, body = self.req('POST', '/shutdown')
+        self.assertEqual(status, 200)
+        self.assertTrue(json.loads(body).get('ok'))
+        # Server should stop accepting connections within ~1 second
+        time.sleep(0.5)
+        with self.assertRaises(Exception):
+            self.req('GET', '/ping')
 
 
 if __name__ == '__main__':

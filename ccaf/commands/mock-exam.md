@@ -1,7 +1,7 @@
 ---
 description: Take a CCAF (Claude Certified Architect – Foundations) mock exam — 60 weighted questions, a scaled /1000 score, and a 720 readiness verdict. Resumable.
-argument-hint: "(no args) — start or resume; 'fresh' — discard any attempt and start new"
-allowed-tools: ["Read", "AskUserQuestion", "Skill", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/ccaf-exam.sh *)"]
+argument-hint: "(no args) — start or resume; 'fresh' — start new; '--web' — open a browser-based exam UI"
+allowed-tools: ["Read", "AskUserQuestion", "Skill", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/ccaf-exam.sh *)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/start-web-server.sh *)"]
 ---
 
 ## Skill Loading
@@ -25,6 +25,7 @@ pass line. The scaled number is an honest estimate — not Anthropic's proprieta
 
 - empty — start a new attempt, or offer to resume an in-progress one.
 - `fresh` — discard any existing attempt and assemble a new exam.
+- `--web` — assemble a new exam then hand it off to the browser-based UI (port 8765). Combines with `fresh`: `fresh --web` discards any existing attempt before assembling.
 
 ## Flow (delegated to the ccaf-exam skill)
 

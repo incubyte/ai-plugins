@@ -120,6 +120,49 @@ biased key spread, or a mid-attempt overwrite — on refusal, fix the body and r
 back to Write/Edit. Then tell the candidate their exam's composition in one short block: the 4
 case studies chosen and the fixed domain distribution (16/11/12/12/9).
 
+## Web Mode
+
+If `$ARGUMENTS` contains `--web`, **do not run the terminal Administer or Score sections** —
+the browser handles administration and scoring. Follow this startup logic instead of the one
+in "On startup" above:
+
+### Web startup
+
+1. **`fresh --web`** (arguments contain both `fresh` and `--web`):
+   Run `ccaf-exam.sh clear`, go to **Assemble**, then launch below.
+
+2. **Existing attempt** (`ccaf-exam.sh get --field status` succeeds):
+   - `in_progress` — tell the user their in-progress exam is opening in the browser
+     (remaining questions are shown there). Skip Assemble; go straight to **Launch**.
+   - `completed` — tell the user their previous attempt is completed and ask via
+     **AskUserQuestion**: *Open it in the browser to review* / *Start a fresh attempt* /
+     *Cancel*. "Open to review" goes to **Launch**; "Start fresh" clears and goes to Assemble.
+   - **Malformed / unrecognised status** — explain briefly, offer *Start fresh* / *Cancel*
+     via AskUserQuestion. "Start fresh" clears and goes to Assemble.
+
+3. **No attempt** (`get` fails with "no active exam") — go to **Assemble**, then **Launch**.
+
+### Launch
+
+Run the web server launcher (foreground, so you can read its output):
+```
+${CLAUDE_PLUGIN_ROOT}/scripts/start-web-server.sh \
+  --port 8765 \
+  --plugin-root ${CLAUDE_PLUGIN_ROOT}
+```
+The script exports the current exam pair to `~/Documents/CCAF Exams/<EXAM_ID>.json` with
+Base64-obfuscated keys, starts or reuses the server on port 8765, opens the browser, and
+prints `Exam open at: http://localhost:8765/?exam=<EXAM_ID>` as its last line.
+
+Read that URL from the output and tell the user:
+> "Your exam is open in the browser at `http://localhost:8765/?exam=<EXAM_ID>`.
+> Take it there — your scaled score and per-domain breakdown will be shown in the browser
+> when you submit. The server shuts itself down after you submit."
+
+Done. Do not run Administer or Score.
+
+---
+
 ## Administer
 
 Before the first screen of a new attempt, state once: *"Heads-up: the real CCAF allows

@@ -628,14 +628,6 @@ button:disabled { opacity: .45; cursor: default; }
 // ── Config ──────────────────────────────────────────────────────────────────
 const PORT = 8765;
 const API  = `http://localhost:${PORT}`;
-// NOTE: keep in sync with DOMAIN_NAMES in web/server.py
-const DOMAIN_NAMES = {
-  D1: 'Agentic Architecture & Orchestration',
-  D2: 'Tool Design & MCP Integration',
-  D3: 'Claude Code Configuration & Workflows',
-  D4: 'Prompt Engineering & Structured Output',
-  D5: 'Context Management & Reliability',
-};
 const TIMER_TOTAL = 120 * 60; // seconds
 const WARN_AT     = 5 * 60;   // seconds remaining for warning
 
@@ -656,6 +648,13 @@ const examState = {
 
 // ── DOM helper ────────────────────────────────────────────────────────────────
 const byId = id => document.getElementById(id);
+
+// Full domain name from the loaded exam's payload (the server is the single source);
+// falls back to the bare code (e.g. "D1") if the exam predates the domain_names field.
+function domainName(code) {
+  const names = examState.exam && examState.exam.domain_names;
+  return (names && names[code]) || code;
+}
 
 // ── Screens ──────────────────────────────────────────────────────────────────
 function showScreen(name) {
@@ -982,7 +981,7 @@ function renderResult(r) {
     .map(d => {
       const { correct, total } = r.per_domain[d];
       const pct      = total ? Math.round(correct / total * 100) : 0;
-      const name     = DOMAIN_NAMES[d] || d;
+      const name     = domainName(d);
       const weakTag  = pct < 60 ? ' <span style="color:var(--fail);font-size:.75rem;font-weight:600">▲ Study this</span>' : '';
       const barClass = pct >= 70 ? 'bar-strong' : pct >= 50 ? 'bar-mid' : 'bar-weak';
       return `
@@ -1012,7 +1011,7 @@ function renderRecommendation(r) {
         return pa - pb;
       })[0];
     rec.style.cssText = 'margin-top:.75rem;font-size:.9rem;color:var(--text)';
-    rec.innerHTML = `Your weakest area is <strong>${weakest} — ${DOMAIN_NAMES[weakest]}</strong>. Run <code>/ccaf:prepare ${weakest}</code> in Claude Code for targeted practice, then retake the mock.`;
+    rec.innerHTML = `Your weakest area is <strong>${weakest} — ${domainName(weakest)}</strong>. Run <code>/ccaf:prepare ${weakest}</code> in Claude Code for targeted practice, then retake the mock.`;
   } else {
     rec.style.cssText = 'margin-top:.75rem;font-size:.9rem;color:var(--pass);font-weight:600';
     rec.textContent = '✓ You\'re on track to pass — good luck on the real exam!';
@@ -1030,6 +1029,26 @@ function exportExam(id) {
   document.body.removeChild(a);
 }
 
+// ── API helper ────────────────────────────────────────────────────────────────
+// Calls the local server. On failure, alerts "<action> failed: <reason>" and
+// returns null; on success returns the parsed JSON body ({} if none).
+async function apiCall(action, path, options) {
+  let r;
+  try {
+    r = await fetch(`${API}${path}`, options);
+  } catch {
+    alert(`${action} failed: could not reach the server.`);
+    return null;
+  }
+  let body = {};
+  try { body = await r.json(); } catch { /* response may carry no body */ }
+  if (!r.ok) {
+    alert(`${action} failed: ${body.error || `HTTP ${r.status}`}`);
+    return null;
+  }
+  return body;
+}
+
 // ── Rename exam ───────────────────────────────────────────────────────────────
 async function renameExam(id) {
   const cached = examCache.find(e => e.id === id);
@@ -1038,15 +1057,11 @@ async function renameExam(id) {
   if (newName === null || newName.trim() === currentName.trim()) return;
   const trimmed = newName.trim();
   if (!trimmed) return;
-  try {
-    const r = await fetch(`${API}/exam/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: trimmed }),
-    });
-    if (r.ok) initStart();
-    else { const j = await r.json(); alert(`Rename failed: ${j.error}`); }
-  } catch { alert('Rename failed: could not reach the server.'); }
+  if (await apiCall('Rename', `/exam/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: trimmed }),
+  })) initStart();
 }
 
 // ── Delete exam ───────────────────────────────────────────────────────────────
@@ -1054,19 +1069,12 @@ async function deleteExam(id) {
   const cached = examCache.find(e => e.id === id);
   const displayName = cached ? (cached.name || id) : id;
   if (!window.confirm(`Delete "${displayName}"?\n\nThis cannot be undone.`)) return;
-  try {
-    const r = await fetch(`${API}/exam/${id}`, { method: 'DELETE' });
-    if (r.ok) initStart();
-    else { const j = await r.json(); alert(`Delete failed: ${j.error}`); }
-  } catch { alert('Delete failed: could not reach the server.'); }
+  if (await apiCall('Delete', `/exam/${id}`, { method: 'DELETE' })) initStart();
 }
 
 // ── Open exams folder ─────────────────────────────────────────────────────────
 async function openFolder() {
-  try {
-    const r = await fetch(`${API}/reveal`);
-    if (!r.ok) { const j = await r.json(); alert(`Could not open folder: ${j.error}`); }
-  } catch { alert('Could not open folder: server not reachable.'); }
+  await apiCall('Open folder', '/reveal');
 }
 
 // ── Import ────────────────────────────────────────────────────────────────────
@@ -1092,21 +1100,11 @@ async function handleImportFile(event) {
     return;
   }
 
-  try {
-    const r = await fetch(`${API}/import`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(exam),
-    });
-    const result = await r.json();
-    if (!r.ok) {
-      alert(`Import failed: ${result.error}`);
-      return;
-    }
-    initStart(); // refresh exam list with the newly imported exam
-  } catch {
-    alert('Import failed: could not reach the server.');
-  }
+  if (await apiCall('Import', '/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(exam),
+  })) initStart(); // refresh exam list with the newly imported exam
 }
 
 // ── Retake ────────────────────────────────────────────────────────────────────

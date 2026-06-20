@@ -29,7 +29,7 @@ import os
 import re
 import sys
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
@@ -144,7 +144,6 @@ def parse_answers_file(path):
 
 IDLE_TIMEOUT = 60  # seconds of browser silence before auto-shutdown
 
-# NOTE: keep in sync with DOMAIN_NAMES in web/app.html
 DOMAIN_NAMES = {
     "D1": "Agentic Architecture & Orchestration",
     "D2": "Tool Design & MCP Integration",
@@ -203,7 +202,7 @@ def cmd_export(args):
     exam_data = {
         "id": args.exam_id,
         "name": args.name or args.exam_id,
-        "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S"),
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"),
         "scenarios": scenarios_list,
         "domain_distribution": domain_dist,
         "domain_names": DOMAIN_NAMES,
@@ -234,6 +233,14 @@ class ExamHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _valid_id(self, exam_id):
+        """Reject ids that are unsafe as a filename (path traversal, etc.).
+        On failure, sends a 400 and returns False; returns True when safe."""
+        if re.match(r"^[a-zA-Z0-9_-]+$", exam_id):
+            return True
+        self._json({"error": "invalid exam id"}, 400)
+        return False
 
     def _cancel_idle_timer(self):
         timer = getattr(self.server, '_idle_timer', None)
@@ -368,14 +375,12 @@ class ExamHandler(BaseHTTPRequestHandler):
             self._json({"error": str(e)}, 500)
 
     def _serve_exam(self, exam_id):
-        if not re.match(r"^[a-zA-Z0-9_-]+$", exam_id):
-            self._json({"error": "invalid exam id"}, 400)
+        if not self._valid_id(exam_id):
             return
         self._serve_json_file(os.path.join(self.server.exam_dir, f"{exam_id}.json"))
 
     def _serve_result(self, exam_id):
-        if not re.match(r"^[a-zA-Z0-9_-]+$", exam_id):
-            self._json({"error": "invalid exam id"}, 400)
+        if not self._valid_id(exam_id):
             return
         self._serve_json_file(os.path.join(self.server.exam_dir, f"{exam_id}-result.json"))
 
@@ -389,8 +394,7 @@ class ExamHandler(BaseHTTPRequestHandler):
             return
 
         exam_id = result.get("exam_id", "")
-        if not re.match(r"^[a-zA-Z0-9_-]+$", exam_id):
-            self._json({"error": "invalid exam_id"}, 400)
+        if not self._valid_id(exam_id):
             return
 
         result_path = os.path.join(self.server.exam_dir, f"{exam_id}-result.json")
@@ -406,8 +410,7 @@ class ExamHandler(BaseHTTPRequestHandler):
         threading.Thread(target=self.server.shutdown, daemon=True).start()
 
     def _handle_delete(self, exam_id):
-        if not re.match(r"^[a-zA-Z0-9_-]+$", exam_id):
-            self._json({"error": "invalid exam id"}, 400)
+        if not self._valid_id(exam_id):
             return
         exam_path = os.path.join(self.server.exam_dir, f"{exam_id}.json")
         if not os.path.exists(exam_path):
@@ -420,8 +423,7 @@ class ExamHandler(BaseHTTPRequestHandler):
         self._json({"ok": True})
 
     def _handle_patch_exam(self, exam_id):
-        if not re.match(r"^[a-zA-Z0-9_-]+$", exam_id):
-            self._json({"error": "invalid exam id"}, 400)
+        if not self._valid_id(exam_id):
             return
         try:
             length = int(self.headers.get("Content-Length", 0))
@@ -477,8 +479,7 @@ class ExamHandler(BaseHTTPRequestHandler):
             return
 
         exam_id = exam.get("id", "")
-        if not re.match(r"^[a-zA-Z0-9_-]+$", exam_id):
-            self._json({"error": "invalid or missing exam id"}, 400)
+        if not self._valid_id(exam_id):
             return
 
         if not isinstance(exam.get("sections"), list) or not exam.get("total"):

@@ -8,8 +8,10 @@ readiness before booking the real (paid) exam.
 
 - `commands/prepare.md` — the `/ccaf:prepare` command (loads the tutor skill).
 - `commands/mock-exam.md` — the `/ccaf:mock-exam` command (loads the exam engine skill).
+- `commands/practice.md` — the `/ccaf:practice` command (loads the practice engine skill).
 - `skills/ccaf-tutor/SKILL.md` — the conversational teaching engine (topic menu → teach → check → adapt); stateless.
 - `skills/ccaf-exam/SKILL.md` — the assemble → administer → score engine.
+- `skills/ccaf-practice/SKILL.md` — the domain-selection → assemble → administer → score engine for focused domain practice; uses a separate state file so it never conflicts with `/ccaf:mock-exam`.
 - `agents/ccaf-check-author.md` — mini-agent the tutor spawns to author one scenario check at a time.
 - `data/ccaf-blueprint.md` — domains, weights, scenarios, the syllabus, scope lists, scoring. Shared curriculum for both commands.
 - `data/ccaf-question-bank.md` — 12 self-authored reference questions; style/difficulty anchors only, never served in an exam (helper-enforced).
@@ -21,6 +23,8 @@ readiness before booking the real (paid) exam.
 - Per-attempt state is a pair of user-level, gitignored files: `~/.claude/ccaf-exam.local.md`
   (questions — write-once, key-free) and `~/.claude/ccaf-exam.local.answers.md` (keys + recorded
   answers + progress — small, rewritten per screen, never read during administration).
+  `/ccaf:practice` uses a separate pair (`ccaf-practice.local.md` / `ccaf-practice.local.answers.md`)
+  so the two modes never interfere.
 - Untimed, honor-system, fully offline. Self-serve: nothing is reported or persisted as history.
   The real exam's 120-minute budget is stated once up front for self-pacing; no time is ever captured.
 - Scoring: `scaled = 100 + 15 × correct` (linear over the real 100–1000 band); pass = 720 (≥ 42/60).

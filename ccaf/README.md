@@ -4,19 +4,20 @@ CCAF is a Claude Code plugin that helps you **prepare for** and **mock-test** ag
 
 **Why this exists.** Incubyte is having everyone get CCAF-certified, with a simple rule: *practice first, and only sit the real exam once you can reliably score 720+.* Instead of every engineer hand-rolling a quiz from the exam-guide PDF, this plugin makes that learn-and-gate flow a couple of commands, consistent for the whole team. All content is self-authored or publicly corroborated — no Anthropic exam material is reproduced.
 
-**What you get — two commands, one loop:**
+**What you get — three commands, one loop:**
 
 - **`/ccaf:prepare`** — a conversational coach that teaches the syllabus *turn by turn*: one concept at a time, a knowledge check every turn, pace and difficulty adapting to you. The formative side — build readiness.
+- **`/ccaf:practice`** — focused domain practice: pick the domains you want to drill, choose 10, 20, or 30 questions, and get a per-domain bar-chart score. The targeted side — close specific gaps.
 - **`/ccaf:mock-exam`** — a 60-question weighted mock that mirrors the real exam's structure, a scaled `/1000` score with the **720** pass line, and a per-domain breakdown. The summative side — test readiness.
 
 ```
-   /ccaf:prepare   ──build readiness──►   /ccaf:mock-exam
-        ▲                                      │
-        └────── study the weak domain ◄────────┘
-              (a mock FAIL points you back to /ccaf:prepare <domain>)
+   /ccaf:prepare   ──build readiness──►   /ccaf:practice   ──close gaps──►   /ccaf:mock-exam
+        ▲                                                                           │
+        └──────────────────── study the weak domain ◄──────────────────────────────┘
+                                (a mock FAIL points you back to /ccaf:prepare <domain>)
 ```
 
-> Learn with `prepare`, gate with `mock-exam`. Aim for 720+ on the mock, then book the real exam.
+> Learn with `prepare`, drill gaps with `practice`, gate with `mock-exam`. Aim for 720+ on the mock, then book the real exam.
 
 ## How it mirrors the real exam
 
@@ -87,6 +88,24 @@ A patient coach teaches the syllabus one concept at a time and checks your under
 
 Untimed and conversational. It's **stateless** — Claude Code's native session resume carries continuity, so close the terminal and pick up where you left off. When a domain looks solid, it points you at the mock.
 
+### Practice — `/ccaf:practice`
+
+```bash
+/ccaf:practice
+```
+
+Select one or more domains to focus on, then choose how many questions you want (10, 20, or 30). Questions are drawn proportionally from the selected domains using the real blueprint weights. At the end you get a per-domain bar chart — no overall score or PASS/FAIL verdict — and a targeted recommendation for any domain that needs work.
+
+```bash
+/ccaf:practice fresh
+```
+
+Discard any in-progress or completed practice attempt and start a new domain selection.
+
+**Resume:** the attempt persists to `~/.claude/ccaf-practice.local.md`. Re-run `/ccaf:practice` to continue from where you left off. Practice state is completely separate from the mock exam — the two modes never interfere.
+
+**Honor system:** same as the mock exam — untimed, self-serve, nothing reported or shared.
+
 ### Test — `/ccaf:mock-exam`
 
 ```bash
@@ -120,14 +139,17 @@ ccaf/
 │   └── plugin.json                # Plugin manifest
 ├── commands/
 │   ├── prepare.md                 # /ccaf:prepare — conversational tutor entry point
-│   └── mock-exam.md               # /ccaf:mock-exam — mock exam entry point
+│   ├── mock-exam.md               # /ccaf:mock-exam — mock exam entry point
+│   └── practice.md                # /ccaf:practice — focused domain practice entry point
 ├── agents/
 │   └── ccaf-check-author.md       # mini-agent: authors one scenario check per request (internal)
 ├── skills/
 │   ├── ccaf-tutor/
 │   │   └── SKILL.md               # tutor engine: topic menu → teach → check → adapt (internal)
-│   └── ccaf-exam/
-│       └── SKILL.md               # exam engine: assemble → administer → score (internal)
+│   ├── ccaf-exam/
+│   │   └── SKILL.md               # exam engine: assemble → administer → score (internal)
+│   └── ccaf-practice/
+│       └── SKILL.md               # practice engine: domain-select → assemble → administer → score (internal)
 ├── data/
 │   ├── ccaf-blueprint.md          # public exam mechanics + self-authored syllabus, scenarios, scoring
 │   └── ccaf-question-bank.md      # 12 self-authored reference questions (anchors only — never served)
@@ -144,7 +166,7 @@ ccaf/
 
 - **Question sourcing.** Every question in every attempt is **generated fresh** from the blueprint syllabus and passes an independent verifier (re-solve cold, plausible distractors, shuffled positions) before being served. The 12 self-authored questions in the bank are style/difficulty anchors only — they never appear in an exam (machine-enforced), because the bank ships in this repo with answers, and re-serving readable questions would inflate your readiness signal.
 - **How `prepare` teaches.** The tutor reads the same blueprint as its curriculum, teaches one task statement per turn, and verifies by retrieval. Its apply-to-scenario checks are authored on demand by a small `ccaf-check-author` subagent (built from the syllabus anti-patterns), keeping the main teaching thread lean. Nothing is written to disk.
-- **Roadmap.** v1 generates everything per attempt anchored to a small reference bank; growing a larger verified anchor bank, adding a short per-domain "practice" mode, and verifying the full lifecycle end-to-end are the next steps (tracked in `docs/specs/ccaf-mock-exam.md`).
+- **Roadmap.** v1 generates everything per attempt anchored to a small reference bank; growing a larger verified anchor bank and verifying the full lifecycle end-to-end are the next steps (tracked in `docs/specs/ccaf-mock-exam.md`). Per-domain focused practice is now available via `/ccaf:practice`.
 
 ## License
 

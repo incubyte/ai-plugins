@@ -136,6 +136,22 @@ Bee produces documents along the way — discovery docs, specs, architecture rec
 
 You're never locked in. Ask questions, go off-topic, or push back at any point — Bee won't block the conversation while you review.
 
+### `/bee:start` — Dynamic, plan-driven orchestration
+
+```
+/bee:start add rate limiting to the API
+/bee:start docs/specs/feature-spec.md
+```
+
+A cost/risk-aware sibling of `/bee:sdd`. Where `/bee:sdd` runs a fixed agent loop at fixed models, the plan-driven chain — **`/bee:start` → `/bee:spec-writer` → `/bee:planner` → `/bee:plan-implementer`** — matches effort and cost to risk. `/bee:start` is the only command most people ever type; it routes through the chain automatically.
+
+1. **`/bee:start` triages and routes** — classifies the work into a bucket (debug / bug-fix / small / larger / brainstorm / exploratory / artifact pointer) and a *process tier*: **quick-fix** (direct change, handled right there — bugs test-first), **standard** (plan, no spec → planner), or **full** (spec + plan → spec-writer). HIGH-risk or high-risk-surface changes are always floored to **full**. Runs a design probe for UI work, caps elicitation at 2 questions (overflow routes to `/bee:discover`), and passes a structured `ROUTED FROM` note downstream. Stateless — it reads and routes, never writes.
+2. **`/bee:spec-writer` authors the spec** (full tier) via the spec-builder agent — intent only, no tiers or routing — runs the collaboration loop, and hands off. Re-runnable to revise or extend a spec.
+3. **`/bee:planner` authors the plan** once, on the strongest model — and is **re-runnable against the same spec to revise a plan**. The plan is a prescriptive artifact at `docs/plans/[feature]-plan.md` that carries, per slice: design intent, structure (names + signatures, never bodies), collaborators, control-flow shape, a decided test strategy, craft-skill standards to honor, a **build tier** (`best` / `excellent` / `fast`), and verifiable quality checks. Technical unknowns are researched at plan time (WebFetch/WebSearch), never punted to the executor. Hard floors are marked as the final authoring step.
+4. **`/bee:plan-implementer` executes** — one **slice-builder** spawn per slice (plan-specified tests red → code green → scoped run → commit, in one warm context; the scoped green run is the slice gate), each at the slice's planned tier with a **one-way escalation ratchet**. Then, once at end-of-spec: a single parallel review pass over the whole diff (the risk-aware `reviewer` plus plan-selected `review-*` dimensions — never a per-slice fleet, floors enforced at ≥ `excellent`), the full-suite gate, and one browser-verification pass for UI specs (findings close only on re-verification). Point it at any plan directly: `/bee:plan-implementer docs/plans/feature-plan.md`.
+
+Models are referenced only by capability tier — the `best`/`excellent`/`fast` → concrete-model mapping lives in exactly one place, the **`model-tiers`** skill, so the workflow adapts as the model lineup moves without touching any agent or command. Specs carry intent only; the plan carries the *how*. The merged **slice-builder** agent belongs to this chain only; `/bee:sdd` and its slice-coder → slice-tester loop are untouched.
+
 ### Standalone Commands
 
 ```
@@ -237,6 +253,7 @@ Bee ships with 27 specialist agents:
 | `slice-coder`               | Code a single slice per spec and architecture                                |
 | `slice-tester`              | Write tests for a completed slice                                            |
 | `sdd-verifier`              | SDD quality gate — test quality, AC validation, pattern checks               |
+| `slice-builder`             | Merged build agent for one plan slice — tests red → code green → commit (plan-driven chain only) |
 | `tdd-planner-onion`         | Outside-in TDD for onion/hexagonal architecture (used by ping-pong)          |
 | `tdd-planner-mvc`           | Layer-by-layer TDD for MVC codebases (used by ping-pong)                     |
 | `tdd-planner-cqrs`          | Split command/query TDD for CQRS systems (used by ping-pong)                 |

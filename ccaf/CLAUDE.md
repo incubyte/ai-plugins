@@ -44,5 +44,8 @@ not commit the guide PDF (it is gitignored).
 - The scaled score is an honest estimate, never presented as Anthropic's proprietary equating curve.
 - Process creation can be slow on some machines (Windows + AV in particular), so hot paths in the
   helper avoid gratuitous subprocesses — `normalize_answer` is pure bash, and each validation check
-  is a single `awk` pass rather than a loop of `grep`s. Keep it that way; `record` runs once per
-  exam screen.
+  (`check_items`, `check_composition_questions`, `check_key_spread`, `check_select_alignment`) is a
+  single `awk` pass rather than a loop of `grep`s. **Keep it that way.** This is not micro-optimising:
+  an earlier grep-per-check version made the test suite slow enough to exhaust Cygwin's fork table
+  mid-run (`fork: Resource temporarily unavailable`), so the suite could not finish at all on
+  Windows. `record` runs once per exam screen and `validate_pair` runs on every score.

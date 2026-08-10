@@ -190,22 +190,6 @@ count_blanks() {
   awk '/^[0-9]+ / && $4 == "-" { n++ } END { print n + 0 }' "$ANSWERS_FILE"
 }
 
-check_response_mix() {
-  # Blueprint item-format mix: a fixed share of the exam is multiple-response,
-  # with choose-three a minority of those. Reads `select:` lines, so it works
-  # against an init payload and against the on-disk questions file alike.
-  local file="$1" reason
-  reason="$(awk -v maxsel="$MAX_SELECT" -v want="$BLUEPRINT_MULTI_RESPONSE" -v maxthree="$BLUEPRINT_MAX_CHOOSE_THREE" '
-    /^select: [0-9]+$/ { if ($2 + 0 > 1) multi++; if ($2 + 0 == maxsel) three++ }
-    END {
-      if (multi + 0 != want)     { printf "%d multiple-response items, blueprint requires %d\n", multi + 0, want; exit }
-      if (three + 0 > maxthree)  { printf "%d choose-%d items, blueprint allows at most %d\n", three + 0, maxsel, maxthree; exit }
-    }
-  ' "$file")"
-  [[ -z "$reason" ]] || { echo "$reason"; return 1; }
-  return 0
-}
-
 check_items() {
   # Per-item format integrity on an init payload: every question block carries a
   # `select:` count in 1..MAX_SELECT whose value equals the length of its
@@ -247,48 +231,71 @@ check_items() {
 
 check_composition_questions() {
   # Full-mock blueprint checks on the questions side: domain quotas, the
-  # scenario count, contiguous case-headed sections, and the item-format mix.
-  # Also valid against an init payload (the extra answer lines are ignored).
+  # item-format mix, the scenario count, and contiguous case-headed sections
+  # (each [[CASE:slug]] appears once and directly heads a run of its own
+  # questions — so the brief shown above a screen always belongs to that
+  # screen's questions, never a previous case). Also valid against an init
+  # payload; the extra answer lines are ignored.
+  #
+  # One awk pass, not a dozen greps: this runs on every init and every score,
+  # and process creation is expensive enough on some machines (Windows + AV)
+  # that a per-check subprocess is the dominant cost. Structural problems are
+  # recorded rather than reported immediately, so failures still surface in the
+  # documented order — quotas, mix, scenarios, then layout.
   # Prints the reason on failure.
-  local file="$1"
-  local pair d want got reason
-  for pair in $BLUEPRINT_DOMAIN_QUOTAS; do
-    d="${pair%%=*}"; want="${pair##*=}"
-    got="$(grep -c "^domain: $d\$" "$file" || true)"
-    [[ "$got" -eq "$want" ]] || { echo "domain $d has $got questions, blueprint requires $want"; return 1; }
-  done
-  if ! reason="$(check_response_mix "$file")"; then echo "$reason"; return 1; fi
-  local scen_line scen_count s
-  scen_line="$(read_field_from scenarios "$file")"
-  scen_count="$(tr ',' '\n' <<<"$scen_line" | sed '/^$/d' | sort -u | wc -l | tr -d '[:space:]')"
-  [[ "$scen_count" -eq "$BLUEPRINT_SCENARIOS" ]] || {
-    echo "frontmatter lists $scen_count scenarios, need exactly $BLUEPRINT_SCENARIOS"; return 1; }
-  for s in ${scen_line//,/ }; do
-    got="$(grep -c "^scenario: $s\$" "$file" || true)"
-    [[ "$got" -ge 1 ]] || { echo "scenario $s is listed but has no questions"; return 1; }
-    grep -q "^\[\[CASE:$s\]\]\$" "$file" || { echo "scenario $s is missing its [[CASE:$s]] case-study block"; return 1; }
-  done
-  local bs
-  while IFS= read -r bs; do
-    [[ ",$scen_line," == *",$bs,"* ]] || { echo "question scenario '$bs' is not in the frontmatter scenario list"; return 1; }
-  done < <(grep '^scenario: ' "$file" | sed 's/^scenario: //' | sort -u)
-  # Case-study structure: each [[CASE:slug]] appears exactly once and directly
-  # heads a contiguous run of its own questions — so the brief shown above a
-  # screen always belongs to that screen's questions, never a previous case.
-  local struct
-  struct="$(awk '
+  local file="$1" reason
+  reason="$(awk -v quotas="$BLUEPRINT_DOMAIN_QUOTAS" -v wantscen="$BLUEPRINT_SCENARIOS" \
+                -v wantmulti="$BLUEPRINT_MULTI_RESPONSE" -v maxthree="$BLUEPRINT_MAX_CHOOSE_THREE" \
+                -v maxsel="$MAX_SELECT" '
+    BEGIN {
+      ndom = split(quotas, pairs, " ")
+      for (i = 1; i <= ndom; i++) { split(pairs[i], kv, "="); domname[i] = kv[1]; domwant[i] = kv[2] + 0 }
+    }
+    /^---$/ { fm++; next }
+    fm == 1 && /^scenarios:/ {
+      line = $0; sub(/^scenarios:[[:space:]]*/, "", line)
+      n = split(line, raw, ",")
+      for (i = 1; i <= n; i++) {
+        s = raw[i]; gsub(/^[ \t]+|[ \t]+$/, "", s)
+        if (s != "" && !(s in listed)) { listed[s] = 1; order[++scencount] = s }
+      }
+      next
+    }
     /^\[\[CASE:[a-z-]+\]\]$/ {
       c = $0; sub(/^\[\[CASE:/, "", c); sub(/\]\]$/, "", c)
-      if (seen[c]++) { print "case block " c " appears more than once (sections must be contiguous)"; exit }
-      cur = c; next
+      if (caseseen[c]++ && struct == "") struct = "case block " c " appears more than once (sections must be contiguous)"
+      cur = c
+      next
     }
+    /^domain: /  { domgot[$2]++; next }
+    /^select: /  { if ($2 + 0 > 1) multi++; if ($2 + 0 == maxsel) three++; next }
     /^scenario: / {
-      s = $0; sub(/^scenario: /, "", s)
-      if (cur == "") { print "a question with scenario " s " appears before any [[CASE:]] block"; exit }
-      if (s != cur)  { print "a question with scenario " s " sits under case block " cur " — each section must be contiguous, headed by its own case block"; exit }
+      s = $2; qscen[s]++
+      if (struct == "") {
+        if (cur == "")     struct = "a question with scenario " s " appears before any [[CASE:]] block"
+        else if (s != cur) struct = "a question with scenario " s " sits under case block " cur " — each section must be contiguous, headed by its own case block"
+      }
+      next
+    }
+    END {
+      for (i = 1; i <= ndom; i++) {
+        d = domname[i]
+        if (domgot[d] + 0 != domwant[i]) {
+          printf "domain %s has %d questions, blueprint requires %d\n", d, domgot[d] + 0, domwant[i]; exit }
+      }
+      if (multi + 0 != wantmulti) { printf "%d multiple-response items, blueprint requires %d\n", multi + 0, wantmulti; exit }
+      if (three + 0 > maxthree)   { printf "%d choose-%d items, blueprint allows at most %d\n", three + 0, maxsel, maxthree; exit }
+      if (scencount + 0 != wantscen) { printf "frontmatter lists %d scenarios, need exactly %d\n", scencount + 0, wantscen; exit }
+      for (i = 1; i <= scencount; i++) {
+        s = order[i]
+        if (!(s in qscen))    { printf "scenario %s is listed but has no questions\n", s; exit }
+        if (!(s in caseseen)) { printf "scenario %s is missing its [[CASE:%s]] case-study block\n", s, s; exit }
+      }
+      for (s in qscen) if (!(s in listed)) { printf "question scenario %s is not in the frontmatter scenario list\n", s; exit }
+      if (struct != "") print struct
     }
   ' "$file")"
-  [[ -z "$struct" ]] || { echo "$struct"; return 1; }
+  [[ -z "$reason" ]] || { echo "$reason"; return 1; }
   return 0
 }
 

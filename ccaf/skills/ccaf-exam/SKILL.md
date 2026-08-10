@@ -23,8 +23,8 @@ comes from `get --field` / `blanks`. This keeps answer keys out of the conversat
 
 Read-only authority: `${CLAUDE_PLUGIN_ROOT}/data/ccaf-blueprint.md` (domains, weights, the 30 task
 statements, item composition, scenarios, in/out-of-scope, scoring) and
-`${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` (24 self-authored **reference** questions —
-style/difficulty/format anchors only, never served). Read both before assembling.
+`${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` (30 self-authored **reference** questions, one
+per task statement — style/difficulty/format anchors only, never served). Read both before assembling.
 `${CLAUDE_PLUGIN_ROOT}/data/ccaf-prep-guide.md` holds the study routes and certification logistics —
 read it only when giving post-result guidance, never for item content.
 
@@ -58,8 +58,9 @@ Goal: a frozen, well-formed 60-item exam written to the attempt file.
    exactly and caps choose-three at 5. Spread the 15 across domains roughly in proportion to the
    quotas — **D1 4, D2 3, D3 3, D4 3, D5 2** — so no domain is all one format. Every item has
    exactly four options A–D, whatever its `select:` count.
-4. **Reference anchors — never served.** Read the 24 bank questions as few-shot anchors for style,
-   difficulty, distractor construction, and multiple-response shape only. Do **not** copy any bank
+4. **Reference anchors — never served.** Read the 30 bank questions as few-shot anchors for style,
+   difficulty, distractor construction, and multiple-response shape only. Each task statement has
+   exactly one anchor — read the one matching the task statement you are writing against. Do **not** copy any bank
    question — or a near-verbatim variant of one — into the exam: the bank ships in the repo with
    answers and explanations, so candidates may have already read it. Every served item is freshly
    generated (`init` rejects any `source: authored` / `id: seed-*` block).
@@ -67,8 +68,9 @@ Goal: a frozen, well-formed 60-item exam written to the attempt file.
    Each item:
    - is set inside its scenario's **case-study brief** (answerable from brief + stem; may add
      detail, must never contradict the brief);
-   - tests one of the **30 task statements** for its tagged domain (see the blueprint syllabus),
-     stays strictly **in-scope**, and never touches an **out-of-scope** topic;
+   - tests one of the **30 task statements** for its tagged domain (see the blueprint syllabus) and
+     records it in the block's `task:` field, stays strictly **in-scope**, and never touches an
+     **out-of-scope** topic;
    - spreads across task statements rather than clustering — aim to touch most of a domain's task
      statements before repeating one, and never write three items on the same task statement;
    - has exactly `select:` clearly-correct options and the rest plausible-but-wrong distractors,
@@ -118,6 +120,7 @@ title: Code Generation with Claude Code
 brief: <copied verbatim from the blueprint — one logical line>
 [[Q1]]
 domain: D3
+task: D3.4
 scenario: code-generation
 source: generated
 id: gen-01
@@ -131,6 +134,7 @@ answer_key: A
 user_answer:
 [[Q2]]
 domain: D1
+task: D1.5
 scenario: code-generation
 source: generated
 id: gen-02
@@ -148,12 +152,21 @@ user_answer:
 
 Rules for the body: one `[[CASE:<slug>]]` block (with `title:` + `brief:`) before each scenario
 section; one `[[Q<n>]]` block per item numbered 1..60 in order; each item block has `domain:`,
-`scenario:`, `source: generated` (always — bank questions are never served), a fresh `id:`
+`task:`, `scenario:`, `source: generated` (always — bank questions are never served), a fresh `id:`
 (`gen-<n>`), `select:` (1, 2, or 3), `stem:`, the four options, `answer_key:`, and an empty
-`user_answer:`. The `answer_key:` must name exactly `select:` letters, **distinct and in A–D
-order** (`BD`, not `DB`) — `init` rejects a key that disagrees with its `select:` count, repeats a
-letter, or lists letters out of order. Keep every block free of blank lines — the helper parses
-`user_answer:` as the item-block terminator.
+`user_answer:`.
+
+- `task:` is the task statement the item tests (`D1.1`–`D5.6`). It must **belong to the item's own
+  `domain:`** and must exist — D1 has seven task statements, D2 five, D3–D5 six each. `init`
+  rejects a tag that is malformed, out of range, or in a different domain. This is what lets the
+  score report say *which objective* a candidate keeps missing, so a wrong tag sends them to study
+  the wrong thing.
+- `answer_key:` must name exactly `select:` letters, **distinct and in A–D order** (`BD`, not `DB`)
+  — `init` rejects a key that disagrees with its `select:` count, repeats a letter, or lists
+  letters out of order.
+
+Keep every block free of blank lines — the helper parses `user_answer:` as the item-block
+terminator.
 
 After writing, run `ccaf-exam.sh audit` → must end `composition=OK` (it also prints the per-domain
 and per-`select` histograms). `init` itself refuses a malformed body, a quota violation, a wrong
@@ -194,6 +207,12 @@ crash/resume, or if a helper call errors.) Then loop:
    - `select: 2` or `select: 3` → set **`multiSelect: true`** on that question, and keep the stem's
      `**Select TWO.**` / `**Select THREE.**` sentence visible so the required count is on screen.
 
+   **Map the option fields this way, every time:** each option's `label` is the bare letter —
+   `"A"`, `"B"`, `"C"`, `"D"` — and the option's full text goes in its `description`. AskUserQuestion
+   expects a label of a few words and an exam option is a whole sentence, so putting the text in
+   `label` renders badly and truncates. Put the item's stem in `question` and use the item number as
+   the `header` (`"Q12"`).
+
    Show the stem and options **only** — never the `answer_key`, never an explanation, never whether
    a prior answer was right.
 5. **Enforce the response count once.** If a multiple-response item comes back with a different
@@ -203,7 +222,12 @@ crash/resume, or if a helper call errors.) Then loop:
    exam blocks submission on the wrong count; this is the terminal equivalent. Never re-ask a third
    time, and never silently "fix" a selection by adding or dropping a letter yourself.
 6. When the candidate submits the screen, **persist and advance in the same response** so the
-   next questions appear without waiting on the save:
+   next questions appear without waiting on the save.
+
+   **A multiSelect answer arrives comma-separated** — `"A, B"` — so **join the letters before
+   recording**: `A, B` → `AB`. The helper deliberately rejects the raw string rather than guessing,
+   so forgetting this produces a loud failure, not a silently mis-recorded answer; but it does stop
+   the screen, so strip the separators yourself.
    - launch the screen's batched record **in the background** (Bash `run_in_background: true`),
      passing a multiple-response answer as its letters joined together in any order:
      `ccaf-exam.sh record --q 5 --answer A --q 6 --answer BD --q 7 --answer B --q 8 --answer ACD`
@@ -253,6 +277,7 @@ Do not capture or report time at any point.
    scaled=<100..1000>
    verdict=<PASS|FAIL>
    domain=D1 correct=.. total=.. pct=..   (one line per D1..D5)
+   task=D1.4 correct=.. total=..          (one line per task statement the exam tested)
    ```
    and marks the file `completed`.
 2. Render a result screen like the real exam — which reports pass/fail, the scaled score, and
@@ -269,13 +294,25 @@ Do not capture or report time at any point.
      D4 Prompt Engineering & Structured Output    9/12    75%
      D5 Context Management & Reliability           6/9    67%   ← weakest
    ```
-3. Add two notes, in spirit:
+3. **Name the specific objectives that cost them points.** From the `task=` lines, list the task
+   statements where they got **nothing** right, then those they went half on — at most five lines,
+   worst first, each with the task statement's short title from the blueprint syllabus. This is the
+   most actionable part of the report: "D5 is weak" is a domain, "you missed both D5.2 items" is a
+   thing to go read. Skip the section entirely if nothing was missed.
+
+   ```
+   Objectives to revisit:
+     D5.2  Escalation and ambiguity resolution      0/2
+     D4.5  Batch processing strategies              0/1
+     D1.3  Subagent invocation and context passing  1/3
+   ```
+4. Add two notes, in spirit:
    - *"Domain percentages are diagnostic only — like the real exam, pass/fail is decided by the
      total scaled score alone."*
    - *"This scaled score is an estimate (scaled = 100 + 15 × correct, a linear mapping over the real
      100–1000 band). It is NOT Anthropic's proprietary equating curve. Treat 720+ here as a
      readiness signal, not a guarantee."*
-4. Give one targeted next step:
+5. Give one targeted next step:
    - **PASS with no domain badly trailing** — they're in good shape to book the real exam.
    - **PASS but a domain under ~60%** — say so plainly: a weak domain inside a passing total is a
      coin-flip on a different form. Point at `/ccaf:practice` for that domain before booking.

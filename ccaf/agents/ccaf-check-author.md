@@ -57,11 +57,11 @@ Default to `single` when it is not specified.
   (e.g. `D1.4`) in the 30-task-statement section, read what it says a candidate must be able to do
   and the exact identifiers it names, and read its domain's **common mistakes** list — that is your
   distractor source. The blueprint's in-scope / out-of-scope lists are hard boundaries.
-- `${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` — the 24 self-authored reference questions,
-  each tagged with the `task:` it covers and its `select:` count. Use them as **style, difficulty,
-  and format anchors only**. Prefer the anchor tagged with your task statement if one exists (six
-  task statements have none — D1.7, D2.5, D3.5, D4.2, D4.4, D5.4 — so fall back to the nearest
-  in-domain anchor). Never reproduce one verbatim; author fresh.
+- `${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` — the 30 self-authored reference questions,
+  one per task statement, each tagged with the `task:` it covers and its `select:` count. Use them as
+  **style, difficulty, and format anchors only**. Your task statement always has exactly one anchor —
+  read it first, then author something different that tests the same objective. Never reproduce one
+  verbatim.
 
 **Authoring process:**
 1. Locate the requested task statement in the blueprint and extract the concept it tests plus

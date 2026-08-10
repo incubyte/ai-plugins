@@ -62,9 +62,13 @@ TRIPLE_KEYS=(ABC ABD ACD BCD)
 # Every 4th item is multiple-response; every i%16==8 item is choose-three. Over
 # 60 that is 11 choose-two + 4 choose-three = 15, matching the blueprint.
 DOM=D1
+TASK=D1.1
 SEL=1
 KEY=A
 WRONG=B
+# Task statements published per domain, so the fixture only ever tags an item
+# with one that exists (the helper rejects D2.6, for instance).
+declare -A TASK_COUNT=([D1]=7 [D2]=5 [D3]=6 [D4]=6 [D5]=6)
 exam_item() {
   local n="$1" i="$2" single
   if (( n == 60 )); then
@@ -85,6 +89,8 @@ exam_item() {
   else
     DOM="D$(( (i - 1) % 5 + 1 ))"; SEL=1; KEY=A
   fi
+  # Cycle through the domain's real task statements so items spread across them.
+  TASK="$DOM.$(( i % TASK_COUNT[$DOM] + 1 ))"
   # WRONG is an answer guaranteed not to equal KEY. Under-selecting a
   # multiple-response item is wrong (all-or-nothing scoring), and a one-letter
   # answer can never equal a two- or three-letter key.
@@ -114,7 +120,7 @@ make_exam() {
       if (( i <= m_correct )); then ua="$KEY"
       elif [[ "$fill" == "wrong" ]]; then ua="$WRONG"
       else ua=""; fi
-      echo "[[Q$i]]"; echo "domain: $DOM"; echo "scenario: $scen"
+      echo "[[Q$i]]"; echo "domain: $DOM"; echo "task: $TASK"; echo "scenario: $scen"
       echo "source: generated"; echo "id: gen-$i"; echo "select: $SEL"; echo "stem: question $i"
       echo "A) a"; echo "B) b"; echo "C) c"; echo "D) d"
       echo "answer_key: $KEY"; echo "user_answer: $ua"
@@ -123,15 +129,20 @@ make_exam() {
 }
 # One question block for a hand-built payload, so a test can vary exactly one
 # field (select, answer_key) and leave everything else well-formed.
-item_block() { # index domain scenario select answer_key
-  printf '[[Q%s]]\ndomain: %s\nscenario: %s\nsource: generated\nid: gen-%s\n' "$1" "$2" "$3" "$1"
+item_block() { # index domain scenario select answer_key [task]
+  # task defaults to <domain>.1, which always exists, so a test that is varying
+  # some other field never trips the task/domain check by accident.
+  local task="${6:-$2.1}"
+  printf '[[Q%s]]\ndomain: %s\n' "$1" "$2"
+  [[ "$task" == "omit" ]] || printf 'task: %s\n' "$task"
+  printf 'scenario: %s\nsource: generated\nid: gen-%s\n' "$3" "$1"
   [[ "$4" == "omit" ]] || printf 'select: %s\n' "$4"
   printf 'stem: question %s\nA) a\nB) b\nC) c\nD) d\nanswer_key: %s\nuser_answer:\n' "$1" "$5"
 }
-one_item_exam() { # select answer_key -> pipes a 1-question payload into init
+one_item_exam() { # select answer_key [task] -> pipes a 1-question payload into init
   { printf -- '---\nstatus: in_progress\ntotal: 1\nscenarios: code-generation\nnext_index: 1\n---\n'
     printf '[[CASE:code-generation]]\ntitle: c\nbrief: b\n'
-    item_block 1 D1 code-generation "$1" "$2"
+    item_block 1 D1 code-generation "$1" "$2" "${3:-D1.1}"
   } | bash "$HELPER" init >/dev/null 2>&1
 }
 
@@ -350,7 +361,7 @@ setup
 # "BD" answer as wrong. Reject it at the boundary rather than mis-score later.
 { printf -- '---\nstatus: in_progress\ntotal: 1\nscenarios: code-generation\nnext_index: 1\n---\n'
   printf '[[CASE:code-generation]]\ntitle: c\nbrief: b\n'
-  printf '[[Q1]]\ndomain: D1\nscenario: code-generation\nsource: generated\nid: gen-1\nselect: 2\n'
+  printf '[[Q1]]\ndomain: D1\ntask: D1.1\nscenario: code-generation\nsource: generated\nid: gen-1\nselect: 2\n'
   printf 'stem: question 1\nA) a\nB) b\nC) c\nD) d\nanswer_key: BD\nuser_answer: DB\n'
 } | bash "$HELPER" init >/dev/null 2>&1
 if [[ -f "$CCAF_EXAM_FILE" ]]; then
@@ -364,11 +375,41 @@ setup
 # shorter-than-select user_answer must still be accepted.
 { printf -- '---\nstatus: in_progress\ntotal: 1\nscenarios: code-generation\nnext_index: 1\n---\n'
   printf '[[CASE:code-generation]]\ntitle: c\nbrief: b\n'
-  printf '[[Q1]]\ndomain: D1\nscenario: code-generation\nsource: generated\nid: gen-1\nselect: 2\n'
+  printf '[[Q1]]\ndomain: D1\ntask: D1.1\nscenario: code-generation\nsource: generated\nid: gen-1\nselect: 2\n'
   printf 'stem: question 1\nA) a\nB) b\nC) c\nD) d\nanswer_key: BD\nuser_answer: B\n'
 } | bash "$HELPER" init >/dev/null 2>&1
 assert_file_exists "an under-selected user_answer is accepted" "$CCAF_EXAM_FILE"
 assert_eq "the under-selection scores as incorrect" "correct=0/1" "$(bash "$HELPER" score | grep -m1 '^correct=')"
+teardown
+
+echo "== Guards: init rejects a task statement that cannot be right =="
+# A mistagged item sends a candidate to study the wrong objective, so the tag is
+# validated rather than trusted: it must exist, and belong to the item's domain.
+for bad_task in D2.1 D1.9 D1 X1.1 omit; do
+  setup
+  one_item_exam 1 A "$bad_task"   # the item block declares domain: D1
+  if [[ -f "$CCAF_EXAM_FILE" ]]; then
+    echo "  FAIL: task '$bad_task' on a D1 item must be rejected"; FAIL_COUNT=$((FAIL_COUNT + 1))
+  else
+    echo "  PASS: task '$bad_task' on a D1 item is rejected"; PASS_COUNT=$((PASS_COUNT + 1))
+  fi
+  teardown
+done
+setup
+one_item_exam 1 A D1.7   # D1 publishes seven task statements, so D1.7 exists
+assert_file_exists "the last task statement in a domain is accepted" "$CCAF_EXAM_FILE"
+teardown
+
+echo "== Score: misses are attributed to the task statement, not just the domain =="
+setup; make_exam 10 10   # every item correct; D2.3 is tagged on two of them
+SCORED="$(bash "$HELPER" score)"
+assert_contains "a repeated task statement aggregates" "$SCORED" "task=D2.3 correct=2 total=2"
+assert_contains "a single-item task statement reports" "$SCORED" "task=D1.2 correct=1 total=1"
+teardown
+setup; make_exam 10 1 in_progress wrong   # only Q1 (task D1.2) is correct
+SCORED="$(bash "$HELPER" score)"
+assert_contains "an all-missed task statement reports 0" "$SCORED" "task=D2.3 correct=0 total=2"
+assert_contains "the one correct task statement reports 1" "$SCORED" "task=D1.2 correct=1 total=1"
 teardown
 
 echo "== Guards: a select count drifting from its key is caught on the pair =="
@@ -498,7 +539,10 @@ setup
       s="${SCENARIOS[$(( (i - 1) / 15 ))]}"
       echo "[[CASE:$s]]"; echo "title: $s case"; echo "brief: b"
     fi
-    item_block "$i" "D$(( (i - 1) % 5 + 1 ))" "${SCENARIOS[$(( (i - 1) / 15 ))]}" "$SEL" "$KEY"
+    # Task tag follows the (deliberately wrong) cycling domain, so the quota rule
+    # is what rejects this rather than the task/domain check firing first.
+    wrongdom="D$(( (i - 1) % 5 + 1 ))"
+    item_block "$i" "$wrongdom" "${SCENARIOS[$(( (i - 1) / 15 ))]}" "$SEL" "$KEY" "$wrongdom.1"
   done
 } | bash "$HELPER" init >/dev/null 2>&1
 if [[ -f "$CCAF_EXAM_FILE" ]]; then
@@ -605,7 +649,7 @@ teardown
 
 echo "== Guards: CRLF input is normalized on init =="
 setup
-printf -- '---\r\nstatus: in_progress\r\ntotal: 1\r\nscenarios: a\r\nnext_index: 1\r\n---\r\n[[Q1]]\r\ndomain: D1\r\nscenario: a\r\nsource: generated\r\nid: g1\r\nselect: 1\r\nstem: s\r\nA) a\r\nB) b\r\nC) c\r\nD) d\r\nanswer_key: A\r\nuser_answer:\r\n' | bash "$HELPER" init >/dev/null
+printf -- '---\r\nstatus: in_progress\r\ntotal: 1\r\nscenarios: a\r\nnext_index: 1\r\n---\r\n[[Q1]]\r\ndomain: D1\r\ntask: D1.1\r\nscenario: a\r\nsource: generated\r\nid: g1\r\nselect: 1\r\nstem: s\r\nA) a\r\nB) b\r\nC) c\r\nD) d\r\nanswer_key: A\r\nuser_answer:\r\n' | bash "$HELPER" init >/dev/null
 assert_eq "CRLF: status readable"            "in_progress" "$(field status)"
 assert_eq "CRLF: blank answer stays blank"   "1"           "$(field next_index)"
 bash "$HELPER" record --q 1 --answer A >/dev/null

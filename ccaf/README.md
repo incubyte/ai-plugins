@@ -54,6 +54,7 @@ That retake ladder is the argument for this plugin: a failed attempt costs $125 
 | Answers revisable before submit | ✅ ask to change any earlier answer mid-exam |
 | Scaled 100–1000, pass = 720 | ✅ `scaled = 100 + 15 × correct`; pass at ≥ 42/60 |
 | Percent correct per domain on the report | ✅ shown, and labelled diagnostic-only — pass/fail is the total scaled score |
+| — | ➕ **beyond the real report:** per-task-statement misses, so the result names the exact objectives to revisit, not just the weak domain |
 | 5+ options on some multiple-response items | ⚠️ every item here has exactly 4 (A–D) — the terminal's question UI renders at most four options |
 | 120-minute time limit | ❌ untimed by design — it shows the 120-min / ~2-min-per-item budget up front so you can self-pace |
 
@@ -157,6 +158,7 @@ Discard any in-progress or completed attempt and assemble a brand-new exam.
 - `scaled = 100 + 15 × correct` — a linear mapping over the real 100–1000 band (equivalently `100 + round(correct ÷ 60 × 900)`; since `900 ÷ 60 = 15`, no rounding is needed).
 - **Pass** iff `scaled ≥ 720`, i.e. **≥ 42 of 60** correct.
 - A per-domain breakdown (correct / total **and percent** per D1–D5) accompanies every result, mirroring the real score report. Like the real exam, those percentages are diagnostic only — pass/fail is decided by the total scaled score.
+- Every item is tagged with the task statement it tests, so the result also names **which objectives** you missed (`D5.2 Escalation and ambiguity resolution — 0/2`) rather than only which domain. The real score report doesn't do this; it's the most actionable thing a mock can give you, since it converts a weak domain into a short reading list. Tags are validated at write time — a tag must exist and belong to its own domain — so the report can't send you to study the wrong objective.
 - The real exam is **criterion-referenced**: you're measured against a fixed standard set by a formal standard-setting study, not graded against other candidates. 720 is a fixed bar.
 
 ## What's inside
@@ -180,7 +182,7 @@ ccaf/
 │       └── SKILL.md               # practice engine: domain-select → assemble → administer → score (internal)
 ├── data/
 │   ├── ccaf-blueprint.md          # exam mechanics + item composition + self-authored 30-task-statement syllabus, scenarios, scoring
-│   ├── ccaf-question-bank.md      # 24 self-authored reference questions (anchors only — never served)
+│   ├── ccaf-question-bank.md      # 30 self-authored reference questions, one per task statement (anchors only — never served)
 │   └── ccaf-prep-guide.md         # study routes, 4 hands-on exercises, multiple-response strategy, certification logistics
 ├── scripts/
 │   ├── ccaf-exam.sh               # silent state helper (init / get / record / score / clear)

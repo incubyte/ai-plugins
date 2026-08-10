@@ -1,7 +1,8 @@
 # CCAF Mock Exam — Reference Question Bank
 
-A set of **24 self-authored reference questions** spanning the five domains, 24 of the 30 task
-statements, all six scenario contexts, and both item formats. They are **anchors only**: the
+A set of **30 self-authored reference questions** — one per task statement, covering all five
+domains, all 30 task statements (D1.1–D5.6), all six scenario contexts, and both item formats.
+They are **anchors only**: the
 assembler reads them as few-shot references for style, difficulty, distractor construction, and
 multiple-response shape — they are **never copied into an assembled exam** (every served item is
 generated fresh; the state helper rejects any bank-sourced block). Rationale: this file ships in the
@@ -618,29 +619,172 @@ questions:
       results removes the pressure that forced aggressive summarization in the first place. C
       makes the cause worse - more compression drops more numbers. D asks the model to check
       against turns that no longer contain the values, since the summary is what replaced them.
+
+  - id: ref-25
+    source: authored
+    domain: D1
+    task: D1.7
+    scenario: developer-productivity
+    select: 1
+    stem: >-
+      Yesterday you used a named session to map a legacy billing service's dependency graph.
+      Overnight another team merged a refactor that moved about half the modules you catalogued.
+      You want to continue the investigation this morning. What is the soundest way to proceed?
+    options:
+      A: Start a fresh session and inject a written summary of yesterday's conclusions, noting that the module layout has since changed.
+      B: Resume the named session with --resume and carry on asking questions as though nothing had changed.
+      C: Resume the named session and ask it to re-read every file it examined yesterday before continuing.
+      D: Use fork_session so yesterday's analysis is preserved on a branch while you continue on the trunk.
+    correct: A
+    explanation: >-
+      Resuming carries forward tool results that are now wrong - the paths and module boundaries
+      the session "knows" no longer exist, and nothing in the transcript tells it so. A written
+      summary keeps the durable conclusions and drops the stale specifics. B is the anti-pattern
+      itself. C pays the full re-exploration cost while leaving the outdated results in context to
+      contradict the fresh ones. D misreads fork_session, which branches from a still-valid shared
+      baseline; forking a stale baseline just yields two stale branches.
+
+  - id: ref-26
+    source: authored
+    domain: D2
+    task: D2.5
+    scenario: developer-productivity
+    select: 2
+    stem: >-
+      Your agent must find every caller of a normalizeAddress helper across an unfamiliar
+      TypeScript monorepo, then change one call site whose surrounding line appears identically in
+      three different files. **Select TWO** correct tool choices.
+    options:
+      A: Use Grep for normalizeAddress to locate the call sites.
+      B: Use Read on the target file and Write it back with the change, because Edit cannot anchor on text that is not unique.
+      C: Use Glob for normalizeAddress to discover which files mention it.
+      D: Use Edit with the repeated line as the anchor, relying on it to change the first match.
+    correct: AB
+    explanation: >-
+      Grep searches file contents, which is what "find every caller" asks for, and when anchor
+      text is not unique the documented fallback is Read plus Write. C confuses the two search
+      tools - Glob matches paths and filenames, so it would find nothing here unless a file were
+      literally named after the helper. D depends on first-match behaviour that Edit does not
+      promise; a non-unique anchor is exactly the case it refuses.
+
+  - id: ref-27
+    source: authored
+    domain: D3
+    task: D3.5
+    scenario: code-generation
+    select: 1
+    stem: >-
+      You need a caching layer in front of an internal pricing service, in a domain you have not
+      worked in. Twice you have described what you want and received an implementation that missed
+      something you only caught in review - first invalidation when upstream prices change, then
+      behaviour during a cache-server outage. What should you do differently on the third attempt?
+    options:
+      A: Have Claude interview you about the requirements first - invalidation triggers, staleness tolerance, failure behaviour - and implement only once those answers are settled.
+      B: Write a much longer and more detailed prose specification before asking for code again.
+      C: Ask for three alternative implementations and pick whichever handles the most edge cases.
+      D: Implement it yourself and ask Claude to review the result.
+    correct: A
+    explanation: >-
+      Both failures share a cause: you did not know which decisions the design required, so you
+      could not state them. Having the model surface the questions first converts unknown unknowns
+      into explicit choices before any code exists. B assumes you can enumerate what you have
+      twice failed to enumerate. C triples the cost and still leaves you judging edge cases you
+      have not identified. D inverts the useful direction - the gap is in the requirements, and
+      reviewing your own guesswork will not surface a requirement nobody wrote down.
+
+  - id: ref-28
+    source: authored
+    domain: D4
+    task: D4.2
+    scenario: structured-extraction
+    select: 1
+    stem: >-
+      Your contract extractor handles cleanly tabulated agreements well, but where the term length
+      is stated in prose ("shall continue for a period of thirty-six (36) months from the
+      Effective Date") it returns null for term_months about a third of the time. The schema is
+      correct and the field is already nullable. What will most improve this?
+    options:
+      A: Add two to four examples demonstrating extraction from prose-stated terms alongside the tabulated ones already handled.
+      B: Add an instruction to extract the term even when it is written in words rather than digits.
+      C: Lower the temperature so extraction becomes more deterministic.
+      D: Make term_months required and non-nullable so the model cannot return null.
+    correct: A
+    explanation: >-
+      The schema is fine; the model is failing to recognise a structural variant, and targeted
+      examples covering the variety actually present are the strongest fix - they also generalise
+      to prose phrasings you did not enumerate. B is a prose instruction competing with the
+      patterns the rest of the prompt teaches, so it helps unreliably. C makes the omission more
+      consistent, not less. D is actively harmful: removing the legal way to say "absent" makes the
+      model fabricate a term for contracts that genuinely have none.
+
+  - id: ref-29
+    source: authored
+    domain: D4
+    task: D4.4
+    scenario: structured-extraction
+    select: 2
+    stem: >-
+      Your pipeline retries any extraction that fails validation, appending the validation error to
+      the retry prompt. Retry success is near zero for two of the failure classes below and high
+      for the other two. **Select TWO** failures where a retry is worth attempting.
+    options:
+      A: The line items sum to 4,180.00 but total_amount came back as 418.00.
+      B: The vendor's address was placed in the customer_address field.
+      C: tax_id failed validation because the invoice does not print a tax ID anywhere.
+      D: purchase_order failed because the PO lives in a separate procurement system, not on the invoice.
+    correct: AB
+    explanation: >-
+      A and B are the model mishandling data that is present - a transposed decimal and a swapped
+      field are both visible in the source, and naming the error is usually enough to correct them.
+      C and D are the limit of retrying: the information is not in the document, so no number of
+      attempts can produce it, and each retry either re-fails or pressures the model into
+      inventing a value. Those belong in null-plus-human-review, not in the retry loop.
+
+  - id: ref-30
+    source: authored
+    domain: D5
+    task: D5.4
+    scenario: developer-productivity
+    select: 1
+    stem: >-
+      Ninety minutes into mapping an unfamiliar payments codebase, your agent starts describing
+      "the typical repository pattern" instead of the specific classes it catalogued earlier, and
+      contradicts a conclusion it had reached about the refund path. What should you do?
+    options:
+      A: Have it write its established findings to a scratchpad file and continue from that file, spawning subagents for any further verbose exploration.
+      B: Ask it to re-read the files it has already analysed so the details are fresh again.
+      C: Point out the contradiction and ask it to be more careful about referring to specific classes.
+      D: Start over in a new session and re-run the whole exploration with a larger token budget.
+    correct: A
+    explanation: >-
+      Generic answers and self-contradiction late in a long session are the signature of a full
+      context window, not carelessness - the specifics have been pushed out of it. Persisting
+      findings outside the window and delegating further discovery to subagents keeps the
+      conclusions durable and stops the main context refilling. B spends the remaining budget
+      re-reading and makes the pressure worse. C asks the model to recall what it no longer holds.
+      D discards ninety minutes of valid findings that a scratchpad would have preserved.
 ```
 
 ## Anchor coverage
 
-| Domain | Task statements anchored | Reference questions |
-| ------ | ------------------------ | ------------------- |
-| D1     | D1.1, D1.2, D1.3, D1.4, D1.5, D1.6 | ref-01, ref-18, ref-02, ref-13, ref-22, ref-03 |
-| D2     | D2.1, D2.2, D2.3, D2.4   | ref-14, ref-04, ref-05, ref-23 |
-| D3     | D3.1, D3.2, D3.3, D3.4, D3.6 | ref-06, ref-08, ref-16, ref-17, ref-07 |
-| D4     | D4.1, D4.3, D4.5, D4.6   | ref-10, ref-09, ref-20, ref-21 |
-| D5     | D5.1, D5.2, D5.3, D5.5, D5.6 | ref-24, ref-15, ref-19, ref-12, ref-11 |
+Every task statement in the blueprint syllabus has exactly one anchor, so a generator (or the
+`ccaf-check-author` agent) always has an in-objective example to match for style and difficulty.
 
-**Not yet anchored** — six task statements have no reference question: **D1.7** (session resume and
-`fork_session`), **D2.5** (built-in tool selection), **D3.5** (iterative refinement and the interview
-pattern), **D4.2** (few-shot prompting), **D4.4** (validation-retry loops), **D5.4** (context in large
-codebase exploration). Generated items on these must lean on the blueprint's task-statement text and
-the nearest in-domain anchor for style. Adding anchors for them is the next bank improvement.
+| Domain | Task statement → anchor |
+| ------ | ----------------------- |
+| D1     | D1.1 ref-01 · D1.2 ref-18 · D1.3 ref-02 · D1.4 ref-13 · D1.5 ref-22 · D1.6 ref-03 · D1.7 ref-25 |
+| D2     | D2.1 ref-14 · D2.2 ref-04 · D2.3 ref-05 · D2.4 ref-23 · D2.5 ref-26 |
+| D3     | D3.1 ref-06 · D3.2 ref-08 · D3.3 ref-16 · D3.4 ref-17 · D3.5 ref-27 · D3.6 ref-07 |
+| D4     | D4.1 ref-10 · D4.2 ref-28 · D4.3 ref-09 · D4.4 ref-29 · D4.5 ref-20 · D4.6 ref-21 |
+| D5     | D5.1 ref-24 · D5.2 ref-15 · D5.3 ref-19 · D5.4 ref-30 · D5.5 ref-12 · D5.6 ref-11 |
 
-**Format coverage.** 19 anchors are multiple-choice (`select: 1`). Five are multiple-response:
-`select: 2` — ref-15, ref-17, ref-23, ref-24; `select: 3` — ref-19. Every scenario slug appears at
-least twice: `customer-support` (ref-01, ref-04, ref-13, ref-15, ref-22, ref-24), `code-generation`
-(ref-06, ref-08, ref-16), `multi-agent-research` (ref-02, ref-11, ref-14, ref-18, ref-19),
-`developer-productivity` (ref-03, ref-05, ref-17, ref-23), `claude-code-ci` (ref-07, ref-10, ref-20,
-ref-21), `structured-extraction` (ref-09, ref-12).
+**Format coverage.** 23 anchors are multiple-choice (`select: 1`). Seven are multiple-response:
+`select: 2` — ref-15, ref-17, ref-23, ref-24, ref-26, ref-29; `select: 3` — ref-19.
 
-Either way, every served item is generated fresh — these 24 never appear in an exam.
+**Scenario coverage.** Every slug appears at least three times: `customer-support` (ref-01, ref-04,
+ref-13, ref-15, ref-22, ref-24), `code-generation` (ref-06, ref-08, ref-16, ref-27),
+`multi-agent-research` (ref-02, ref-11, ref-14, ref-18, ref-19), `developer-productivity` (ref-03,
+ref-05, ref-17, ref-23, ref-25, ref-26, ref-30), `claude-code-ci` (ref-07, ref-10, ref-20, ref-21),
+`structured-extraction` (ref-09, ref-12, ref-28, ref-29).
+
+Either way, every served item is generated fresh — these 30 never appear in an exam.

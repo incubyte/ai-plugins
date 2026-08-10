@@ -30,8 +30,8 @@ CCAF_EXAM_FILE=~/.claude/ccaf-practice.local.md \
 
 Read-only authority: `${CLAUDE_PLUGIN_ROOT}/data/ccaf-blueprint.md` (domains, weights, the 30 task
 statements, item composition, scenarios, in/out-of-scope, scoring) and
-`${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` (24 self-authored **reference** questions —
-style/difficulty/format anchors only, never served). Read both before assembling.
+`${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` (30 self-authored **reference** questions, one
+per task statement — style/difficulty/format anchors only, never served). Read both before assembling.
 
 ## On startup — resume / fresh / recover
 
@@ -117,8 +117,9 @@ Goal: a frozen, well-formed partial exam written to the attempt file.
    Spread them across the selected domains rather than piling them into one. The helper enforces
    the exact mix only for full 60-item mocks, so **check the `select=` lines in `audit` yourself**
    against this table. Every item has exactly four options A–D whatever its `select:` count.
-4. **Reference anchors — never served.** Read the 24 bank questions as few-shot anchors for style,
-   difficulty, distractor construction, and multiple-response shape only. Do **not** copy any bank
+4. **Reference anchors — never served.** Read the 30 bank questions as few-shot anchors for style,
+   difficulty, distractor construction, and multiple-response shape only. Each task statement has
+   exactly one anchor — read the one matching the task statement you are writing against. Do **not** copy any bank
    question — or a near-verbatim variant of one — into the session: the bank ships in the repo with
    answers and explanations, so candidates may have already read it. Every served item is freshly
    generated (`init` rejects any `source: authored` / `id: seed-*` block).
@@ -128,9 +129,11 @@ Goal: a frozen, well-formed partial exam written to the attempt file.
    Each item:
    - is set inside its scenario's **case-study brief** (answerable from brief + stem; may add
      detail, must never contradict the brief);
-   - tests one of the **30 task statements** for its tagged domain (see the blueprint syllabus),
-     stays strictly **in-scope**, and never touches an **out-of-scope** topic;
-   - spreads across the domain's task statements rather than clustering on one or two;
+   - tests one of the **30 task statements** for its tagged domain (see the blueprint syllabus) and
+     records it in the block's `task:` field, stays strictly **in-scope**, and never touches an
+     **out-of-scope** topic;
+   - spreads across the domain's task statements rather than clustering on one or two — with only a
+     handful of items per domain, prefer distinct task statements so the result names distinct gaps;
    - has exactly `select:` clearly-correct options and the rest plausible-but-wrong distractors,
      built from the domain's common-mistake list;
    - matches the bank questions' style and difficulty without reusing their stems or options.
@@ -176,6 +179,7 @@ title: Customer Support Resolution Agent
 brief: <copied verbatim from the blueprint — one logical line>
 [[Q1]]
 domain: D2
+task: D2.2
 scenario: customer-support
 source: generated
 id: gen-01
@@ -189,6 +193,7 @@ answer_key: B
 user_answer:
 [[Q2]]
 domain: D2
+task: D2.3
 scenario: customer-support
 source: generated
 id: gen-02
@@ -206,12 +211,14 @@ user_answer:
 
 Rules for the body: one `[[CASE:<slug>]]` block (with `title:` + `brief:`) before each scenario
 section; one `[[Q<n>]]` block per item numbered 1..total in order; each item block has `domain:`,
-`scenario:`, `source: generated` (always — bank questions are never served), a fresh `id:`
+`task:`, `scenario:`, `source: generated` (always — bank questions are never served), a fresh `id:`
 (`gen-<n>`), `select:` (1, 2, or 3), `stem:`, the four options, `answer_key:`, and an empty
-`user_answer:`. The `answer_key:` must name exactly `select:` letters, **distinct and in A–D order**
-(`AD`, not `DA`) — `init` rejects a key that disagrees with its `select:` count, repeats a letter, or
-lists letters out of order. Keep every block free of blank lines — the helper parses `user_answer:`
-as the item-block terminator.
+`user_answer:`. `task:` is the task statement tested (`D1.1`–`D5.6`); it must exist and belong to the
+item's own `domain:` — D1 has seven task statements, D2 five, D3–D5 six each — and `init` rejects a
+tag that is malformed, out of range, or in a different domain. The `answer_key:` must name exactly
+`select:` letters, **distinct and in A–D order** (`AD`, not `DA`) — `init` rejects a key that
+disagrees with its `select:` count, repeats a letter, or lists letters out of order. Keep every block
+free of blank lines — the helper parses `user_answer:` as the item-block terminator.
 
 After writing, run `ccaf-exam.sh audit`. For non-60-item exams the helper prints the domain and
 `select` histograms without enforcing blueprint quotas — manually confirm the per-domain counts match
@@ -251,6 +258,12 @@ crash/resume, or if a helper call errors.) Then loop:
    - `select: 2` or `select: 3` → set **`multiSelect: true`** on that question, and keep the stem's
      `**Select TWO.**` / `**Select THREE.**` sentence visible so the required count is on screen.
 
+   **Map the option fields this way, every time:** each option's `label` is the bare letter —
+   `"A"`, `"B"`, `"C"`, `"D"` — and the option's full text goes in its `description`. AskUserQuestion
+   expects a label of a few words and an exam option is a whole sentence, so putting the text in
+   `label` renders badly and truncates. Put the item's stem in `question` and use the item number as
+   the `header` (`"Q7"`).
+
    Show the stem and options **only** — never the `answer_key`, never an explanation, never whether
    a prior answer was right.
 5. **Enforce the response count once.** If a multiple-response item comes back with a different
@@ -259,7 +272,12 @@ crash/resume, or if a helper call errors.) Then loop:
    selected three."* — and record whatever the second response gives. Never re-ask a third time, and
    never adjust a selection yourself.
 6. When the candidate submits the screen, **persist and advance in the same response** so the
-   next questions appear without waiting on the save:
+   next questions appear without waiting on the save.
+
+   **A multiSelect answer arrives comma-separated** — `"A, B"` — so **join the letters before
+   recording**: `A, B` → `AB`. The helper rejects the raw string rather than guessing, so forgetting
+   this fails loudly instead of mis-recording — but it does stop the screen, so strip the separators
+   yourself.
    - launch the screen's batched record **in the background** (Bash `run_in_background: true`),
      passing a multiple-response answer as its letters joined together in any order:
      `ccaf-exam.sh record --q 5 --answer A --q 6 --answer BD --q 7 --answer B --q 8 --answer ACD`
@@ -309,6 +327,7 @@ Do not capture or report time at any point.
    scaled=<100..1000>
    verdict=<PASS|FAIL>
    domain=D1 correct=.. total=.. pct=..   (one line per D1..D5)
+   task=D2.3 correct=.. total=..          (one line per task statement the session tested)
    ```
    and marks the file `completed`. Use only the per-domain lines — do not display a scaled
    /1000 score or a PASS/FAIL verdict. A practice session is not weighted like a real form, so a
@@ -333,7 +352,18 @@ Do not capture or report time at any point.
    items. Those are scored all-or-nothing, so decide the status of every option instead of stopping
    at the first strong one."*
 
-3. Below the chart, print one recommendation line per domain that is not `Perfect`:
+3. **Name the objectives, not just the domains.** From the `task=` lines, list every task statement
+   the candidate missed at least once, worst first, with its short title from the blueprint
+   syllabus. In a 10–30 item session this is usually two to five lines, and it is the whole point of
+   drilling a domain — it turns "D2 needs work" into a reading list:
+
+   ```
+   Objectives to revisit:
+     D2.1  Tool descriptions as the selection interface   0/2
+     D2.4  MCP server configuration and scope             1/2
+   ```
+
+4. Below the chart, print one recommendation line per domain that is not `Perfect`:
    - `Needs some prep` → *"Run `/ccaf:prepare D<n>` for a focused coaching session on
      <domain name>."*
    - `Needs work` → *"Run `/ccaf:prepare D<n>` to rebuild your understanding of <domain name>

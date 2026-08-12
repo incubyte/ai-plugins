@@ -1,7 +1,7 @@
 {
   "name": "ccaf",
-  "version": "0.2.0",
-  "description": "CCAF (Claude Certified Architect – Foundations, exam code CCAR-F) readiness gate, aligned to exam guide v1.0. Assembles a 60-item case-study-framed mock mixing multiple-choice and multiple-response items with machine-enforced domain weighting and item mix — every item generated fresh per attempt and independently verified — administers it 4 per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line plus a per-domain percent breakdown. Learn with /ccaf:prepare, drill with /ccaf:practice, gate with /ccaf:mock-exam.",
+  "version": "0.3.0",
+  "description": "CCAF (Claude Certified Architect – Foundations, exam code CCAR-F) readiness gate, aligned to exam guide v1.0. Assembles a 60-item case-study-framed mock of single-answer questions with machine-enforced domain weighting, answer-position spread, and per-objective tagging — every item generated fresh per attempt and independently verified — administers it 4 per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line plus per-domain and per-objective breakdowns. Learn with /ccaf:prepare, drill with /ccaf:practice, gate with /ccaf:mock-exam.",
   "author": {
     "name": "Incubyte"
   },

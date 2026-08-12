@@ -1,15 +1,15 @@
 # CCAF Mock Exam — Reference Question Bank
 
 A set of **30 self-authored reference questions** — one per task statement, covering all five
-domains, all 30 task statements (D1.1–D5.6), all six scenario contexts, and both item formats.
-They are **anchors only**: the
-assembler reads them as few-shot references for style, difficulty, distractor construction, and
-multiple-response shape — they are **never copied into an assembled exam** (every served item is
-generated fresh; the state helper rejects any bank-sourced block). Rationale: this file ships in the
-plugin with answers and explanations, so a candidate may have read it — serving these would inflate
-scores. Every question here was written for this plugin against the blueprint's task statements and
-anti-pattern catalogs; none reproduces exam material or any part of the published exam guide. Stable
-and version-controlled — not regenerated at runtime.
+domains, all 30 task statements (D1.1–D5.6), and all six scenario contexts. Every item is
+single-answer: four options, exactly one correct. They are **anchors only**: the assembler reads
+them as few-shot references for style, difficulty, and distractor construction — they are **never
+copied into an assembled exam** (every served item is generated fresh; the state helper rejects any
+bank-sourced block). Rationale: this file ships in the plugin with answers and explanations, so a
+candidate may have read it — serving these would inflate scores. Every question here was written for
+this plugin against the blueprint's task statements and anti-pattern catalogs; none reproduces exam
+material or any part of the published exam guide. Stable and version-controlled — not regenerated at
+runtime.
 
 Each entry:
 
@@ -20,11 +20,16 @@ Each entry:
 | `domain` | `D1`–`D5` |
 | `task` | the task statement it tests (`D1.1`–`D5.6`, see the blueprint syllabus) |
 | `scenario` | one of the six scenario slugs |
-| `select` | how many options are correct: `1` (multiple-choice) or `2`/`3` (multiple-response) |
-| `stem` | the question; for `select: 2`/`3` it states the required count in bold |
+| `stem` | the question |
 | `options` | exactly four options, `A`–`D` |
-| `correct` | the correct letter, or the correct letters in A–D order for multiple-response |
-| `explanation` | why the correct option(s) are right **and** why each distractor is wrong — the explanation tone is part of what generated items anchor to |
+| `correct` | the correct letter |
+| `explanation` | why the correct option is right **and** why each distractor is wrong — the explanation tone is part of what generated items anchor to |
+
+> **Do not imitate these anchors' answer positions.** The `correct` letters here are lopsided
+> (A appears far more often than D) because each question was written for its content, not its key
+> position. Answer position must be shuffled independently per attempt, and the state helper refuses
+> a full mock whose keys are skewed — see `check_key_spread`. Anchor *content* is the reference;
+> anchor *letters* are noise.
 
 ```yaml
 questions:
@@ -33,7 +38,6 @@ questions:
     domain: D1
     task: D1.1
     scenario: customer-support
-    select: 1
     stem: >-
       Your support agent runs on a hand-rolled loop around the Messages API. The loop exits as
       soon as the model's reply text contains the phrase "issue resolved" — and tickets are being
@@ -58,7 +62,6 @@ questions:
     domain: D1
     task: D1.3
     scenario: multi-agent-research
-    select: 1
     stem: >-
       Your coordinator delegates source-gathering to a search subagent, then spawns an analysis
       subagent prompted to "evaluate the credibility of the sources found earlier." The analysis
@@ -82,7 +85,6 @@ questions:
     domain: D1
     task: D1.6
     scenario: developer-productivity
-    select: 1
     stem: >-
       Your Agent SDK tool investigates "why is this legacy service slow?" Today it always runs the
       same five analysis steps in a fixed order, and usually burns most of its budget on steps
@@ -106,7 +108,6 @@ questions:
     domain: D2
     task: D2.2
     scenario: customer-support
-    select: 1
     stem: >-
       Whenever process_refund fails, your MCP server returns the bare string "refund failed" — the
       same for card-network timeouts, refund-window-expired policy rejections, and malformed
@@ -131,7 +132,6 @@ questions:
     domain: D2
     task: D2.3
     scenario: developer-productivity
-    select: 1
     stem: >-
       Your codebase-exploration agent has accumulated 22 tools spanning search, build, ticketing,
       deployment, and docs. Logs show it now regularly calls deployment and ticketing tools in the
@@ -155,7 +155,6 @@ questions:
     domain: D3
     task: D3.1
     scenario: code-generation
-    select: 1
     stem: >-
       You wrote naming-convention instructions that Claude Code follows perfectly on your machine,
       but every teammate reports it ignores them entirely. What is the most likely cause, and the
@@ -178,7 +177,6 @@ questions:
     domain: D3
     task: D3.6
     scenario: claude-code-ci
-    select: 1
     stem: >-
       Your pipeline runs `claude -p "review this diff"` and then greps the prose output for the
       word "critical" to decide whether to block the merge. It misfires constantly - most recently
@@ -201,7 +199,6 @@ questions:
     domain: D3
     task: D3.2
     scenario: code-generation
-    select: 1
     stem: >-
       Your team has a 40-step release-cutting procedure used about twice a month, and a half-page
       of universal coding standards that should apply in every session. Where should each live in
@@ -224,7 +221,6 @@ questions:
     domain: D4
     task: D4.3
     scenario: structured-extraction
-    select: 1
     stem: >-
       Your invoice extractor's schema marks purchase_order_number as required and non-nullable.
       For invoices that genuinely have no PO, the model fabricates plausible-looking PO numbers,
@@ -248,7 +244,6 @@ questions:
     domain: D4
     task: D4.1
     scenario: claude-code-ci
-    select: 1
     stem: >-
       Your automated PR reviewer drowns teams in nitpicks, so you added "Be conservative - report
       only high-confidence, important issues" to the prompt. The noise barely changed. What is the
@@ -271,7 +266,6 @@ questions:
     domain: D5
     task: D5.6
     scenario: multi-agent-research
-    select: 1
     stem: >-
       Spot-checks of your research briefs show claims cited to the wrong documents. Subagents
       return prose summaries, and the synthesis agent adds citations afterward by matching each
@@ -296,7 +290,6 @@ questions:
     domain: D5
     task: D5.5
     scenario: structured-extraction
-    select: 1
     stem: >-
       Your extraction pipeline reports 97% overall accuracy, and leadership wants to auto-approve
       every extraction the model scores above 0.9 confidence. What should you verify before
@@ -320,7 +313,6 @@ questions:
     domain: D1
     task: D1.4
     scenario: customer-support
-    select: 1
     stem: >-
       Your agent may refund a return only once the warehouse has confirmed receipt. In roughly 8%
       of tickets it calls process_refund on the customer's assertion that they posted the item
@@ -344,7 +336,6 @@ questions:
     domain: D2
     task: D2.1
     scenario: multi-agent-research
-    select: 1
     stem: >-
       Your research system exposes search_web ("Searches for information") and search_archive
       ("Searches stored documents"). The search subagent sends live-web queries to search_archive
@@ -370,32 +361,27 @@ questions:
     domain: D5
     task: D5.2
     scenario: customer-support
-    select: 2
     stem: >-
-      Your agent escalates too rarely on cases that need a human and too often on ones it could
-      close, so you are rewriting its escalation criteria. **Select TWO** situations that should
-      trigger an immediate handoff to a human.
+      Your agent escalates too rarely on the cases that need a human and too often on ones it could
+      close, so you are rewriting its escalation criteria. Which rule should the criteria encode?
     options:
-      A: The customer states plainly that they want to speak to a person.
-      B: The customer's request falls in a gap the returns policy does not address at all.
-      C: The customer's messages read as angry, with strongly negative language.
-      D: The agent's own confidence in its proposed resolution falls below 0.6.
-    correct: AB
+      A: Escalate when the customer explicitly asks for a person, when the policy is silent on what they are asking for, or when no further progress is possible.
+      B: Escalate when the customer's messages read as angry or use strongly negative language.
+      C: Escalate when the agent's own confidence in its proposed resolution falls below a threshold.
+      D: Escalate whenever a ticket raises more than one distinct issue, since multi-issue cases are inherently complex.
+    correct: A
     explanation: >-
-      Escalation should fire on observable triggers. An explicit request for a human is honored
-      immediately - investigating first ignores what the customer actually asked for - and a
-      request the policy is silent on cannot be resolved autonomously without inventing policy. C
-      and D are the classic unreliable proxies: sentiment tracks how someone feels, not whether
-      the case exceeds the agent's capability (an angry customer with a standard replacement is
-      still a standard replacement), and self-reported confidence is poorly calibrated exactly
-      where it matters - an agent mishandling hard cases is typically confident while doing so.
-
+      Escalation should fire on observable triggers - an explicit request (honored immediately,
+      without investigating first), a request the policy does not address, or genuine deadlock. B and
+      C are the classic unreliable proxies: sentiment tracks how someone feels, not whether the case
+      exceeds the agent's capability, and self-reported confidence is poorly calibrated exactly where
+      it matters. D invents a trigger - a multi-issue ticket is a decomposition problem, not an
+      escalation one.
   - id: ref-16
     source: authored
     domain: D3
     task: D3.3
     scenario: code-generation
-    select: 1
     stem: >-
       Every service in your monorepo keeps SQL migrations beside its own code
       (services/billing/migrations/, services/catalog/migrations/, and so on), and all migrations
@@ -421,30 +407,26 @@ questions:
     domain: D3
     task: D3.4
     scenario: developer-productivity
-    select: 2
     stem: >-
-      Your team is calibrating when plan mode is worth its cost. **Select TWO** of the following
-      tasks where plan mode earns it.
+      Your team is calibrating when plan mode is worth its cost. Which of these tasks most clearly
+      warrants it?
     options:
-      A: Splitting a shared utilities package into three, changing imports in about 60 files and requiring decisions about where each helper belongs.
-      B: Replacing the HTTP client library service-wide, where two migration paths differ in how they handle retries and connection pooling.
+      A: Renaming a misspelled constant that appears in four files.
+      B: Splitting a shared utilities package into three, changing imports in about 60 files and requiring decisions about where each helper belongs.
       C: Adding a null check to one function after a stack trace pointed straight at the line.
-      D: Renaming a misspelled constant that appears in four files.
-    correct: AB
+      D: Regenerating an API client from an updated OpenAPI spec, where the generator output is deterministic.
+    correct: B
     explanation: >-
-      Plan mode pays for itself when work is large-scale and has genuine design decisions to
-      settle before code moves - A must decide the new boundaries, B must choose between
-      approaches with different operational consequences, and exploring first is what prevents
-      rework in both. C and D are the direct-execution case: scope is understood and there is one
-      obvious correct change. D is deliberately multi-file to make the point that file count alone
-      is not the trigger - there is nothing to decide.
-
+      Plan mode pays for itself when work is large-scale and has genuine design decisions to settle
+      before code moves - B must decide the new boundaries, and exploring first is what prevents
+      rework. A and D are multi-file but have nothing to decide; the change is mechanical, which is
+      the point that file count alone is not the trigger. C is the direct-execution case: one
+      obvious change with a clear cause.
   - id: ref-18
     source: authored
     domain: D1
     task: D1.2
     scenario: multi-agent-research
-    select: 1
     stem: >-
       A brief on "regulatory pressure on payment processors" came back covering only EU
       regulation. Every subagent succeeded - the search agent found good EU sources, analysis
@@ -471,32 +453,29 @@ questions:
     domain: D5
     task: D5.3
     scenario: multi-agent-research
-    select: 3
     stem: >-
-      A document-analysis subagent fails partway through a batch of sources: two parse cleanly,
-      the third times out repeatedly, and its local retries are exhausted. **Select THREE** things
-      its report to the coordinator must carry for the coordinator to recover intelligently.
+      A document-analysis subagent fails partway through a batch of sources: two parse cleanly, the
+      third times out repeatedly, and its local retries are exhausted. What should it report back to
+      the coordinator?
     options:
-      A: The failure type - a timeout, distinguished from a source that parsed fine but held nothing relevant.
-      B: The findings already extracted from the two sources it did parse.
-      C: What it attempted, including the source it could not parse and the retries already spent.
-      D: A single status value the coordinator can switch on, so recovery logic stays uniform across every subagent.
-    correct: ABC
+      A: A single status value the coordinator can switch on, so recovery logic stays uniform across every subagent.
+      B: Structured context - the failure type, the findings already extracted, what was attempted, and the retries already spent.
+      C: An empty result marked successful, so one bad source does not fail the run.
+      D: The raw timeout exception, propagated to a top-level handler that ends the research workflow.
+    correct: B
     explanation: >-
       The coordinator has to choose between retrying differently, rerouting to another source, and
-      proceeding degraded with a coverage note - and it needs the failure's nature (A), whatever
-      was salvaged (B), and what has already been tried (C) to choose correctly. A also guards the
-      common confusion between an access failure and a valid empty result. D is the anti-pattern
-      this item is built on: collapsing the situation into one opaque status strips the coordinator
-      of every input it needs, and uniform recovery is the wrong goal - recovery should differ by
-      failure type.
-
+      proceeding degraded with a coverage note, and only structured context supports that choice -
+      including the distinction between a timeout and a source that parsed but held nothing
+      relevant. A collapses away every input the coordinator needs, and uniform recovery is the
+      wrong goal since recovery should differ by failure type. C converts a failure into a fake
+      success and silently drops coverage. D ends the whole run over one source when two already
+      succeeded.
   - id: ref-20
     source: authored
     domain: D4
     task: D4.5
     scenario: claude-code-ci
-    select: 1
     stem: >-
       Two automated workflows run against the synchronous API, and your lead wants both moved to
       the Message Batches API for the cost saving: (1) a nightly job generating missing test cases
@@ -523,7 +502,6 @@ questions:
     domain: D4
     task: D4.6
     scenario: claude-code-ci
-    select: 1
     stem: >-
       In your pipeline one Claude Code session generates an implementation and then, in the same
       session, reviews its own diff. It reliably approves work that human reviewers later find
@@ -549,7 +527,6 @@ questions:
     domain: D1
     task: D1.5
     scenario: customer-support
-    select: 1
     stem: >-
       Three MCP tools return dates differently: lookup_order gives Unix epoch seconds,
       get_customer gives ISO 8601 strings, and a shipping tool gives MM/DD/YYYY. The agent now
@@ -574,58 +551,52 @@ questions:
     domain: D2
     task: D2.4
     scenario: developer-productivity
-    select: 2
     stem: >-
-      Your codebase-exploration agent needs a company Jira MCP server that every engineer should
-      get automatically, and you are separately trialling an experimental internal graph-search
-      server on your own machine. Both need auth tokens. **Select TWO** correct configuration
-      decisions.
+      Your codebase-exploration agent needs a company Jira MCP server that every engineer should get
+      automatically, and you are separately trialling an experimental graph-search server on your
+      own machine. Both need auth tokens. How should you configure them?
     options:
-      A: Configure the Jira server in the project's committed .mcp.json, referencing its token through environment-variable expansion.
-      B: Configure the experimental graph-search server in your user-scoped ~/.claude.json, so teammates are unaffected.
-      C: Put both servers in the committed .mcp.json with the token values inline, since the repository is private.
-      D: Configure the Jira server per-engineer in each person's ~/.claude.json, so each manages their own token.
-    correct: AB
+      A: Both in the committed .mcp.json with the token values inline, since the repository is private.
+      B: Jira in the committed .mcp.json referencing its token through environment-variable expansion; the experimental server in your user-scoped ~/.claude.json.
+      C: Both in your user-scoped ~/.claude.json, sharing your config file with teammates who need Jira.
+      D: Jira in the committed .mcp.json with its token in a committed .env file the server reads at startup.
+    correct: B
     explanation: >-
-      Scope follows audience: shared tooling belongs in the committed project config so it arrives
-      with a clone, and a personal experiment belongs in user scope where it cannot disturb
-      anyone. Credentials are referenced through env-var expansion, never written into a committed
-      file. C fails on that second point - repository privacy is not a secrets strategy, and a
-      committed token is exposed to everyone with read access and to every fork and backup. D
-      pushes shared setup onto every engineer individually, which is the "works on my machine"
-      failure project scope exists to prevent.
-
+      Scope follows audience - shared tooling belongs in committed project config so it arrives with
+      a clone, and a personal experiment belongs in user scope where it cannot disturb anyone - and
+      credentials are referenced through env-var expansion, never written into a committed file. A
+      fails on that second point: repository privacy is not a secrets strategy, and a committed
+      token is exposed to everyone with read access and to every fork and backup. C pushes shared
+      setup onto each engineer individually, the "works on my machine" failure project scope exists
+      to prevent. D commits the secret anyway, just one file over.
   - id: ref-24
     source: authored
     domain: D5
     task: D5.1
     scenario: customer-support
-    select: 2
     stem: >-
-      Late in long tickets your agent starts contradicting itself about amounts and dates it
-      handled correctly earlier - quoting the wrong refund figure, forgetting a shipping credit it
-      had already promised. Your loop summarizes older turns to stay inside the context budget,
-      and lookup_order returns 40-plus fields per call. **Select TWO** changes that address this.
+      Late in long tickets your agent contradicts itself about amounts and dates it handled
+      correctly earlier - quoting the wrong refund figure, forgetting a shipping credit it had
+      promised. Your loop summarizes older turns to stay inside the context budget, and lookup_order
+      returns 40-plus fields per call. What is the right fix?
     options:
-      A: Maintain a structured case-facts block - order numbers, amounts, statuses, commitments made - carried in every prompt outside the summarized history.
-      B: Trim each tool result to the fields the ticket actually needs before it enters the conversation.
-      C: Summarize more aggressively, freeing more of the budget for recent turns.
-      D: Instruct the agent in the system prompt to double-check every figure against earlier turns before quoting it.
-    correct: AB
+      A: Summarize more aggressively, freeing more of the budget for recent turns.
+      B: Instruct the agent to double-check every figure against earlier turns before quoting it.
+      C: Keep a structured case-facts block - order numbers, amounts, statuses, commitments made - in every prompt outside the summarized history, and trim each tool result to the fields the ticket needs.
+      D: Raise the summarization threshold so summarization begins later in the ticket.
+    correct: C
     explanation: >-
       The figures are lost because summarization compresses exactly the load-bearing details, and
-      the budget is being spent on tool output that mostly does not matter. Keeping facts in a
-      structured block outside the summary means they are never compressed, and trimming tool
-      results removes the pressure that forced aggressive summarization in the first place. C
-      makes the cause worse - more compression drops more numbers. D asks the model to check
-      against turns that no longer contain the values, since the summary is what replaced them.
-
+      the budget is being spent on tool output that mostly does not matter. Keeping facts outside
+      the summary means they are never compressed, and trimming tool results removes the pressure
+      that forced aggressive summarization in the first place. A makes the cause worse. B asks the
+      model to check against turns that no longer contain the values, since the summary is what
+      replaced them. D delays the same failure rather than preventing it.
   - id: ref-25
     source: authored
     domain: D1
     task: D1.7
     scenario: developer-productivity
-    select: 1
     stem: >-
       Yesterday you used a named session to map a legacy billing service's dependency graph.
       Overnight another team merged a refactor that moved about half the modules you catalogued.
@@ -649,30 +620,28 @@ questions:
     domain: D2
     task: D2.5
     scenario: developer-productivity
-    select: 2
     stem: >-
-      Your agent must find every caller of a normalizeAddress helper across an unfamiliar
-      TypeScript monorepo, then change one call site whose surrounding line appears identically in
-      three different files. **Select TWO** correct tool choices.
+      Your agent must find every caller of a normalizeAddress helper across an unfamiliar TypeScript
+      monorepo, then change one call site whose surrounding line appears identically in three
+      different files. What should it do?
     options:
-      A: Use Grep for normalizeAddress to locate the call sites.
-      B: Use Read on the target file and Write it back with the change, because Edit cannot anchor on text that is not unique.
-      C: Use Glob for normalizeAddress to discover which files mention it.
-      D: Use Edit with the repeated line as the anchor, relying on it to change the first match.
-    correct: AB
+      A: Use Glob for normalizeAddress to discover which files mention it, then Edit the target line.
+      B: Use Grep for normalizeAddress to locate the call sites, then Read the target file and Write it back with the change.
+      C: Use Grep for normalizeAddress, then Edit using the repeated line as the anchor, relying on it to change the first match.
+      D: Read every file under the source root so the agent has full context, then Edit the target line.
+    correct: B
     explanation: >-
-      Grep searches file contents, which is what "find every caller" asks for, and when anchor
-      text is not unique the documented fallback is Read plus Write. C confuses the two search
-      tools - Glob matches paths and filenames, so it would find nothing here unless a file were
-      literally named after the helper. D depends on first-match behaviour that Edit does not
-      promise; a non-unique anchor is exactly the case it refuses.
-
+      Grep searches file contents, which is what "find every caller" asks for, and when the anchor
+      text is not unique the documented fallback is Read plus Write. A confuses the two search
+      tools: Glob matches paths and filenames, so it finds nothing unless a file is named after the
+      helper. C gets the search right but depends on first-match behaviour Edit does not promise - a
+      non-unique anchor is exactly the case it refuses. D bulk-reads the codebase instead of
+      building understanding incrementally, and still leans on the ambiguous Edit.
   - id: ref-27
     source: authored
     domain: D3
     task: D3.5
     scenario: code-generation
-    select: 1
     stem: >-
       You need a caching layer in front of an internal pricing service, in a domain you have not
       worked in. Twice you have described what you want and received an implementation that missed
@@ -697,7 +666,6 @@ questions:
     domain: D4
     task: D4.2
     scenario: structured-extraction
-    select: 1
     stem: >-
       Your contract extractor handles cleanly tabulated agreements well, but where the term length
       is stated in prose ("shall continue for a period of thirty-six (36) months from the
@@ -722,30 +690,27 @@ questions:
     domain: D4
     task: D4.4
     scenario: structured-extraction
-    select: 2
     stem: >-
       Your pipeline retries any extraction that fails validation, appending the validation error to
-      the retry prompt. Retry success is near zero for two of the failure classes below and high
-      for the other two. **Select TWO** failures where a retry is worth attempting.
+      the retry prompt, but retry success is near zero for most failure classes. Which failure is
+      worth retrying?
     options:
-      A: The line items sum to 4,180.00 but total_amount came back as 418.00.
-      B: The vendor's address was placed in the customer_address field.
-      C: tax_id failed validation because the invoice does not print a tax ID anywhere.
-      D: purchase_order failed because the PO lives in a separate procurement system, not on the invoice.
-    correct: AB
+      A: tax_id failed validation because the invoice does not print a tax ID anywhere.
+      B: purchase_order failed because the PO lives in a separate procurement system, not on the invoice.
+      C: The line items sum to 4,180.00 but total_amount came back as 418.00.
+      D: contract_end_date failed because the agreement states only a term length, and the start date is in a separate addendum you were not given.
+    correct: C
     explanation: >-
-      A and B are the model mishandling data that is present - a transposed decimal and a swapped
-      field are both visible in the source, and naming the error is usually enough to correct them.
-      C and D are the limit of retrying: the information is not in the document, so no number of
-      attempts can produce it, and each retry either re-fails or pressures the model into
-      inventing a value. Those belong in null-plus-human-review, not in the retry loop.
-
+      C is the model mishandling data that is present - a transposed decimal is visible in the
+      source, and naming the error is usually enough to correct it. A, B and D are the limit of
+      retrying: the information is not in the document, so no number of attempts can produce it, and
+      each retry either re-fails or pressures the model into inventing a value. Those belong in
+      null-plus-human-review, not the retry loop.
   - id: ref-30
     source: authored
     domain: D5
     task: D5.4
     scenario: developer-productivity
-    select: 1
     stem: >-
       Ninety minutes into mapping an unfamiliar payments codebase, your agent starts describing
       "the typical repository pattern" instead of the specific classes it catalogued earlier, and
@@ -777,9 +742,6 @@ Every task statement in the blueprint syllabus has exactly one anchor, so a gene
 | D3     | D3.1 ref-06 · D3.2 ref-08 · D3.3 ref-16 · D3.4 ref-17 · D3.5 ref-27 · D3.6 ref-07 |
 | D4     | D4.1 ref-10 · D4.2 ref-28 · D4.3 ref-09 · D4.4 ref-29 · D4.5 ref-20 · D4.6 ref-21 |
 | D5     | D5.1 ref-24 · D5.2 ref-15 · D5.3 ref-19 · D5.4 ref-30 · D5.5 ref-12 · D5.6 ref-11 |
-
-**Format coverage.** 23 anchors are multiple-choice (`select: 1`). Seven are multiple-response:
-`select: 2` — ref-15, ref-17, ref-23, ref-24, ref-26, ref-29; `select: 3` — ref-19.
 
 **Scenario coverage.** Every slug appears at least three times: `customer-support` (ref-01, ref-04,
 ref-13, ref-15, ref-22, ref-24), `code-generation` (ref-06, ref-08, ref-16, ref-27),

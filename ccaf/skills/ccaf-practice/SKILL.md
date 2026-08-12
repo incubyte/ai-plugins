@@ -1,6 +1,6 @@
 ---
 name: ccaf-practice
-description: "Engine for the /ccaf:practice command. Asks which specific CCAF domains to focus on and how many questions (10/20/30), assembles a proportionally-weighted partial exam mixing multiple-choice and multiple-response items, anchored to the reference bank and independently verified, administers it 4 items per screen with resumable progress, and scores it with a per-domain performance chart. Attempt state lives in ~/.claude/ccaf-practice.local.md — separate from /ccaf:mock-exam. Use when running or resuming /ccaf:practice."
+description: "Engine for the /ccaf:practice command. Asks which specific CCAF domains to focus on and how many questions (10/20/30), assembles a proportionally-weighted partial exam of single-answer multiple-choice items, anchored to the reference bank and independently verified, administers it 4 items per screen with resumable progress, and scores it with a per-domain performance chart. Attempt state lives in ~/.claude/ccaf-practice.local.md — separate from /ccaf:mock-exam. Use when running or resuming /ccaf:practice."
 user-invocable: false
 ---
 
@@ -105,25 +105,17 @@ Goal: a frozen, well-formed partial exam written to the attempt file.
    - quota(d) = floor(total × weight(d) / W) for each selected domain d
    - Assign any remainder (total − Σquotas) to the selected domain with the largest weight
    - Example: D2 + D4, total=20 → W=23, D2=floor(20×11/23)=9, D4=11
-3. **Item-format mix (~25%, as the real exam).** Roughly a quarter of the session is
-   multiple-response — the counts below round 25% to whole items:
-
-   | `total` | multiple-choice (`select: 1`) | choose-two (`select: 2`) | choose-three (`select: 3`) |
-   | ------- | ----------------------------- | ------------------------ | -------------------------- |
-   | 10      | 7                             | 2                        | 1                          |
-   | 20      | 15                            | 4                        | 1                          |
-   | 30      | 22                            | 6                        | 2                          |
-
-   Spread them across the selected domains rather than piling them into one. The helper enforces
-   the exact mix only for full 60-item mocks, so **check the `select=` lines in `audit` yourself**
-   against this table. Every item has exactly four options A–D whatever its `select:` count.
+3. **Item format (hard constraint).** Every item is **single-answer**: four options A–D, exactly
+   one correct, three plausible distractors. `init` refuses any answer key that is not a single
+   letter. This diverges deliberately from the real exam, which also uses multiple-response items —
+   see the blueprint. Never write an item that asks for two or three responses.
 4. **Reference anchors — never served.** Read the 30 bank questions as few-shot anchors for style,
-   difficulty, distractor construction, and multiple-response shape only. Each task statement has
+   difficulty, and distractor construction only. Each task statement has
    exactly one anchor — read the one matching the task statement you are writing against. Do **not** copy any bank
    question — or a near-verbatim variant of one — into the session: the bank ships in the repo with
    answers and explanations, so candidates may have already read it. Every served item is freshly
    generated (`init` rejects any `source: authored` / `id: seed-*` block).
-5. **Generate all `total` items silently.** Honor both sets of quotas, draw only from the selected
+5. **Generate all `total` items silently.** Honor the domain quotas, draw only from the selected
    domains, and spread across the chosen scenarios. Do **not** print stems, options, or running
    commentary to the user — keep all item data in context and proceed directly to verification.
    Each item:
@@ -134,37 +126,30 @@ Goal: a frozen, well-formed partial exam written to the attempt file.
      **out-of-scope** topic;
    - spreads across the domain's task statements rather than clustering on one or two — with only a
      handful of items per domain, prefer distinct task statements so the result names distinct gaps;
-   - has exactly `select:` clearly-correct options and the rest plausible-but-wrong distractors,
-     built from the domain's common-mistake list;
+   - has one clearly-correct option and three plausible-but-wrong distractors, built from the
+     domain's common-mistake list;
    - matches the bank questions' style and difficulty without reusing their stems or options.
-
-   For a **multiple-response** item, additionally: state the count in the stem in bold as the last
-   sentence (`**Select TWO.**` / `**Select THREE.**`); make each correct option independently
-   correct and genuinely distinct; and for choose-three over four options make the single wrong
-   option a near-miss anti-pattern, since the item reduces to spotting what does not belong. Prefer
-   choose-two as the default multiple-response shape.
 6. **Verify questions in one parallel batch.** Split the items into groups of ~5. Then, in
    a **single response**, call the Task tool once for every group simultaneously — all with
    `run_in_background: true`. Do **not** call Task, wait for the result, and call Task again;
    all launches must be in the same tool-call batch with no barrier between them. Each agent
-   receives only the stems, options, and required response count for its group — no answer keys —
-   and must return a per-item verdict (`pass` or `fail`) with a brief issue note if failing. The
-   agent must not state which options it chose; only whether the item is well-formed and has
-   exactly the required number of defensible options. Collect all results, then reject and
+   receives only the stems and options for its group — no answer keys — and must return a per-item
+   verdict (`pass` or `fail`) with a brief issue note if failing. The agent must not state which
+   option it chose; only whether the item is well-formed and has exactly one defensible option. Collect all results, then reject and
    regenerate any failing item (budget ~3 tries; substitute a fresh in-domain item if still failing
    after 3 tries).
 7. **Shuffle answer positions.** For every item, place correct options at varied A–D positions —
-   aim for a reasonable spread, and don't let one letter combination dominate the multiple-response
-   keys. (The helper's per-letter spread check only runs for 60-item exams; it is not applied here.)
+   aim for a reasonable spread. The reference bank's own keys lean heavily on A; that is an artefact
+   of how the anchors were written, not a pattern to copy. (The helper's per-letter spread check only runs for 60-item exams; it is not applied here.)
 8. **Group into case-study sections.** Order the items so each scenario's items are
-   **contiguous**, with domains and both item formats mixed within each section. Each section opens
+   **contiguous**, with domains mixed within each section. Each section opens
    with its `[[CASE:<slug>]]` block — placed **directly before its first item**, not gathered at the
    top — whose `title:` and `brief:` are copied **verbatim** from the blueprint's case-study briefs.
    `init` rejects interleaved sections, a duplicated case block, or any item sitting under a
    different scenario's case block.
 9. **Write the attempt** by piping the assembled body to `ccaf-exam.sh init` (one call, via
    stdin — never the Write/Edit tools). `init` validates the payload, then splits it itself:
-   stems, options, and `select:` counts go to the questions file; keys and answer slots go to the
+   stems, options, and `task:` tags go to the questions file; keys and answer slots go to the
    separate answers file. Use exactly this payload schema:
 
 ```
@@ -183,7 +168,6 @@ task: D2.2
 scenario: customer-support
 source: generated
 id: gen-01
-select: 1
 stem: <item text — keep to one logical line; no blank lines inside the block>
 A) <option>
 B) <option>
@@ -192,40 +176,23 @@ D) <option>
 answer_key: B
 user_answer:
 [[Q2]]
-domain: D2
-task: D2.3
-scenario: customer-support
-source: generated
-id: gen-02
-select: 2
-stem: <item text ending in **Select TWO.**>
-A) <option>
-B) <option>
-C) <option>
-D) <option>
-answer_key: AD
-user_answer:
-[[Q3]]
 ...
 ```
 
 Rules for the body: one `[[CASE:<slug>]]` block (with `title:` + `brief:`) before each scenario
 section; one `[[Q<n>]]` block per item numbered 1..total in order; each item block has `domain:`,
 `task:`, `scenario:`, `source: generated` (always — bank questions are never served), a fresh `id:`
-(`gen-<n>`), `select:` (1, 2, or 3), `stem:`, the four options, `answer_key:`, and an empty
+(`gen-<n>`), `stem:`, the four options, `answer_key:` (one letter A–D), and an empty
 `user_answer:`. `task:` is the task statement tested (`D1.1`–`D5.6`); it must exist and belong to the
 item's own `domain:` — D1 has seven task statements, D2 five, D3–D5 six each — and `init` rejects a
-tag that is malformed, out of range, or in a different domain. The `answer_key:` must name exactly
-`select:` letters, **distinct and in A–D order** (`AD`, not `DA`) — `init` rejects a key that
-disagrees with its `select:` count, repeats a letter, or lists letters out of order. Keep every block
-free of blank lines — the helper parses `user_answer:` as the item-block terminator.
+tag that is malformed, out of range, or in a different domain. Keep every block free of blank
+lines — the helper parses `user_answer:` as the item-block terminator.
 
 After writing, run `ccaf-exam.sh audit`. For non-60-item exams the helper prints the domain and
-`select` histograms without enforcing blueprint quotas — manually confirm the per-domain counts match
-your computed quotas and the `select=` counts match the item-format table in step 3. If they don't,
-fix the body and re-pipe; never fall back to Write/Edit. Then tell the candidate their session's
-composition in one short block: the selected domains, the scenario(s) chosen, the domain
-distribution, and how many items are multiple-response.
+histogram without enforcing blueprint quotas — manually confirm the per-domain counts match your
+computed quotas. If they don't, fix the body and re-pipe; never fall back to Write/Edit. Then tell the
+candidate their session's composition in one short block: the selected domains, the scenario(s)
+chosen, and the domain distribution.
 
 ## Administer
 
@@ -252,11 +219,8 @@ crash/resume, or if a helper call errors.) Then loop:
    brief forward. When a screen starts a new section, announce the switch first:
    *"Case study 2 of N — <title>"*. (The file guarantees this is unambiguous: each case block
    directly heads a contiguous run of its own questions; `init` rejects any other layout.)
-4. Present the questions in **one AskUserQuestion call** (up to 4 per screen), each with the four
-   options A–D. Read each item's `select:` count from the questions file and set the format from it:
-   - `select: 1` → a normal single-select question.
-   - `select: 2` or `select: 3` → set **`multiSelect: true`** on that question, and keep the stem's
-     `**Select TWO.**` / `**Select THREE.**` sentence visible so the required count is on screen.
+4. Present the questions in **one AskUserQuestion call** (up to 4 per screen), each as a
+   single-select with the four options A–D.
 
    **Map the option fields this way, every time:** each option's `label` is the bare letter —
    `"A"`, `"B"`, `"C"`, `"D"` — and the option's full text goes in its `description`. AskUserQuestion
@@ -266,28 +230,16 @@ crash/resume, or if a helper call errors.) Then loop:
 
    Show the stem and options **only** — never the `answer_key`, never an explanation, never whether
    a prior answer was right.
-5. **Enforce the response count once.** If a multiple-response item comes back with a different
-   number of options than its `select:` count, re-present **that one item** in a fresh
-   AskUserQuestion with one plain line of context — *"Q7 asks for exactly TWO responses; you
-   selected three."* — and record whatever the second response gives. Never re-ask a third time, and
-   never adjust a selection yourself.
-6. When the candidate submits the screen, **persist and advance in the same response** so the
-   next questions appear without waiting on the save.
-
-   **A multiSelect answer arrives comma-separated** — `"A, B"` — so **join the letters before
-   recording**: `A, B` → `AB`. The helper rejects the raw string rather than guessing, so forgetting
-   this fails loudly instead of mis-recording — but it does stop the screen, so strip the separators
-   yourself.
-   - launch the screen's batched record **in the background** (Bash `run_in_background: true`),
-     passing a multiple-response answer as its letters joined together in any order:
-     `ccaf-exam.sh record --q 5 --answer A --q 6 --answer BD --q 7 --answer B --q 8 --answer ACD`
+5. When the candidate submits the screen, **persist and advance in the same response** so the
+   next questions appear without waiting on the save:
+   - launch the screen's batched record **in the background** (Bash `run_in_background: true`):
+     `ccaf-exam.sh record --q 5 --answer A --q 6 --answer C --q 7 --answer B --q 8 --answer D`
    - and, in that same response, print the next screen's case block (step 3) and issue its
      AskUserQuestion (step 4).
-   The helper normalizes each set (uppercased, sorted, de-duplicated) so selection order never
-   matters, and serializes concurrent writes through a lock, so back-to-back screens cannot corrupt
+   The helper serializes concurrent writes through a lock, so back-to-back screens cannot corrupt
    the file. If a background record reports failure, stop presenting, re-run that exact record in
    the foreground (the answers are still in your context), then continue.
-7. Repeat.
+6. Repeat.
 
 **Finish line (before Score).** Record the **final** screen in the *foreground* (no background),
 then confirm `get --field next_index` prints `total + 1`. If it prints ≤ total, a save was
@@ -346,11 +298,6 @@ Do not capture or report time at any point.
    D2  Tool Design & MCP Integration           ████████░░  8/11   73%   Needs some prep
    D4  Prompt Engineering & Structured Output  ██████████  12/12  100%  Perfect
    ```
-
-   If the session's multiple-response items went materially worse than its single-answer items, say
-   so in one line — it is a distinct, fixable weakness: *"You lost 3 of your 5 multiple-response
-   items. Those are scored all-or-nothing, so decide the status of every option instead of stopping
-   at the first strong one."*
 
 3. **Name the objectives, not just the domains.** From the `task=` lines, list every task statement
    the candidate missed at least once, worst first, with its short title from the blueprint

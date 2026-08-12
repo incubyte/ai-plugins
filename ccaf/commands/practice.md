@@ -12,8 +12,7 @@ Load the `ccaf-practice` skill using the Skill tool before doing anything else.
 
 Focused practice mode for the CCAF exam. Choose which specific domains to drill and how many
 questions you want (10, 20, or 30). Items are generated only from the selected domains,
-proportionally weighted to the real exam distribution, and a quarter of them are multiple-response
-so you drill that format too.
+proportionally weighted to the real exam distribution, and every one is single-answer.
 
 Use `/ccaf:mock-exam` for the full unmodified 60-item mock exam across all domains.
 

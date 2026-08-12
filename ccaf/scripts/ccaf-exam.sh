@@ -9,10 +9,9 @@ set -eo pipefail
 #
 #   Questions file (default ~/.claude/ccaf-exam.local.md) — write-once at init:
 #   frontmatter (total, scenarios) + [[CASE:]] blocks + [[Q]] blocks with stems,
-#   options, and each item's `select:` count, but NO answer keys and NO user
+#   options, and each item's `task:` statement, but NO answer keys and NO user
 #   answers. Safe to read and show during administration; recording never
-#   rewrites it. `select:` stays here because the skill needs to know how many
-#   responses an item wants without ever seeing which ones are correct.
+#   rewrites it.
 #
 #   Answers file (<questions-file minus .md>.answers.md) — small and hot:
 #   status + next_index frontmatter, then one "qnum domain key user" line per
@@ -20,11 +19,8 @@ set -eo pipefail
 #   skill never reads it during administration, so answer keys stay out of the
 #   conversation.
 #
-# Item formats. An item is multiple-choice (`select: 1`, key is one letter) or
-# multiple-response (`select: 2` or `3`, key is that many letters in A-D order).
-# Multiple-response is scored all-or-nothing: the recorded set must equal the key
-# exactly. Recorded answers are normalized to uppercase, sorted, de-duplicated,
-# so selection order never affects the comparison.
+# Every item is single-answer multiple-choice: four options A-D, exactly one
+# correct. Recorded answers are uppercased so a lowercase free-text reply matches.
 #
 # Usage:
 #   ccaf-exam.sh init [--force]       # read the full exam payload from stdin (one
@@ -37,14 +33,13 @@ set -eo pipefail
 #   ccaf-exam.sh get --field status   # one frontmatter field (status|next_index from
 #                                     # the answers file; total|scenarios from the
 #                                     # questions file)
-#   ccaf-exam.sh record --q 7 --answer C [--q 8 --answer BD ...]
+#   ccaf-exam.sh record --q 7 --answer C [--q 8 --answer A ...]
 #                                     # record one or more answers in a single call
 #                                     # (atomic), then advance next_index; an answer
-#                                     # is 1-3 distinct letters from A-D
+#                                     # is one letter A-D, case-insensitive
 #   ccaf-exam.sh blanks               # unanswered question numbers, one per line
-#   ccaf-exam.sh audit                # composition (total, scenarios, per-domain,
-#                                     # per-select and per-key counts) +
-#                                     # composition=OK|FAIL
+#   ccaf-exam.sh audit                # composition (total, scenarios, per-domain and
+#                                     # per-key counts) + composition=OK|FAIL
 #   ccaf-exam.sh score [--partial]    # tally + scaled score + per-domain correct and
 #                                     # percent + per-task-statement correct/total;
 #                                     # mark completed (refuses unanswered questions
@@ -68,13 +63,12 @@ set -eo pipefail
 #   scenario: customer-support
 #   source: generated            # always generated — bank questions are reference-only
 #   id: gen-01
-#   select: 1                    # 1 = multiple-choice; 2 or 3 = multiple-response
 #   stem: ...
 #   A) ...
 #   B) ...
 #   C) ...
 #   D) ...
-#   answer_key: A                # `select:` letters, in A-D order (e.g. "BD")
+#   answer_key: A                # exactly one letter A-D
 #   user_answer:
 #   [[Q2]]
 #   ...
@@ -89,9 +83,6 @@ LOCK_DIR="$EXAM_FILE.lock"
 BLUEPRINT_TOTAL=60
 BLUEPRINT_DOMAIN_QUOTAS="D1=16 D2=11 D3=12 D4=12 D5=9"
 BLUEPRINT_SCENARIOS=4
-BLUEPRINT_MULTI_RESPONSE=15
-BLUEPRINT_MAX_CHOOSE_THREE=5
-MAX_SELECT=3
 # How many task statements each domain publishes (D1.1-D1.7, D2.1-D2.5, ...).
 # Used to reject an item tagged with a task statement that does not exist.
 BLUEPRINT_TASK_COUNTS="D1=7 D2=5 D3=6 D4=6 D5=6"
@@ -99,27 +90,17 @@ BLUEPRINT_TASK_COUNTS="D1=7 D2=5 D3=6 D4=6 D5=6"
 die() { echo "ccaf-exam: $*" >&2; exit 1; }
 
 normalize_answer() {
-  # "ca" -> "AC". Uppercased, sorted, de-duplicated, so a recorded answer set
-  # compares equal to its key regardless of the order the candidate picked in.
-  # Fails on anything that is not 1..MAX_SELECT letters drawn from A-D.
+  # "b" -> "B", so a candidate typing a lowercase letter into the free-text field
+  # records the same as one picking the option. Rejects anything else.
   # Deliberately pure bash: record runs once per exam screen, and spawning a
-  # sort/tr pipeline per answer is a visible cost where process creation is slow.
-  local raw="$1" i char letter upper="" out=""
-  (( ${#raw} >= 1 && ${#raw} <= MAX_SELECT )) || return 1
-  for (( i = 0; i < ${#raw}; i++ )); do
-    char="${raw:i:1}"
-    case "$char" in
-      a | A) upper+=A ;;
-      b | B) upper+=B ;;
-      c | C) upper+=C ;;
-      d | D) upper+=D ;;
-      *) return 1 ;;
-    esac
-  done
-  for letter in A B C D; do
-    if [[ "$upper" == *"$letter"* ]]; then out+="$letter"; fi
-  done
-  printf '%s' "$out"
+  # pipeline per answer is a visible cost where process creation is slow.
+  case "$1" in
+    a | A) printf A ;;
+    b | B) printf B ;;
+    c | C) printf C ;;
+    d | D) printf D ;;
+    *) return 1 ;;
+  esac
 }
 
 # Mutating commands may be launched in the background while the next screen is
@@ -196,77 +177,54 @@ count_blanks() {
 }
 
 check_items() {
-  # Per-item integrity on an init payload. Every question block must carry:
-  #   * a `select:` count in 1..MAX_SELECT equal to the length of its
-  #     `answer_key`, whose letters are distinct and in A-D order;
-  #   * a `task:` statement that exists and belongs to the item's own domain,
-  #     since the score report aggregates misses by task statement and a
-  #     mistagged item would send a candidate to study the wrong objective.
-  # A pre-filled `user_answer` is held to the same letter shape (though not to
-  # the same length — under-selecting a multiple-response item is a legitimate
-  # wrong answer), because scoring is exact string comparison: an unsorted "DB"
-  # would score a correct "BD" answer as wrong. Prints the first offending
-  # question, empty output when every item is well-formed.
+  # Per-item integrity on an init payload: exactly one correct option A-D, and a
+  # `task:` statement that exists and belongs to the item's own domain. The task
+  # tag is validated rather than trusted because the score report aggregates
+  # misses by task statement, and a mistagged item would send a candidate to
+  # study the wrong objective. Prints the first offending question, empty output
+  # when every item is well-formed.
   local file="$1"
-  awk -v maxsel="$MAX_SELECT" -v taskcounts="$BLUEPRINT_TASK_COUNTS" '
+  awk -v taskcounts="$BLUEPRINT_TASK_COUNTS" '
     BEGIN {
       n = split(taskcounts, pairs, " ")
       for (i = 1; i <= n; i++) { split(pairs[i], kv, "="); taskmax[kv[1]] = kv[2] + 0 }
     }
-    function ordered(letters, label,    i) {
-      if (letters !~ /^[A-D]+$/) { print "Q" q " " label " " letters " must be letters A-D"; return 0 }
-      for (i = 2; i <= length(letters); i++) {
-        if (substr(letters, i, 1) <= substr(letters, i - 1, 1)) {
-          print "Q" q " " label " " letters " must name distinct letters in A-D order"; return 0 }
-      }
-      return 1
-    }
-    /^\[\[Q[0-9]+\]\]$/ { q = $0; gsub(/[^0-9]/, "", q); sel = ""; dom = ""; task = ""; next }
+    /^\[\[Q[0-9]+\]\]$/ { q = $0; gsub(/[^0-9]/, "", q); dom = ""; task = ""; next }
     /^domain: /     { dom = $2; next }
     /^task: /       { task = $2; next }
-    /^select: /     { sel = $2; next }
     /^answer_key: / {
       key = $2
-      if (sel == "")                     { print "Q" q " has no select: line"; exit }
-      if (sel !~ /^[0-9]+$/ || sel + 0 < 1 || sel + 0 > maxsel) {
-        print "Q" q " select: " sel " must be between 1 and " maxsel; exit }
-      if (!ordered(key, "answer_key"))   { exit }
-      if (length(key) != sel + 0)        { print "Q" q " select: " sel " but answer_key " key " names " length(key); exit }
-      if (task == "")                    { print "Q" q " has no task: line"; exit }
-      if (task !~ /^D[1-5]\.[0-9]+$/)    { print "Q" q " task: " task " must look like D1.4"; exit }
+      if (key !~ /^[A-D]$/)           { print "Q" q " answer_key " key " must be one letter A-D"; exit }
+      if (task == "")                 { print "Q" q " has no task: line"; exit }
+      if (task !~ /^D[1-5]\.[0-9]+$/) { print "Q" q " task: " task " must look like D1.4"; exit }
       td = substr(task, 1, 2)
-      if (td != dom)                     { print "Q" q " task: " task " does not belong to its domain " dom; exit }
+      if (td != dom)                  { print "Q" q " task: " task " does not belong to its domain " dom; exit }
       tn = substr(task, 4) + 0
-      if (tn < 1 || tn > taskmax[td])    { print "Q" q " task: " task " — " td " has task statements " td ".1 to " td "." taskmax[td]; exit }
+      if (tn < 1 || tn > taskmax[td]) { print "Q" q " task: " task " — " td " has task statements " td ".1 to " td "." taskmax[td]; exit }
       next
     }
     /^user_answer:/ {
       ua = $0; sub(/^user_answer:[[:space:]]*/, "", ua)
-      if (ua == "") next
-      if (length(ua) > maxsel)           { print "Q" q " user_answer " ua " names more than " maxsel " letters"; exit }
-      if (!ordered(ua, "user_answer"))   { exit }
+      if (ua != "" && ua !~ /^[A-D]$/) { print "Q" q " user_answer " ua " must be one letter A-D or empty"; exit }
     }
   ' "$file"
 }
 
 check_composition_questions() {
-  # Full-mock blueprint checks on the questions side: domain quotas, the
-  # item-format mix, the scenario count, and contiguous case-headed sections
-  # (each [[CASE:slug]] appears once and directly heads a run of its own
-  # questions — so the brief shown above a screen always belongs to that
-  # screen's questions, never a previous case). Also valid against an init
-  # payload; the extra answer lines are ignored.
+  # Full-mock blueprint checks on the questions side: domain quotas, the scenario
+  # count, and contiguous case-headed sections (each [[CASE:slug]] appears once
+  # and directly heads a run of its own questions — so the brief shown above a
+  # screen always belongs to that screen's questions, never a previous case).
+  # Also valid against an init payload; the extra answer lines are ignored.
   #
   # One awk pass, not a dozen greps: this runs on every init and every score,
   # and process creation is expensive enough on some machines (Windows + AV)
   # that a per-check subprocess is the dominant cost. Structural problems are
   # recorded rather than reported immediately, so failures still surface in the
-  # documented order — quotas, mix, scenarios, then layout.
+  # documented order — quotas, scenarios, then layout.
   # Prints the reason on failure.
   local file="$1" reason
-  reason="$(awk -v quotas="$BLUEPRINT_DOMAIN_QUOTAS" -v wantscen="$BLUEPRINT_SCENARIOS" \
-                -v wantmulti="$BLUEPRINT_MULTI_RESPONSE" -v maxthree="$BLUEPRINT_MAX_CHOOSE_THREE" \
-                -v maxsel="$MAX_SELECT" '
+  reason="$(awk -v quotas="$BLUEPRINT_DOMAIN_QUOTAS" -v wantscen="$BLUEPRINT_SCENARIOS" '
     BEGIN {
       ndom = split(quotas, pairs, " ")
       for (i = 1; i <= ndom; i++) { split(pairs[i], kv, "="); domname[i] = kv[1]; domwant[i] = kv[2] + 0 }
@@ -288,7 +246,6 @@ check_composition_questions() {
       next
     }
     /^domain: /  { domgot[$2]++; next }
-    /^select: /  { if ($2 + 0 > 1) multi++; if ($2 + 0 == maxsel) three++; next }
     /^scenario: / {
       s = $2; qscen[s]++
       if (struct == "") {
@@ -303,8 +260,6 @@ check_composition_questions() {
         if (domgot[d] + 0 != domwant[i]) {
           printf "domain %s has %d questions, blueprint requires %d\n", d, domgot[d] + 0, domwant[i]; exit }
       }
-      if (multi + 0 != wantmulti) { printf "%d multiple-response items, blueprint requires %d\n", multi + 0, wantmulti; exit }
-      if (three + 0 > maxthree)   { printf "%d choose-%d items, blueprint allows at most %d\n", three + 0, maxsel, maxthree; exit }
       if (scencount + 0 != wantscen) { printf "frontmatter lists %d scenarios, need exactly %d\n", scencount + 0, wantscen; exit }
       for (i = 1; i <= scencount; i++) {
         s = order[i]
@@ -320,24 +275,24 @@ check_composition_questions() {
 }
 
 check_key_spread() {
-  # Catch degenerate answer-position bias among the multiple-choice items. Only
-  # they have a single-letter key, so both counts below skip multiple-response
-  # items for free. This is a guard against gross bias — all keys on one letter —
-  # not a uniformity test; the assembling skill aims for an even spread.
+  # Reject answer-position bias. Only full mocks reach here, so the band is
+  # deliberately tight — a sixth to a third of items per letter, against an even
+  # share of a quarter. The reference bank's own key positions are lopsided, so
+  # few-shot pull toward one letter is a real risk; enforcing the property here
+  # is worth more than trusting the examples to teach it.
   # mode "payload": read `answer_key:` lines; mode "answers": read column 3.
   local file="$1" mode="$2" reason
   reason="$(awk -v mode="$mode" '
-    mode == "payload" && /^answer_key: [A-D]$/  { key[$2]++; single++ }
-    mode == "answers" && /^[0-9]+ / && length($3) == 1 { key[$3]++; single++ }
+    mode == "payload" && /^answer_key: [A-D]$/ { key[$2]++; items++ }
+    mode == "answers" && /^[0-9]+ /            { key[$3]++; items++ }
     END {
-      # Too few single-select items for a spread to mean anything.
-      if (single < 8) exit
-      lo = int(single / 10); hi = int(single / 2)
+      if (items < 8) exit
+      lo = int(items / 6); hi = int(items / 3)
       n = split("A,B,C,D", letters, ",")
       for (i = 1; i <= n; i++) {
         L = letters[i]; c = key[L] + 0
         if (c < lo || c > hi) {
-          printf "multiple-choice key %s appears %d/%d times — positions look biased (aim ~%d each); reshuffle\n", L, c, single, int(single / 4)
+          printf "answer key %s appears %d/%d times — positions look biased (aim ~%d each); reshuffle\n", L, c, items, int(items / 4)
           exit
         }
       }
@@ -347,44 +302,22 @@ check_key_spread() {
   return 0
 }
 
-check_select_alignment() {
-  # Cross-file check: the questions file's `select:` counts must match the
-  # answers file's key lengths. A screen reads `select:` to decide how many
-  # responses to collect, so a drift here would ask for the wrong number.
-  local reason
-  reason="$(awk -v maxsel="$MAX_SELECT" '
-    FNR == NR  { if ($0 ~ /^select: [0-9]+$/) want[$2 + 0]++; next }
-    /^[0-9]+ / { got[length($3)]++ }
-    END {
-      for (n = 1; n <= maxsel; n++) {
-        if (want[n] + 0 != got[n] + 0) {
-          printf "%d question(s) ask for %d response(s) but %d answer key(s) name %d\n", want[n] + 0, n, got[n] + 0, n
-          exit
-        }
-      }
-    }
-  ' "$EXAM_FILE" "$ANSWERS_FILE")"
-  [[ -z "$reason" ]] || { echo "$reason"; return 1; }
-  return 0
-}
-
 validate_payload() {
   # Structural integrity of an init payload: total is numeric and the [[Qn]] /
-  # select / answer_key / user_answer line counts all equal it, and every item's
-  # select count agrees with its key. For a full 60-item exam, also enforces the
-  # CCAF blueprint composition. Prints the reason on failure.
-  local file="$1" total blocks sels tasks keys uas reason
+  # task / answer_key / user_answer line counts all equal it. For a full 60-item
+  # exam, also enforces the CCAF blueprint composition.
+  # Prints the reason on failure.
+  local file="$1" total blocks tasks keys uas reason
   total="$(read_field_from total "$file")"
   if ! [[ "$total" =~ ^[0-9]+$ && "$total" -gt 0 ]]; then
     echo "frontmatter 'total' missing or non-numeric"; return 1
   fi
   blocks="$(grep -cE '^\[\[Q[0-9]+\]\]$' "$file" || true)"
-  sels="$(grep -cE '^select:[[:space:]]*[0-9]+[[:space:]]*$' "$file" || true)"
   tasks="$(grep -cE '^task:[[:space:]]*D[1-5]\.[0-9]+[[:space:]]*$' "$file" || true)"
-  keys="$(grep -cE "^answer_key:[[:space:]]*[A-D]{1,$MAX_SELECT}[[:space:]]*\$" "$file" || true)"
+  keys="$(grep -cE '^answer_key:[[:space:]]*[A-D][[:space:]]*$' "$file" || true)"
   uas="$(grep -c '^user_answer:' "$file" || true)"
-  if [[ "$blocks" -ne "$total" || "$sels" -ne "$total" || "$tasks" -ne "$total" || "$keys" -ne "$total" || "$uas" -ne "$total" ]]; then
-    echo "body mismatch: total=$total but blocks=$blocks selects=$sels tasks=$tasks keys=$keys user_answers=$uas"; return 1
+  if [[ "$blocks" -ne "$total" || "$tasks" -ne "$total" || "$keys" -ne "$total" || "$uas" -ne "$total" ]]; then
+    echo "body mismatch: total=$total but blocks=$blocks tasks=$tasks keys=$keys user_answers=$uas"; return 1
   fi
   reason="$(check_items "$file")"
   [[ -z "$reason" ]] || { echo "$reason"; return 1; }
@@ -402,7 +335,7 @@ validate_payload() {
 
 validate_pair() {
   # Cross-file integrity of an on-disk attempt. Prints the reason on failure.
-  local qt at blocks lines selects tasks reason
+  local qt at blocks lines tasks reason
   qt="$(read_field_from total "$EXAM_FILE")"
   at="$(read_field_from total "$ANSWERS_FILE")"
   if ! [[ "$qt" =~ ^[0-9]+$ && "$qt" -gt 0 ]]; then
@@ -411,13 +344,10 @@ validate_pair() {
   [[ "$qt" == "$at" ]] || { echo "totals diverge: questions file says $qt, answers file says $at"; return 1; }
   blocks="$(grep -cE '^\[\[Q[0-9]+\]\]$' "$EXAM_FILE" || true)"
   [[ "$blocks" -eq "$qt" ]] || { echo "questions file has $blocks blocks but total=$qt"; return 1; }
-  lines="$(grep -cE "^[0-9]+ D[1-5] [A-D]{1,$MAX_SELECT} ([A-D]{1,$MAX_SELECT}|-)\$" "$ANSWERS_FILE" || true)"
+  lines="$(grep -cE '^[0-9]+ D[1-5] [A-D] ([A-D]|-)$' "$ANSWERS_FILE" || true)"
   [[ "$lines" -eq "$qt" ]] || { echo "answers file has $lines well-formed lines but total=$qt"; return 1; }
-  selects="$(grep -cE '^select:[[:space:]]*[0-9]+[[:space:]]*$' "$EXAM_FILE" || true)"
-  [[ "$selects" -eq "$qt" ]] || { echo "questions file has $selects select: lines but total=$qt"; return 1; }
   tasks="$(grep -cE '^task:[[:space:]]*D[1-5]\.[0-9]+[[:space:]]*$' "$EXAM_FILE" || true)"
   [[ "$tasks" -eq "$qt" ]] || { echo "questions file has $tasks task: lines but total=$qt"; return 1; }
-  if ! reason="$(check_select_alignment)"; then echo "$reason"; return 1; fi
   if grep -qE '^(source: authored|id: seed-|id: ref-)' "$EXAM_FILE"; then
     echo "bank questions are reference-only: found 'source: authored' / 'id: seed-*' in the exam"; return 1
   fi
@@ -498,7 +428,7 @@ cmd_record() {
   for ((i = 0; i < ${#qs[@]}; i++)); do
     [[ "${qs[$i]}" =~ ^[0-9]+$ ]] || die "record: --q must be a question number (got '${qs[$i]}')"
     normalized="$(normalize_answer "${answers[$i]}")" ||
-      die "record: --answer must be 1 to $MAX_SELECT distinct letters from A-D (got '${answers[$i]}')"
+      die "record: --answer must be one letter from A-D (got '${answers[$i]}')"
     pairs+="${qs[$i]}=${normalized},"
   done
   acquire_lock
@@ -535,9 +465,6 @@ cmd_audit() {
   for d in D1 D2 D3 D4 D5; do
     echo "domain=$d questions=$(grep -c "^domain: $d\$" "$EXAM_FILE" || true)"
   done
-  for (( sel = 1; sel <= MAX_SELECT; sel++ )); do
-    echo "select=$sel questions=$(grep -c "^select: $sel\$" "$EXAM_FILE" || true)"
-  done
   for letter in A B C D; do
     echo "key=$letter count=$(awk -v L="$letter" '/^[0-9]+ / && $3 == L { n++ } END { print n + 0 }' "$ANSWERS_FILE")"
   done
@@ -570,8 +497,6 @@ cmd_score() {
       else if ($0 ~ /^task: /)      { qtask[q + 0] = $2 }
       next
     }
-    # A multiple-response item is all-or-nothing: both sides are normalized to
-    # sorted distinct letters, so exact string equality IS set equality.
     /^[0-9]+ / {
       total++; dtotal[$2]++
       t = qtask[$1 + 0]

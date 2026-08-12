@@ -22,9 +22,8 @@ runtime.
 - **Case-study framing** — like the real exam, items are organized around the chosen scenarios:
   the exam is grouped into 4 contiguous case-study sections, each opening with its case-study
   brief (below), and every item is set inside its section's case.
-- **Two item formats**, exactly as the real exam: **multiple-choice** (pick one) and
-  **multiple-response** (pick several). Every multiple-response item **states in its stem how many
-  responses to select** — never leave the count implicit.
+- **Single-answer multiple-choice items only** — four options A–D, exactly one correct. This is a
+  **deliberate divergence** from the real exam; see the note below.
 - **No penalty for guessing** — an unanswered item scores as incorrect.
 - Scaled score reported on the **100–1000** band; **pass = 720**; pass/fail designation, plus
   **percent correct per domain** on the report (informational — the pass/fail decision is the
@@ -38,26 +37,27 @@ score — it is why 720 is a fixed bar and why "how did others do" is not a mean
 
 ## Item composition (what an assembled 60-item mock contains)
 
-| Format                       | `select:` | Items | Options | Guess rate |
-| ---------------------------- | --------- | ----- | ------- | ---------- |
-| Multiple-choice (pick one)   | `1`       | 45    | 4 (A–D) | 1 in 4     |
-| Multiple-response (pick two) | `2`       | 11    | 4 (A–D) | 1 in 6     |
-| Multiple-response (pick three) | `3`     | 4     | 4 (A–D) | 1 in 4     |
+All **60 items are single-answer multiple-choice**: four options A–D, **exactly one is correct**,
+the other three are plausible-but-wrong distractors. Guess rate 1 in 4. No item asks for more than
+one response, so no item states a response count.
 
-- **15 of 60 items (25%) are multiple-response.** The state helper enforces this exactly, and
-  enforces that at most 5 of them are choose-three.
-- **Every item has exactly four options, A–D.** This is a deliberate constraint of the terminal
-  UI: `AskUserQuestion` renders at most four options per question, so the mock cannot present the
-  five- or six-option lists a real multiple-response item may use. Disclose this in the README's
-  fidelity table rather than pretending otherwise.
-- **Spread multiple-response items across domains** roughly in proportion to the domain quotas:
-  D1 = 4, D2 = 3, D3 = 3, D4 = 3, D5 = 2. No domain should be all one format.
-- **Choose-two is the default multiple-response shape.** A choose-three item over four options is
-  really "identify the single option that does not belong", so it only earns its place when that
-  single wrong option is a *near-miss* anti-pattern — never an obviously weak throwaway. Keep
-  choose-three a minority.
-- **Multiple-response items are scored all-or-nothing.** The recorded set must equal the key set
-  exactly; a partially-correct selection is incorrect. There is no partial credit.
+### Deliberate divergence from the real exam
+
+The published guide gives the item format as *multiple-choice **and** multiple-response, with each
+item stating how many responses to select*. **This mock serves single-answer items only.** That is a
+decision taken for this plugin, not an oversight, and it has consequences worth naming:
+
+- A candidate practising here **will not rehearse the multiple-response format**, which on the real
+  exam is scored all-or-nothing — one right and one wrong scores the same as zero right. That is a
+  distinct skill: classify every option rather than stop at the first strong one.
+- Because single-answer items are the easier format, a score here is, if anything, **optimistic**
+  relative to a real form containing multiple-response items. Treat 720 as the floor of readiness,
+  not a comfortable margin.
+- The README's fidelity table states this divergence plainly. Do not describe the mock as matching
+  the guide's item format, and do not generate an item that asks for two or three responses — the
+  state helper refuses any answer key that is not a single letter.
+
+Everything else in this blueprint follows the published guide.
 
 ## Target candidate (calibrates difficulty)
 
@@ -551,15 +551,16 @@ The self-authored questions in `ccaf-question-bank.md` are the style, difficulty
 explanation-tone anchors — **they are never served in an exam** (the bank is readable by any
 candidate, so serving it would inflate scores; the state helper rejects bank questions at write
 time). Generated items should match their shape without reusing their stems or options: a realistic
-production scenario, exactly the required number of clearly-correct options, and distractors a
-candidate with incomplete knowledge would plausibly pick (build them from the common-mistake lists
-above). Explanations say why each correct option is right **and** why each distractor is wrong.
+production scenario, one clearly-correct option, and three distractors a candidate with incomplete
+knowledge would plausibly pick (build them from the common-mistake lists above). Explanations say
+why the correct option is right **and** why each distractor is wrong. **Ignore the anchors' answer
+positions** — they are lopsided toward A because each was written for content, and answer position
+must be shuffled independently per attempt.
 
 ## Scoring
 
-- Raw `correct` = count of items whose recorded answer set equals the answer key exactly.
-  Multiple-response items are **all-or-nothing** — a partially-correct selection is incorrect, and
-  an unanswered item is incorrect.
+- Raw `correct` = count of items whose recorded answer equals the answer key. An unanswered item is
+  incorrect.
 - `scaled = 100 + 15 × correct` (this is `100 + round(correct ÷ 60 × 900)`; since `900 ÷ 60 = 15`
   exactly, no rounding is needed). Range: 0 correct → 100, 60 correct → 1000.
 - **Pass iff `scaled ≥ 720`**, i.e. **≥ 42 of 60** correct (42 → 730 PASS; 41 → 715 FAIL).

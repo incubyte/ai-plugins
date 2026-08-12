@@ -40,8 +40,7 @@ boundaries. Teaching stays strictly inside the blueprint's in-scope list.
 3. Teach one task statement per turn: hook → concept (+ anti-pattern) → visualize only if it
    helps → check → adapt.
 4. Use inline checks for light recall; spawn the `ccaf-check-author` agent (via Task) for
-   apply-to-scenario checks — single-answer or "Select TWO" — so the main thread stays lean. Read
-   confidence with "why that one?".
+   apply-to-scenario checks so the main thread stays lean. Read confidence with "why that one?".
 5. Track what's solid vs. shaky; show the map on request; offer a hands-on exercise at domain
    boundaries; recommend `/ccaf:practice` then `/ccaf:mock-exam` when a domain looks solid.
 

@@ -24,7 +24,7 @@ Pick the route that matches where the candidate is, not the one that covers the 
 | ----- | ------------ | ---- |
 | **Full sweep** | First exposure, or a mock below ~600 | D1 → D2 → D3 → D4 → D5 in order. Later domains lean on earlier ones: D5's error propagation only makes sense once D1's coordinator model is solid. |
 | **Weak-domain drill** | A mock in the 600–719 band with one or two soft domains | The weak domain's task statements only, then `/ccaf:practice` on that domain, then a fresh mock. |
-| **Format hardening** | Content is solid but multiple-response items are costing points | Practise choose-two and choose-three reasoning specifically: for each item, decide the status of *every* option rather than hunting for one winner. |
+| **Format hardening** | Content is solid, but the real exam's multiple-response items are unrehearsed (this plugin serves single-answer only) | For each practice item, decide the status of *every* option rather than stopping at the first strong one — that is the habit a choose-two item demands. |
 | **Pre-booking pass** | A mock at 720+, sitting the exam soon | One pass over the anti-pattern lists in each domain's "common mistakes", plus one hands-on exercise in the softest domain. Do not re-study what is already solid. |
 
 ## What to actually practise
@@ -144,20 +144,22 @@ any of these when a candidate wants to consolidate a domain.
    attribution and dates, not silently pick one — and the report should separate well-established
    findings from contested ones.
 
-## Answering multiple-response items
+## The one format this plugin does not rehearse
 
-25% of the real exam's items ask for more than one response, and the stem always states how many.
-They punish a different habit than single-select items do:
+The real exam uses **multiple-response** items alongside single-answer ones — the stem states how
+many responses to select, and scoring is all-or-nothing. `/ccaf:mock-exam` and `/ccaf:practice`
+here serve **single-answer items only**, so that format goes unrehearsed. Two consequences worth
+saying out loud to a candidate:
 
-- **Read the count first, then answer.** "Select TWO" changes the task from *find the best option*
-  to *classify every option*. Candidates lose these by finding one strong answer and stopping.
-- **Scoring is all-or-nothing.** One right and one wrong scores the same as zero right. There is no
-  partial credit, so a coin-flip on the second pick costs the whole item.
-- **Work by elimination, not attraction.** Decide the status of each option independently against the
-  task statement being tested. The distractors are built from real practitioner misconceptions, so
-  "sounds reasonable" is exactly the trap.
-- **Watch for two answers that are the same idea.** If two options say substantially the same thing,
-  usually neither is in the key — a well-built choose-two item wants two *distinct* correct actions.
+- **A score here is, if anything, optimistic.** Single-answer items are the easier format, so treat
+  720 on a mock as the floor of readiness rather than a comfortable margin.
+- **The habit is trainable without the format.** On every practice item, decide the status of *all
+  four* options against the task statement being tested instead of stopping at the first strong one.
+  That is exactly what a "Select TWO" item demands, and the distractors here are built from real
+  practitioner misconceptions, so "sounds reasonable" is the trap either way.
+
+If you want to drill the format itself before exam day, write a few choose-two items by hand from
+the blueprint's common-mistake lists and have a colleague grade them all-or-nothing.
 
 ## Registration, policies, and recertification
 

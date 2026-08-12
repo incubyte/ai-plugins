@@ -1,6 +1,6 @@
 ---
 name: ccaf-exam
-description: "Engine for the /ccaf:mock-exam mock exam. Assembles a 60-item CCAF mock mixing multiple-choice and multiple-response items (all generated fresh per attempt, anchored to a self-authored reference bank and independently verified), administers it 4 items per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line. Use when running or resuming /ccaf:mock-exam."
+description: "Engine for the /ccaf:mock-exam mock exam. Assembles a 60-item CCAF mock of single-answer multiple-choice items (all generated fresh per attempt, anchored to a self-authored reference bank and independently verified), administers it 4 items per screen with resumable progress, and scores it on the real 100–1000 band with a 720 pass line. Use when running or resuming /ccaf:mock-exam."
 user-invocable: false
 ---
 
@@ -52,19 +52,17 @@ Goal: a frozen, well-formed 60-item exam written to the attempt file.
    don't always pick the same four). The six slugs and their case-study briefs are in the blueprint.
 2. **Domain quotas (hard constraint).** Exactly: **D1=16, D2=11, D3=12, D4=12, D5=9** (= 60).
    `init` enforces this deterministically and refuses a mis-weighted exam.
-3. **Item-format quotas (hard constraint).** Exactly **45 multiple-choice** (`select: 1`),
-   **11 choose-two** (`select: 2`), and **4 choose-three** (`select: 3`) — 15 multiple-response
-   items, 25% of the exam, matching the real item mix. `init` enforces the multiple-response count
-   exactly and caps choose-three at 5. Spread the 15 across domains roughly in proportion to the
-   quotas — **D1 4, D2 3, D3 3, D4 3, D5 2** — so no domain is all one format. Every item has
-   exactly four options A–D, whatever its `select:` count.
+3. **Item format (hard constraint).** Every item is **single-answer**: four options A–D, exactly
+   one correct, three plausible distractors. `init` refuses any answer key that is not a single
+   letter. This is a deliberate divergence from the real exam, which also uses multiple-response
+   items — the blueprint records why, and the README's fidelity table states it. Never write an item
+   that asks for two or three responses.
 4. **Reference anchors — never served.** Read the 30 bank questions as few-shot anchors for style,
-   difficulty, distractor construction, and multiple-response shape only. Each task statement has
-   exactly one anchor — read the one matching the task statement you are writing against. Do **not** copy any bank
-   question — or a near-verbatim variant of one — into the exam: the bank ships in the repo with
+   difficulty, and distractor construction only. Each task statement has exactly one anchor — read
+   the one matching the task statement you are writing against. Do **not** copy any bank question — or a near-verbatim variant of one — into the exam: the bank ships in the repo with
    answers and explanations, so candidates may have already read it. Every served item is freshly
    generated (`init` rejects any `source: authored` / `id: seed-*` block).
-5. **Generate all 60 items**, honoring both sets of quotas and spread across the chosen scenarios.
+5. **Generate all 60 items**, honoring the domain quotas and spread across the chosen scenarios.
    Each item:
    - is set inside its scenario's **case-study brief** (answerable from brief + stem; may add
      detail, must never contradict the brief);
@@ -73,39 +71,27 @@ Goal: a frozen, well-formed 60-item exam written to the attempt file.
      **out-of-scope** topic;
    - spreads across task statements rather than clustering — aim to touch most of a domain's task
      statements before repeating one, and never write three items on the same task statement;
-   - has exactly `select:` clearly-correct options and the rest plausible-but-wrong distractors,
-     built from the domain's common-mistake list;
+   - has one clearly-correct option and three plausible-but-wrong distractors, built from the
+     domain's common-mistake list;
    - matches the bank questions' style and difficulty without reusing their stems or options.
-
-   For a **multiple-response** item, additionally:
-   - **state the count in the stem, in bold, as the last sentence** — `**Select TWO.**` /
-     `**Select THREE.**`. Never leave it implicit; the real exam always states it.
-   - make each correct option *independently* correct and *distinct* — two options restating the
-     same idea is the tell of a badly-built choose-two, and candidates are taught to distrust it.
-   - for **choose-three over four options**, remember the item reduces to "identify the one option
-     that does not belong", so the single wrong option must be a *near-miss* anti-pattern that a
-     partial-knowledge candidate would genuinely accept. If you cannot write it that way, make the
-     item choose-two instead. Prefer choose-two as the default multiple-response shape.
 6. **Verify every item independently.** For each, run an *independent* check that did **not** see
    your authoring rationale — prefer spawning a fresh subagent via the Task tool that receives only
-   the stem, the options, and the required number of responses, and must (a) name exactly that many
-   defensible options and (b) flag any extra defensible option or implausible distractor. Reject
-   and regenerate any item that fails (budget ~3 tries); if it still fails, substitute a fresh
-   in-domain item. A multiple-response item where the verifier picks a different set is a defect,
-   not a difficulty win.
-7. **Shuffle answer positions.** Place correct options at varied positions. Across the 45
-   multiple-choice items keep each letter at roughly 11 (stay within 9–13) so the key carries no
-   positional pattern; `init` rejects a degenerate spread. For multiple-response items vary which
-   letter combinations carry the key — don't let `AB` dominate.
+   the stem and the options, and must (a) name the single defensible option and (b) flag any second
+   defensible option or implausible distractor. Reject and regenerate any item that fails (budget ~3
+   tries); if it still fails, substitute a fresh in-domain item. An item where the verifier picks a
+   different option than you intended is a defect, not a difficulty win.
+7. **Shuffle answer positions.** Keep each letter at roughly 15 of the 60 (stay within 13–17) so
+   the key carries no positional pattern; `init` rejects a skewed spread. Note the reference bank's
+   own keys lean heavily on A — an artefact of how those anchors were written, not a pattern to
+   copy.
 8. **Group into case-study sections.** Order the 60 items so each scenario's items are
-   **contiguous** (4 sections, like the real exam), with domains and both item formats mixed within
-   each section. Each section opens with its `[[CASE:<slug>]]` block — placed **directly before its
+   **contiguous** (4 sections, like the real exam), with domains mixed within each section. Each section opens with its `[[CASE:<slug>]]` block — placed **directly before its
    first item**, not gathered at the top — whose `title:` and `brief:` are copied **verbatim** from
    the blueprint's case-study briefs. `init` rejects interleaved sections, a duplicated case block,
    or any item sitting under a different scenario's case block.
 9. **Write the attempt** by piping the assembled body to `ccaf-exam.sh init` (one call, via
    stdin — never the Write/Edit tools). `init` validates the payload, then splits it itself:
-   stems, options, and `select:` counts go to the questions file; keys and answer slots go to the
+   stems, options, and `task:` tags go to the questions file; keys and answer slots go to the
    separate answers file. Use exactly this payload schema:
 
 ```
@@ -124,7 +110,6 @@ task: D3.4
 scenario: code-generation
 source: generated
 id: gen-01
-select: 1
 stem: <item text — keep to one logical line; no blank lines inside the block>
 A) <option>
 B) <option>
@@ -133,27 +118,13 @@ D) <option>
 answer_key: A
 user_answer:
 [[Q2]]
-domain: D1
-task: D1.5
-scenario: code-generation
-source: generated
-id: gen-02
-select: 2
-stem: <item text ending in **Select TWO.**>
-A) <option>
-B) <option>
-C) <option>
-D) <option>
-answer_key: BD
-user_answer:
-[[Q3]]
 ...
 ```
 
 Rules for the body: one `[[CASE:<slug>]]` block (with `title:` + `brief:`) before each scenario
 section; one `[[Q<n>]]` block per item numbered 1..60 in order; each item block has `domain:`,
 `task:`, `scenario:`, `source: generated` (always — bank questions are never served), a fresh `id:`
-(`gen-<n>`), `select:` (1, 2, or 3), `stem:`, the four options, `answer_key:`, and an empty
+(`gen-<n>`), `stem:`, the four options, `answer_key:` (one letter A–D), and an empty
 `user_answer:`.
 
 - `task:` is the task statement the item tests (`D1.1`–`D5.6`). It must **belong to the item's own
@@ -161,19 +132,15 @@ section; one `[[Q<n>]]` block per item numbered 1..60 in order; each item block 
   rejects a tag that is malformed, out of range, or in a different domain. This is what lets the
   score report say *which objective* a candidate keeps missing, so a wrong tag sends them to study
   the wrong thing.
-- `answer_key:` must name exactly `select:` letters, **distinct and in A–D order** (`BD`, not `DB`)
-  — `init` rejects a key that disagrees with its `select:` count, repeats a letter, or lists
-  letters out of order.
 
 Keep every block free of blank lines — the helper parses `user_answer:` as the item-block
 terminator.
 
 After writing, run `ccaf-exam.sh audit` → must end `composition=OK` (it also prints the per-domain
-and per-`select` histograms). `init` itself refuses a malformed body, a quota violation, a wrong
-multiple-response count, a `select:`/key mismatch, a missing case block, a biased key spread, or a
-mid-attempt overwrite — on refusal, fix the body and re-pipe; never fall back to Write/Edit. Then
-tell the candidate their exam's composition in one short block: the 4 case studies chosen, the
-fixed domain distribution (16/11/12/12/9), and the item mix (45 single-answer, 15 multiple-response).
+and per-key histograms). `init` itself refuses a malformed body, a quota violation, a bad task tag, a
+missing case block, a skewed key spread, or a mid-attempt overwrite — on refusal, fix the body and
+re-pipe; never fall back to Write/Edit. Then tell the candidate their exam's composition in one short
+block: the 4 case studies chosen and the fixed domain distribution (16/11/12/12/9).
 
 ## Administer
 
@@ -201,11 +168,8 @@ crash/resume, or if a helper call errors.) Then loop:
    brief forward. When a screen starts a new section, announce the switch first:
    *"Case study 2 of 4 — <title>"*. (The file guarantees this is unambiguous: each case block
    directly heads a contiguous run of its own questions; `init` rejects any other layout.)
-4. Present the questions in **one AskUserQuestion call** (up to 4 per screen), each with the four
-   options A–D. Read each item's `select:` count from the questions file and set the format from it:
-   - `select: 1` → a normal single-select question.
-   - `select: 2` or `select: 3` → set **`multiSelect: true`** on that question, and keep the stem's
-     `**Select TWO.**` / `**Select THREE.**` sentence visible so the required count is on screen.
+4. Present the questions in **one AskUserQuestion call** (up to 4 per screen), each as a
+   single-select with the four options A–D.
 
    **Map the option fields this way, every time:** each option's `label` is the bare letter —
    `"A"`, `"B"`, `"C"`, `"D"` — and the option's full text goes in its `description`. AskUserQuestion
@@ -215,29 +179,16 @@ crash/resume, or if a helper call errors.) Then loop:
 
    Show the stem and options **only** — never the `answer_key`, never an explanation, never whether
    a prior answer was right.
-5. **Enforce the response count once.** If a multiple-response item comes back with a different
-   number of options than its `select:` count, re-present **that one item** in a fresh
-   AskUserQuestion, prefixed with one plain line — *"Q12 asks for exactly TWO responses; you
-   selected one."* — and record whatever the second response gives, correct count or not. The real
-   exam blocks submission on the wrong count; this is the terminal equivalent. Never re-ask a third
-   time, and never silently "fix" a selection by adding or dropping a letter yourself.
-6. When the candidate submits the screen, **persist and advance in the same response** so the
-   next questions appear without waiting on the save.
-
-   **A multiSelect answer arrives comma-separated** — `"A, B"` — so **join the letters before
-   recording**: `A, B` → `AB`. The helper deliberately rejects the raw string rather than guessing,
-   so forgetting this produces a loud failure, not a silently mis-recorded answer; but it does stop
-   the screen, so strip the separators yourself.
-   - launch the screen's batched record **in the background** (Bash `run_in_background: true`),
-     passing a multiple-response answer as its letters joined together in any order:
-     `ccaf-exam.sh record --q 5 --answer A --q 6 --answer BD --q 7 --answer B --q 8 --answer ACD`
+5. When the candidate submits the screen, **persist and advance in the same response** so the
+   next questions appear without waiting on the save:
+   - launch the screen's batched record **in the background** (Bash `run_in_background: true`):
+     `ccaf-exam.sh record --q 5 --answer A --q 6 --answer C --q 7 --answer B --q 8 --answer D`
    - and, in that same response, print the next screen's case block (step 3) and issue its
      AskUserQuestion (step 4).
-   The helper normalizes each set (uppercased, sorted, de-duplicated) so selection order never
-   matters, and serializes concurrent writes through a lock, so back-to-back screens cannot corrupt
+   The helper serializes concurrent writes through a lock, so back-to-back screens cannot corrupt
    the file. If a background record reports failure, stop presenting, re-run that exact record in
    the foreground (the answers are still in your context), then continue.
-7. Repeat.
+6. Repeat.
 
 **Finish line (before Score).** Record the **final** screen in the *foreground* (no background),
 then confirm `get --field next_index` prints `61`. If it prints ≤ 60, a save was lost or

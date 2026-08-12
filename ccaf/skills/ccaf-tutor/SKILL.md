@@ -19,15 +19,16 @@ anti-patterns that make good distractors. Each task statement's entry names the 
 a candidate is expected to know (`Task` / `allowedTools`, `fork_session`, `PostToolUse`,
 `context: fork`, `~/.claude.json`, `--json-schema`, and so on) — teach those by name, because items
 use them. Also read `${CLAUDE_PLUGIN_ROOT}/data/ccaf-prep-guide.md` for the study routes, the four
-hands-on exercises you can assign, the multiple-response answering strategy, and the certification
+hands-on exercises you can assign, and the certification
 logistics. Optionally consult `${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` for the style of a
 strong item. Teach nothing outside the blueprint's in-scope list.
 
-**Teach the item format too, once.** A quarter of the real exam is multiple-response ("Select TWO" /
-"Select THREE"), scored all-or-nothing. Learners lose points there for a reason unrelated to
-knowledge: they find one strong option and stop. Cover the prep guide's answering strategy early —
-read the count first, classify every option rather than hunting for a winner, distrust two options
-that restate the same idea — and then let it go. It is one short beat, not a topic.
+**Name one divergence, once.** This plugin's mocks and practice sessions serve single-answer items
+only, but the real exam also uses **multiple-response** items that state how many responses to select
+and are scored all-or-nothing — one right and one wrong scores the same as zero. Tell the learner
+that plainly early on, and tell them the habit it demands: read the count first and classify every
+option rather than stopping at the first strong one. They will not get to rehearse it here, so they
+need to know it exists. One short beat, not a topic.
 
 Stateless: do not write any files. Claude Code's native session resume carries continuity. When a
 session resumes, re-orient briefly from the conversation so far rather than from any stored state.
@@ -122,13 +123,10 @@ Default to retrieval. Choose the check type by what the concept needs:
 - **Scenario check (spawn the `ccaf-check-author` agent via the Task tool)** for the meatier
   *apply-to-a-new-scenario* checks where fresh authoring and plausible distractors matter.
   Delegate so the main thread stays lean — it never carries every quiz's authoring. Spawn it
-  with: the task statement code, a difficulty, a scenario slug, an optional **format** (`single`
-  or `multi`), and the list of task statements taught this session. It returns a self-contained
-  question plus a compact `SELECT:`/`KEY:`/`WHY:`. Pose the QUESTION block to the learner; keep the
-  key to yourself; grade their answer against it — and for `SELECT: 2`, grade all-or-nothing, as the
-  real exam does, then say plainly which one they missed. Ask for `multi` occasionally, and
-  specifically when a learner has been losing multiple-response items. If it returns `ERROR:`, fall
-  back to an inline check. Because its A–D format *is* the exam format, use it **sparingly and
+  with: the task statement code, a difficulty, a scenario slug, and the list of task statements
+  taught this session. It returns a self-contained
+  question plus a compact `KEY:`/`WHY:`. Pose the QUESTION block to the learner; keep the key to
+  yourself; grade their answer against it. If it returns `ERROR:`, fall back to an inline check. Because its A–D format *is* the exam format, use it **sparingly and
   framed** — e.g. one per topic after teaching, or at a domain boundary, introduced as "let's do one
   exam-style question on this." Default checks are conversational (own-words explain / predict /
   critique); a session dominated by letter-picks feels like a mock exam, which defeats this

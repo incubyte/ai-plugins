@@ -40,6 +40,11 @@
       "description": "End-to-end issue triage across all archetypes (Bug, Incident, Story, Feature, Task, Spike) on any supported tracker (Azure DevOps, Jira). All writes pass through a single diff-and-confirm gate. Auto-installs issuekit; bring your own MCPs."
     },
     {
+      "name": "daily-brief",
+      "source": "./daily-brief",
+      "description": "Your morning brief, built from every source you have connected. The shape of your day, who is blocked on you, where you were tagged, who deserves a shoutout nobody has given yet, what is stalling, and the outside news that changes something for us. Publishes a dated page each morning plus a permanent archive. Bring your own connectors; no .mcp.json bundled."
+    },
+    {
       "name": "ralph-wiggum",
       "source": {
         "source": "github",

@@ -88,6 +88,20 @@ Auto-installs `issuekit`.
 
 Entry point: `/issue-triage:run <URL or ID>`
 
+### [Daily Brief](daily-brief/) — Your Morning, in One Page
+
+The shape of your day drawn from your calendar, then the few things genuinely worth knowing: who is blocked on you, where you were tagged, who deserves a shoutout nobody has given yet, what is stalling, and the outside news that actually changes something for us.
+
+- **Discovers your sources each run** rather than working from a fixed list — chat, mail, calendar, CRM, ERP, recruiting, issues, docs, compliance. Reads two chat tools side by side, not just one, and reports which connectors were switched off so you can close the gap.
+- **Judges, then groups.** No topic checklist: every item is tested against "if you only learned this a week from now, would that be a problem?" Sections are named from what actually surfaced, so a cross-cutting item never falls between buckets.
+- **Recognition is a judgement call**, not a relay of what the recognition bot already posted.
+- Publishes a dated page each morning plus a permanent archive that lists them all, and saves dated copies to a folder you choose.
+- Sets itself up as a recurring weekday task on first run.
+
+Bring your own connectors; no `.mcp.json` bundled.
+
+Entry point: `/daily-brief`
+
 ## Install
 
 Add the marketplace once, then install the plugins you want:

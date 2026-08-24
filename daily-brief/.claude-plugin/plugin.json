@@ -1,0 +1,20 @@
+{
+  "name": "daily-brief",
+  "version": "0.1.0",
+  "description": "The Incubyte founder's morning brief — the shape of your day, who is blocked on you, where you were tagged, who deserves a shoutout, and the outside news that matters, read from your own Teams, Outlook and Close.",
+  "author": {
+    "name": "Incubyte"
+  },
+  "homepage": "https://github.com/incubyte/ai-plugins",
+  "repository": "https://github.com/incubyte/ai-plugins",
+  "license": "MIT",
+  "keywords": [
+    "daily-brief",
+    "morning-brief",
+    "teams",
+    "outlook",
+    "crm",
+    "erp",
+    "founders"
+  ]
+}

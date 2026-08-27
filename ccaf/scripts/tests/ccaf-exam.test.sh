@@ -12,6 +12,7 @@ DATA_DIR="$(cd "$SCRIPTS_DIR/../data" && pwd)"
 HELPER="$SCRIPTS_DIR/ccaf-exam.sh"
 BLUEPRINT="$DATA_DIR/ccaf-blueprint.md"
 BANK="$DATA_DIR/ccaf-question-bank.md"
+PREP_GUIDE="$DATA_DIR/ccaf-prep-guide.md"
 
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -45,51 +46,81 @@ assert_contains() {
 
 # --- Builds a synthetic exam file: N questions, first M answered correctly. ---
 # fill (4th arg): what the remaining questions get — "blank" (default) or "wrong".
-# For n=60 the body matches the blueprint composition init now enforces: domain
-# quotas 16/11/12/12/9, 4 scenarios (cycling) each with a [[CASE:]] block, keys
-# cycling A-D (15 each). For other n: domains cycle D1..D5, key = A for all.
+# For n=60 the body matches the blueprint composition init enforces: domain
+# quotas 16/11/12/12/9, 4 scenarios (cycling) each with a [[CASE:]] block, and
+# keys cycling A-D (15 each). For other n: domains cycle D1..D5, key = A.
 SCENARIOS=(customer-support code-generation multi-agent-research claude-code-ci)
 LETTERS=(A B C D)
-exam_domain() { # question index -> domain (quota blocks for 60, cycle otherwise)
+# Sets DOM, TASK, KEY and WRONG for question $2 of an $1-item exam. Out-params
+# rather than a subshell per field: this runs 60 times per fixture and there are
+# ~15 fixtures per run, and process creation is slow enough on some machines
+# (Windows + AV) that subshells here dominate the suite's wall-clock.
+DOM=D1
+TASK=D1.1
+KEY=A
+WRONG=B
+# Task statements published per domain, so the fixture only ever tags an item
+# with one that exists (the helper rejects D2.6, for instance).
+declare -A TASK_COUNT=([D1]=7 [D2]=5 [D3]=6 [D4]=6 [D5]=6)
+exam_item() {
   local n="$1" i="$2"
   if (( n == 60 )); then
-    if   (( i <= 16 )); then echo "D1"
-    elif (( i <= 27 )); then echo "D2"
-    elif (( i <= 39 )); then echo "D3"
-    elif (( i <= 51 )); then echo "D4"
-    else                     echo "D5"; fi
+    if   (( i <= 16 )); then DOM=D1
+    elif (( i <= 27 )); then DOM=D2
+    elif (( i <= 39 )); then DOM=D3
+    elif (( i <= 51 )); then DOM=D4
+    else                     DOM=D5; fi
+    KEY="${LETTERS[$(( (i - 1) % 4 ))]}"
   else
-    echo "D$(( (i - 1) % 5 + 1 ))"
+    DOM="D$(( (i - 1) % 5 + 1 ))"; KEY=A
   fi
+  # Cycle through the domain's real task statements so items spread across them.
+  TASK="$DOM.$(( i % TASK_COUNT[$DOM] + 1 ))"
+  case "$KEY" in A) WRONG=B ;; B) WRONG=C ;; C) WRONG=D ;; *) WRONG=A ;; esac
 }
 make_exam() {
   local n="$1" m_correct="$2" status="${3:-in_progress}" fill="${4:-blank}"
   { echo "---"; echo "status: $status"; echo "total: $n"
     echo "scenarios: ${SCENARIOS[0]},${SCENARIOS[1]},${SCENARIOS[2]},${SCENARIOS[3]}"
     echo "next_index: 1"; echo "---"
-    local i ua dom key scen
+    local i ua scen
     for ((i = 1; i <= n; i++)); do
-      dom="$(exam_domain "$n" "$i")"
+      exam_item "$n" "$i"
       if (( n == 60 )); then
-        key="${LETTERS[$(( (i - 1) % 4 ))]}"
         # Contiguous case-study sections of 15, each headed by its case block.
         scen="${SCENARIOS[$(( (i - 1) / 15 ))]}"
         if (( (i - 1) % 15 == 0 )); then
           echo "[[CASE:$scen]]"; echo "title: $scen case"; echo "brief: synthetic case-study brief for $scen"
         fi
       else
-        key="A"; scen="code-generation"
+        scen="code-generation"
       fi
-      if (( i <= m_correct )); then ua="$key"
-      elif [[ "$fill" == "wrong" ]]; then
-        if (( n == 60 )); then ua="${LETTERS[$(( i % 4 ))]}"; else ua="B"; fi   # never equals key
+      if (( i <= m_correct )); then ua="$KEY"
+      elif [[ "$fill" == "wrong" ]]; then ua="$WRONG"
       else ua=""; fi
-      echo "[[Q$i]]"; echo "domain: $dom"; echo "scenario: $scen"
+      echo "[[Q$i]]"; echo "domain: $DOM"; echo "task: $TASK"; echo "scenario: $scen"
       echo "source: generated"; echo "id: gen-$i"; echo "stem: question $i"
       echo "A) a"; echo "B) b"; echo "C) c"; echo "D) d"
-      echo "answer_key: $key"; echo "user_answer: $ua"
+      echo "answer_key: $KEY"; echo "user_answer: $ua"
     done
   } | bash "$HELPER" init --force >/dev/null
+}
+# One question block for a hand-built payload, so a test can vary exactly one
+# field (answer_key, task) and leave everything else well-formed.
+item_block() { # index domain scenario answer_key [task]
+  # task defaults to <domain>.1, which always exists, so a test varying some
+  # other field never trips the task/domain check by accident.
+  local task="${5:-$2.1}"
+  printf '[[Q%s]]\ndomain: %s\n' "$1" "$2"
+  [[ "$task" == "omit" ]] || printf 'task: %s\n' "$task"
+  printf 'scenario: %s\nsource: generated\nid: gen-%s\n' "$3" "$1"
+  printf 'stem: question %s\nA) a\nB) b\nC) c\nD) d\nanswer_key: %s\nuser_answer:\n' "$1" "$4"
+}
+one_item_exam() { # answer_key [task] -> pipes a 1-question payload into init
+  { printf -- '---\nstatus: in_progress\ntotal: 1\nscenarios: code-generation\nnext_index: 1\n---\n'
+    printf '[[CASE:code-generation]]\ntitle: c\nbrief: b\n'
+    item_block 1 D1 code-generation "$1" "${2:-D1.1}"
+  } | bash "$HELPER" init >/dev/null 2>&1
 }
 
 field() { bash "$HELPER" get --field "$1"; }
@@ -98,16 +129,23 @@ score_field() { bash "$HELPER" score | grep -m1 "^$1=" | sed "s/^$1=//"; }
 echo "== Slice 5.1: data files =="
 assert_file_exists "blueprint exists" "$BLUEPRINT"
 assert_file_exists "question bank exists" "$BANK"
-assert_eq "12 seed questions"            "12" "$(grep -c '^  - id:' "$BANK")"
-assert_eq "12 correct keys"              "12" "$(grep -cE '^    correct: [A-D]$' "$BANK")"
-assert_eq "12 source: authored tags"     "12" "$(grep -cE '^    source: authored$' "$BANK")"
-assert_eq "12 domain tags"               "12" "$(grep -cE '^    domain: D[1-5]$' "$BANK")"
-assert_eq "12 scenario tags"             "12" "$(grep -cE '^    scenario: [a-z-]+$' "$BANK")"
+assert_file_exists "prep guide exists" "$PREP_GUIDE"
+BANK_QUESTIONS="$(grep -c '^  - id:' "$BANK")"
+assert_eq "every bank question has a correct key" "$BANK_QUESTIONS" "$(grep -cE '^    correct: [A-D]$' "$BANK")"
+assert_eq "every bank question is source: authored" "$BANK_QUESTIONS" "$(grep -cE '^    source: authored$' "$BANK")"
+assert_eq "every bank question has a domain tag" "$BANK_QUESTIONS" "$(grep -cE '^    domain: D[1-5]$' "$BANK")"
+assert_eq "every bank question has a task statement tag" "$BANK_QUESTIONS" "$(grep -cE '^    task: D[1-5]\.[1-7]$' "$BANK")"
+assert_eq "every bank question has a scenario tag" "$BANK_QUESTIONS" "$(grep -cE '^    scenario: [a-z-]+$' "$BANK")"
+# Every anchor must be single-answer, or the bank teaches a format the exam no
+# longer serves and init would reject.
+assert_eq "no anchor asks for more than one response" "0" "$(grep -cE '^    (select|correct): ([2-9]|[A-D][A-D])' "$BANK" || true)"
 # Domain weights in the blueprint sum to 60.
 WEIGHTSUM="$(grep -oE '\| [0-9]+ +\|$' "$BLUEPRINT" | grep -oE '[0-9]+' | awk '{s+=$1} END{print s}')"
 assert_eq "domain weights sum to 60"     "60" "$WEIGHTSUM"
 assert_contains "blueprint names 720 pass" "$(cat "$BLUEPRINT")" "pass = 720"
 assert_contains "blueprint has out-of-scope list" "$(cat "$BLUEPRINT")" "Out-of-scope topics"
+assert_contains "blueprint states the single-answer format" "$(cat "$BLUEPRINT")" "exactly one is correct"
+assert_contains "blueprint names the exam code" "$(cat "$BLUEPRINT")" "CCAR-F"
 
 echo "== Slice 5.2: init + get (split files) =="
 setup
@@ -120,6 +158,9 @@ assert_eq "next_index starts 1" "1"           "$(field next_index)"
 assert_eq "questions file holds no answer keys" "0" "$(grep -c '^answer_key:' "$CCAF_EXAM_FILE" || true)"
 assert_eq "questions file holds no user answers" "0" "$(grep -c '^user_answer:' "$CCAF_EXAM_FILE" || true)"
 assert_eq "get output is key-free" "0" "$(bash "$HELPER" get | grep -c '^answer_key:' || true)"
+# The score report attributes misses by task statement, so the tag has to survive
+# into the key-free questions file.
+assert_eq "questions file keeps task statements" "4" "$(grep -c '^task: ' "$CCAF_EXAM_FILE" || true)"
 teardown
 
 echo "== Slice 5.3 + 5.5: record advances next_index (resume cursor) =="
@@ -199,7 +240,68 @@ if bash "$HELPER" record --q 99 --answer A >/dev/null 2>&1; then
 else
   echo "  PASS: record fails for nonexistent question"; PASS_COUNT=$((PASS_COUNT + 1))
 fi
+for bad in AB "" 1; do
+  if bash "$HELPER" record --q 1 --answer "$bad" >/dev/null 2>&1; then
+    echo "  FAIL: record should reject answer '$bad'"; FAIL_COUNT=$((FAIL_COUNT + 1))
+  else
+    echo "  PASS: record rejects answer '$bad'"; PASS_COUNT=$((PASS_COUNT + 1))
+  fi
+done
 assert_eq "failed records leave next_index untouched" "1" "$(field next_index)"
+teardown
+
+echo "== Record: a lowercase answer is the same answer =="
+setup; make_exam 4 0
+# The free-text field lets a candidate type "c" instead of picking the option.
+bash "$HELPER" record --q 1 --answer c >/dev/null
+assert_eq "lowercase 'c' records as C" "C" "$(awk '$1 == 1 { print $4 }' "$ANS_FILE")"
+teardown
+
+echo "== Guards: init rejects a malformed answer key =="
+# One correct option per item, so anything but a single letter A-D is refused.
+for bad_key in AB E "" a1; do
+  setup
+  one_item_exam "$bad_key"
+  if [[ -f "$CCAF_EXAM_FILE" ]]; then
+    echo "  FAIL: answer_key '$bad_key' must be rejected"; FAIL_COUNT=$((FAIL_COUNT + 1))
+  else
+    echo "  PASS: answer_key '$bad_key' is rejected"; PASS_COUNT=$((PASS_COUNT + 1))
+  fi
+  teardown
+done
+setup
+one_item_exam A
+assert_file_exists "a well-formed single-item exam is accepted" "$CCAF_EXAM_FILE"
+teardown
+
+echo "== Guards: init rejects a task statement that cannot be right =="
+# A mistagged item sends a candidate to study the wrong objective, so the tag is
+# validated rather than trusted: it must exist, and belong to the item's domain.
+for bad_task in D2.1 D1.9 D1 X1.1 omit; do
+  setup
+  one_item_exam A "$bad_task"   # the item block declares domain: D1
+  if [[ -f "$CCAF_EXAM_FILE" ]]; then
+    echo "  FAIL: task '$bad_task' on a D1 item must be rejected"; FAIL_COUNT=$((FAIL_COUNT + 1))
+  else
+    echo "  PASS: task '$bad_task' on a D1 item is rejected"; PASS_COUNT=$((PASS_COUNT + 1))
+  fi
+  teardown
+done
+setup
+one_item_exam A D1.7   # D1 publishes seven task statements, so D1.7 exists
+assert_file_exists "the last task statement in a domain is accepted" "$CCAF_EXAM_FILE"
+teardown
+
+echo "== Score: misses are attributed to the task statement, not just the domain =="
+setup; make_exam 10 10   # every item correct; D2.3 is tagged on two of them
+SCORED="$(bash "$HELPER" score)"
+assert_contains "a repeated task statement aggregates" "$SCORED" "task=D2.3 correct=2 total=2"
+assert_contains "a single-item task statement reports" "$SCORED" "task=D1.2 correct=1 total=1"
+teardown
+setup; make_exam 10 1 in_progress wrong   # only Q1 (task D1.2) is correct
+SCORED="$(bash "$HELPER" score)"
+assert_contains "an all-missed task statement reports 0" "$SCORED" "task=D2.3 correct=0 total=2"
+assert_contains "the one correct task statement reports 1" "$SCORED" "task=D1.2 correct=1 total=1"
 teardown
 
 echo "== Guards: record refuses a completed attempt =="
@@ -306,19 +408,22 @@ teardown
 
 echo "== Composition: init enforces blueprint quotas on 60-question exams =="
 setup
-# Cycling domains gives 12 each — violates the 16/11/12/12/9 quota.
+# Cycling domains gives 12 each — violates the 16/11/12/12/9 quota. Everything
+# else (case sections, key spread) is well-formed, so the quota rule
+# is what rejects this.
 { echo "---"; echo "status: in_progress"; echo "total: 60"
-  echo "scenarios: customer-support,code-generation,multi-agent-research,claude-code-ci"
+  echo "scenarios: ${SCENARIOS[0]},${SCENARIOS[1]},${SCENARIOS[2]},${SCENARIOS[3]}"
   echo "next_index: 1"; echo "---"
-  for s in customer-support code-generation multi-agent-research claude-code-ci; do
-    echo "[[CASE:$s]]"; echo "title: $s case"; echo "brief: b"
-  done
   for ((i = 1; i <= 60; i++)); do
-    echo "[[Q$i]]"; echo "domain: D$(( (i - 1) % 5 + 1 ))"
-    echo "scenario: ${SCENARIOS[$(( (i - 1) % 4 ))]}"
-    echo "source: generated"; echo "id: gen-$i"; echo "stem: q$i"
-    echo "A) a"; echo "B) b"; echo "C) c"; echo "D) d"
-    echo "answer_key: ${LETTERS[$(( (i - 1) % 4 ))]}"; echo "user_answer:"
+    exam_item 60 "$i"
+    if (( (i - 1) % 15 == 0 )); then
+      s="${SCENARIOS[$(( (i - 1) / 15 ))]}"
+      echo "[[CASE:$s]]"; echo "title: $s case"; echo "brief: b"
+    fi
+    # Task tag follows the (deliberately wrong) cycling domain, so the quota rule
+    # is what rejects this rather than the task/domain check firing first.
+    wrongdom="D$(( (i - 1) % 5 + 1 ))"
+    item_block "$i" "$wrongdom" "${SCENARIOS[$(( (i - 1) / 15 ))]}" "$KEY" "$wrongdom.1"
   done
 } | bash "$HELPER" init >/dev/null 2>&1
 if [[ -f "$CCAF_EXAM_FILE" ]]; then
@@ -360,6 +465,8 @@ teardown
 
 echo "== Composition: all case blocks up front (stale-brief layout) is rejected =="
 setup
+# Domains and key spread are valid — only the case-block layout
+# is wrong, so that is what rejects this.
 { echo "---"; echo "status: in_progress"; echo "total: 60"
   echo "scenarios: ${SCENARIOS[0]},${SCENARIOS[1]},${SCENARIOS[2]},${SCENARIOS[3]}"
   echo "next_index: 1"; echo "---"
@@ -367,11 +474,8 @@ setup
     echo "[[CASE:$s]]"; echo "title: $s case"; echo "brief: b"
   done
   for ((i = 1; i <= 60; i++)); do
-    echo "[[Q$i]]"; echo "domain: $(exam_domain 60 "$i")"
-    echo "scenario: ${SCENARIOS[$(( (i - 1) / 15 ))]}"
-    echo "source: generated"; echo "id: gen-$i"; echo "stem: q$i"
-    echo "A) a"; echo "B) b"; echo "C) c"; echo "D) d"
-    echo "answer_key: ${LETTERS[$(( (i - 1) % 4 ))]}"; echo "user_answer:"
+    exam_item 60 "$i"
+    item_block "$i" "$DOM" "${SCENARIOS[$(( (i - 1) / 15 ))]}" "$KEY"
   done
 } | bash "$HELPER" init >/dev/null 2>&1
 if [[ -f "$CCAF_EXAM_FILE" ]]; then
@@ -400,17 +504,20 @@ teardown
 
 echo "== Guards: CRLF input is normalized on init =="
 setup
-printf -- '---\r\nstatus: in_progress\r\ntotal: 1\r\nscenarios: a\r\nnext_index: 1\r\n---\r\n[[Q1]]\r\ndomain: D1\r\nscenario: a\r\nsource: generated\r\nid: g1\r\nstem: s\r\nA) a\r\nB) b\r\nC) c\r\nD) d\r\nanswer_key: A\r\nuser_answer:\r\n' | bash "$HELPER" init >/dev/null
+printf -- '---\r\nstatus: in_progress\r\ntotal: 1\r\nscenarios: a\r\nnext_index: 1\r\n---\r\n[[Q1]]\r\ndomain: D1\r\ntask: D1.1\r\nscenario: a\r\nsource: generated\r\nid: g1\r\nstem: s\r\nA) a\r\nB) b\r\nC) c\r\nD) d\r\nanswer_key: A\r\nuser_answer:\r\n' | bash "$HELPER" init >/dev/null
 assert_eq "CRLF: status readable"            "in_progress" "$(field status)"
 assert_eq "CRLF: blank answer stays blank"   "1"           "$(field next_index)"
 bash "$HELPER" record --q 1 --answer A >/dev/null
 assert_eq "CRLF: record + recompute works"   "2"           "$(field next_index)"
 teardown
 
-echo "== Slice 5.4: per-domain breakdown =="
+echo "== Slice 5.4: per-domain breakdown, with the percent the real report shows =="
 setup; make_exam 10 10   # domains cycle D1..D5 -> each domain has 2 questions, all correct
-assert_contains "D1 2/2" "$(bash "$HELPER" score)" "domain=D1 correct=2 total=2"
-assert_contains "D5 2/2" "$(bash "$HELPER" score)" "domain=D5 correct=2 total=2"
+assert_contains "D1 2/2 at 100%" "$(bash "$HELPER" score)" "domain=D1 correct=2 total=2 pct=100"
+assert_contains "D5 2/2 at 100%" "$(bash "$HELPER" score)" "domain=D5 correct=2 total=2 pct=100"
+teardown
+setup; make_exam 10 1 in_progress wrong   # Q1 correct, Q6 wrong -> D1 is 1 of 2
+assert_contains "D1 1/2 rounds to 50%" "$(bash "$HELPER" score)" "domain=D1 correct=1 total=2 pct=50"
 teardown
 
 echo "== Slice 5.4: score marks completed =="

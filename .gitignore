@@ -3,3 +3,12 @@
 .claude/bee-insights/
 .claude/ccaf-exam.local.md
 .claude/ccaf-exam.local.answers.md
+.claude/ccaf-practice.local.md
+.claude/ccaf-practice.local.answers.md
+
+# Reference PDFs (e.g. the CCAF exam guide) are read while authoring the plugin's
+# self-authored content but must never be redistributed with it.
+ccaf/*.pdf
+
+# Editor workspace settings
+.vscode/

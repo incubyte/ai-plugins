@@ -8,15 +8,19 @@ set -eo pipefail
 # answers path derives from it):
 #
 #   Questions file (default ~/.claude/ccaf-exam.local.md) — write-once at init:
-#   frontmatter (total, scenarios) + [[CASE:]] blocks + [[Q]] blocks with stems
-#   and options but NO answer keys and NO user answers. Safe to read and show
-#   during administration; recording never rewrites it.
+#   frontmatter (total, scenarios) + [[CASE:]] blocks + [[Q]] blocks with stems,
+#   options, and each item's `task:` statement, but NO answer keys and NO user
+#   answers. Safe to read and show during administration; recording never
+#   rewrites it.
 #
 #   Answers file (<questions-file minus .md>.answers.md) — small and hot:
 #   status + next_index frontmatter, then one "qnum domain key user" line per
 #   question ("-" = unanswered). Recording rewrites only this file, and the
 #   skill never reads it during administration, so answer keys stay out of the
 #   conversation.
+#
+# Every item is single-answer multiple-choice: four options A-D, exactly one
+# correct. Recorded answers are uppercased so a lowercase free-text reply matches.
 #
 # Usage:
 #   ccaf-exam.sh init [--force]       # read the full exam payload from stdin (one
@@ -31,12 +35,14 @@ set -eo pipefail
 #                                     # questions file)
 #   ccaf-exam.sh record --q 7 --answer C [--q 8 --answer A ...]
 #                                     # record one or more answers in a single call
-#                                     # (atomic), then advance next_index
+#                                     # (atomic), then advance next_index; an answer
+#                                     # is one letter A-D, case-insensitive
 #   ccaf-exam.sh blanks               # unanswered question numbers, one per line
 #   ccaf-exam.sh audit                # composition (total, scenarios, per-domain and
 #                                     # per-key counts) + composition=OK|FAIL
-#   ccaf-exam.sh score [--partial]    # tally + scaled score + per-domain; mark
-#                                     # completed (refuses unanswered questions
+#   ccaf-exam.sh score [--partial]    # tally + scaled score + per-domain correct and
+#                                     # percent + per-task-statement correct/total;
+#                                     # mark completed (refuses unanswered questions
 #                                     # unless --partial)
 #   ccaf-exam.sh clear                # remove both files
 #
@@ -53,6 +59,7 @@ set -eo pipefail
 #   brief: ...                     # shown above every screen of this section
 #   [[Q1]]
 #   domain: D1
+#   task: D1.4                   # the task statement tested; must exist in `domain`
 #   scenario: customer-support
 #   source: generated            # always generated — bank questions are reference-only
 #   id: gen-01
@@ -61,7 +68,7 @@ set -eo pipefail
 #   B) ...
 #   C) ...
 #   D) ...
-#   answer_key: A
+#   answer_key: A                # exactly one letter A-D
 #   user_answer:
 #   [[Q2]]
 #   ...
@@ -70,7 +77,31 @@ EXAM_FILE="${CCAF_EXAM_FILE:-$HOME/.claude/ccaf-exam.local.md}"
 ANSWERS_FILE="${EXAM_FILE%.md}.answers.md"
 LOCK_DIR="$EXAM_FILE.lock"
 
+# Composition the blueprint fixes for a full mock (see data/ccaf-blueprint.md).
+# Only exams of BLUEPRINT_TOTAL items are held to it; shorter practice sessions
+# set their own proportional quotas and are validated structurally only.
+BLUEPRINT_TOTAL=60
+BLUEPRINT_DOMAIN_QUOTAS="D1=16 D2=11 D3=12 D4=12 D5=9"
+BLUEPRINT_SCENARIOS=4
+# How many task statements each domain publishes (D1.1-D1.7, D2.1-D2.5, ...).
+# Used to reject an item tagged with a task statement that does not exist.
+BLUEPRINT_TASK_COUNTS="D1=7 D2=5 D3=6 D4=6 D5=6"
+
 die() { echo "ccaf-exam: $*" >&2; exit 1; }
+
+normalize_answer() {
+  # "b" -> "B", so a candidate typing a lowercase letter into the free-text field
+  # records the same as one picking the option. Rejects anything else.
+  # Deliberately pure bash: record runs once per exam screen, and spawning a
+  # pipeline per answer is a visible cost where process creation is slow.
+  case "$1" in
+    a | A) printf A ;;
+    b | B) printf B ;;
+    c | C) printf C ;;
+    d | D) printf D ;;
+    *) return 1 ;;
+  esac
+}
 
 # Mutating commands may be launched in the background while the next screen is
 # already showing, so writes are serialized through a directory lock. No
@@ -145,89 +176,157 @@ count_blanks() {
   awk '/^[0-9]+ / && $4 == "-" { n++ } END { print n + 0 }' "$ANSWERS_FILE"
 }
 
-check_composition_questions() {
-  # 60-question blueprint checks on the questions side: domain quotas, exactly
-  # 4 scenarios, contiguous case-headed sections. Also valid against an init
-  # payload (the extra answer lines are ignored). Prints the reason on failure.
+check_items() {
+  # Per-item integrity on an init payload: exactly one correct option A-D, and a
+  # `task:` statement that exists and belongs to the item's own domain. The task
+  # tag is validated rather than trusted because the score report aggregates
+  # misses by task statement, and a mistagged item would send a candidate to
+  # study the wrong objective. Prints the first offending question, empty output
+  # when every item is well-formed.
   local file="$1"
-  local pair d want got
-  for pair in D1=16 D2=11 D3=12 D4=12 D5=9; do
-    d="${pair%%=*}"; want="${pair##*=}"
-    got="$(grep -c "^domain: $d\$" "$file" || true)"
-    [[ "$got" -eq "$want" ]] || { echo "domain $d has $got questions, blueprint requires $want"; return 1; }
-  done
-  local scen_line scen_count s
-  scen_line="$(read_field_from scenarios "$file")"
-  scen_count="$(tr ',' '\n' <<<"$scen_line" | sed '/^$/d' | sort -u | wc -l | tr -d '[:space:]')"
-  [[ "$scen_count" -eq 4 ]] || { echo "frontmatter lists $scen_count scenarios, need exactly 4"; return 1; }
-  for s in ${scen_line//,/ }; do
-    got="$(grep -c "^scenario: $s\$" "$file" || true)"
-    [[ "$got" -ge 1 ]] || { echo "scenario $s is listed but has no questions"; return 1; }
-    grep -q "^\[\[CASE:$s\]\]\$" "$file" || { echo "scenario $s is missing its [[CASE:$s]] case-study block"; return 1; }
-  done
-  local bs
-  while IFS= read -r bs; do
-    [[ ",$scen_line," == *",$bs,"* ]] || { echo "question scenario '$bs' is not in the frontmatter scenario list"; return 1; }
-  done < <(grep '^scenario: ' "$file" | sed 's/^scenario: //' | sort -u)
-  # Case-study structure: each [[CASE:slug]] appears exactly once and directly
-  # heads a contiguous run of its own questions — so the brief shown above a
-  # screen always belongs to that screen's questions, never a previous case.
-  local struct
-  struct="$(awk '
+  awk -v taskcounts="$BLUEPRINT_TASK_COUNTS" '
+    BEGIN {
+      n = split(taskcounts, pairs, " ")
+      for (i = 1; i <= n; i++) { split(pairs[i], kv, "="); taskmax[kv[1]] = kv[2] + 0 }
+    }
+    /^\[\[Q[0-9]+\]\]$/ { q = $0; gsub(/[^0-9]/, "", q); dom = ""; task = ""; next }
+    /^domain: /     { dom = $2; next }
+    /^task: /       { task = $2; next }
+    /^answer_key: / {
+      key = $2
+      if (key !~ /^[A-D]$/)           { print "Q" q " answer_key " key " must be one letter A-D"; exit }
+      if (task == "")                 { print "Q" q " has no task: line"; exit }
+      if (task !~ /^D[1-5]\.[0-9]+$/) { print "Q" q " task: " task " must look like D1.4"; exit }
+      td = substr(task, 1, 2)
+      if (td != dom)                  { print "Q" q " task: " task " does not belong to its domain " dom; exit }
+      tn = substr(task, 4) + 0
+      if (tn < 1 || tn > taskmax[td]) { print "Q" q " task: " task " — " td " has task statements " td ".1 to " td "." taskmax[td]; exit }
+      next
+    }
+    /^user_answer:/ {
+      ua = $0; sub(/^user_answer:[[:space:]]*/, "", ua)
+      if (ua != "" && ua !~ /^[A-D]$/) { print "Q" q " user_answer " ua " must be one letter A-D or empty"; exit }
+    }
+  ' "$file"
+}
+
+check_composition_questions() {
+  # Full-mock blueprint checks on the questions side: domain quotas, the scenario
+  # count, and contiguous case-headed sections (each [[CASE:slug]] appears once
+  # and directly heads a run of its own questions — so the brief shown above a
+  # screen always belongs to that screen's questions, never a previous case).
+  # Also valid against an init payload; the extra answer lines are ignored.
+  #
+  # One awk pass, not a dozen greps: this runs on every init and every score,
+  # and process creation is expensive enough on some machines (Windows + AV)
+  # that a per-check subprocess is the dominant cost. Structural problems are
+  # recorded rather than reported immediately, so failures still surface in the
+  # documented order — quotas, scenarios, then layout.
+  # Prints the reason on failure.
+  local file="$1" reason
+  reason="$(awk -v quotas="$BLUEPRINT_DOMAIN_QUOTAS" -v wantscen="$BLUEPRINT_SCENARIOS" '
+    BEGIN {
+      ndom = split(quotas, pairs, " ")
+      for (i = 1; i <= ndom; i++) { split(pairs[i], kv, "="); domname[i] = kv[1]; domwant[i] = kv[2] + 0 }
+    }
+    /^---$/ { fm++; next }
+    fm == 1 && /^scenarios:/ {
+      line = $0; sub(/^scenarios:[[:space:]]*/, "", line)
+      n = split(line, raw, ",")
+      for (i = 1; i <= n; i++) {
+        s = raw[i]; gsub(/^[ \t]+|[ \t]+$/, "", s)
+        if (s != "" && !(s in listed)) { listed[s] = 1; order[++scencount] = s }
+      }
+      next
+    }
     /^\[\[CASE:[a-z-]+\]\]$/ {
       c = $0; sub(/^\[\[CASE:/, "", c); sub(/\]\]$/, "", c)
-      if (seen[c]++) { print "case block " c " appears more than once (sections must be contiguous)"; exit }
-      cur = c; next
+      if (caseseen[c]++ && struct == "") struct = "case block " c " appears more than once (sections must be contiguous)"
+      cur = c
+      next
     }
+    /^domain: /  { domgot[$2]++; next }
     /^scenario: / {
-      s = $0; sub(/^scenario: /, "", s)
-      if (cur == "") { print "a question with scenario " s " appears before any [[CASE:]] block"; exit }
-      if (s != cur)  { print "a question with scenario " s " sits under case block " cur " — each section must be contiguous, headed by its own case block"; exit }
+      s = $2; qscen[s]++
+      if (struct == "") {
+        if (cur == "")     struct = "a question with scenario " s " appears before any [[CASE:]] block"
+        else if (s != cur) struct = "a question with scenario " s " sits under case block " cur " — each section must be contiguous, headed by its own case block"
+      }
+      next
+    }
+    END {
+      for (i = 1; i <= ndom; i++) {
+        d = domname[i]
+        if (domgot[d] + 0 != domwant[i]) {
+          printf "domain %s has %d questions, blueprint requires %d\n", d, domgot[d] + 0, domwant[i]; exit }
+      }
+      if (scencount + 0 != wantscen) { printf "frontmatter lists %d scenarios, need exactly %d\n", scencount + 0, wantscen; exit }
+      for (i = 1; i <= scencount; i++) {
+        s = order[i]
+        if (!(s in qscen))    { printf "scenario %s is listed but has no questions\n", s; exit }
+        if (!(s in caseseen)) { printf "scenario %s is missing its [[CASE:%s]] case-study block\n", s, s; exit }
+      }
+      for (s in qscen) if (!(s in listed)) { printf "question scenario %s is not in the frontmatter scenario list\n", s; exit }
+      if (struct != "") print struct
     }
   ' "$file")"
-  [[ -z "$struct" ]] || { echo "$struct"; return 1; }
+  [[ -z "$reason" ]] || { echo "$reason"; return 1; }
   return 0
 }
 
 check_key_spread() {
-  # Catch degenerate answer-position bias (uniform random ≈ 15 each on 60).
-  # mode "payload": count `answer_key:` lines; mode "answers": count column 3.
-  local file="$1" mode="$2" letter cnt
-  for letter in A B C D; do
-    if [[ "$mode" == "payload" ]]; then
-      cnt="$(grep -c "^answer_key: $letter\$" "$file" || true)"
-    else
-      cnt="$(awk -v L="$letter" '/^[0-9]+ / && $3 == L { n++ } END { print n + 0 }' "$file")"
-    fi
-    if [[ "$cnt" -lt 6 || "$cnt" -gt 26 ]]; then
-      echo "answer key '$letter' appears $cnt/60 times — positions look biased (aim ~15 each); reshuffle"; return 1
-    fi
-  done
+  # Reject answer-position bias. Only full mocks reach here, so the band is
+  # deliberately tight — a sixth to a third of items per letter, against an even
+  # share of a quarter. The reference bank's own key positions are lopsided, so
+  # few-shot pull toward one letter is a real risk; enforcing the property here
+  # is worth more than trusting the examples to teach it.
+  # mode "payload": read `answer_key:` lines; mode "answers": read column 3.
+  local file="$1" mode="$2" reason
+  reason="$(awk -v mode="$mode" '
+    mode == "payload" && /^answer_key: [A-D]$/ { key[$2]++; items++ }
+    mode == "answers" && /^[0-9]+ /            { key[$3]++; items++ }
+    END {
+      if (items < 8) exit
+      lo = int(items / 6); hi = int(items / 3)
+      n = split("A,B,C,D", letters, ",")
+      for (i = 1; i <= n; i++) {
+        L = letters[i]; c = key[L] + 0
+        if (c < lo || c > hi) {
+          printf "answer key %s appears %d/%d times — positions look biased (aim ~%d each); reshuffle\n", L, c, items, int(items / 4)
+          exit
+        }
+      }
+    }
+  ' "$file")"
+  [[ -z "$reason" ]] || { echo "$reason"; return 1; }
   return 0
 }
 
 validate_payload() {
   # Structural integrity of an init payload: total is numeric and the [[Qn]] /
-  # answer_key / user_answer line counts all equal it. For the production
-  # 60-question exam, also enforces the CCAF blueprint composition.
+  # task / answer_key / user_answer line counts all equal it. For a full 60-item
+  # exam, also enforces the CCAF blueprint composition.
   # Prints the reason on failure.
-  local file="$1" total blocks keys uas reason
+  local file="$1" total blocks tasks keys uas reason
   total="$(read_field_from total "$file")"
   if ! [[ "$total" =~ ^[0-9]+$ && "$total" -gt 0 ]]; then
     echo "frontmatter 'total' missing or non-numeric"; return 1
   fi
   blocks="$(grep -cE '^\[\[Q[0-9]+\]\]$' "$file" || true)"
+  tasks="$(grep -cE '^task:[[:space:]]*D[1-5]\.[0-9]+[[:space:]]*$' "$file" || true)"
   keys="$(grep -cE '^answer_key:[[:space:]]*[A-D][[:space:]]*$' "$file" || true)"
   uas="$(grep -c '^user_answer:' "$file" || true)"
-  if [[ "$blocks" -ne "$total" || "$keys" -ne "$total" || "$uas" -ne "$total" ]]; then
-    echo "body mismatch: total=$total but blocks=$blocks keys=$keys user_answers=$uas"; return 1
+  if [[ "$blocks" -ne "$total" || "$tasks" -ne "$total" || "$keys" -ne "$total" || "$uas" -ne "$total" ]]; then
+    echo "body mismatch: total=$total but blocks=$blocks tasks=$tasks keys=$keys user_answers=$uas"; return 1
   fi
+  reason="$(check_items "$file")"
+  [[ -z "$reason" ]] || { echo "$reason"; return 1; }
   # The question bank is reference-only (it ships in the repo, answers included,
   # so anyone may have read it) — bank questions must never be served.
   if grep -qE '^(source: authored|id: seed-|id: ref-)' "$file"; then
     echo "bank questions are reference-only: found 'source: authored' / 'id: seed-*' in the exam"; return 1
   fi
-  if [[ "$total" -eq 60 ]]; then
+  if [[ "$total" -eq "$BLUEPRINT_TOTAL" ]]; then
     if ! reason="$(check_composition_questions "$file")"; then echo "$reason"; return 1; fi
     if ! reason="$(check_key_spread "$file" payload)"; then echo "$reason"; return 1; fi
   fi
@@ -236,7 +335,7 @@ validate_payload() {
 
 validate_pair() {
   # Cross-file integrity of an on-disk attempt. Prints the reason on failure.
-  local qt at blocks lines reason
+  local qt at blocks lines tasks reason
   qt="$(read_field_from total "$EXAM_FILE")"
   at="$(read_field_from total "$ANSWERS_FILE")"
   if ! [[ "$qt" =~ ^[0-9]+$ && "$qt" -gt 0 ]]; then
@@ -247,10 +346,12 @@ validate_pair() {
   [[ "$blocks" -eq "$qt" ]] || { echo "questions file has $blocks blocks but total=$qt"; return 1; }
   lines="$(grep -cE '^[0-9]+ D[1-5] [A-D] ([A-D]|-)$' "$ANSWERS_FILE" || true)"
   [[ "$lines" -eq "$qt" ]] || { echo "answers file has $lines well-formed lines but total=$qt"; return 1; }
+  tasks="$(grep -cE '^task:[[:space:]]*D[1-5]\.[0-9]+[[:space:]]*$' "$EXAM_FILE" || true)"
+  [[ "$tasks" -eq "$qt" ]] || { echo "questions file has $tasks task: lines but total=$qt"; return 1; }
   if grep -qE '^(source: authored|id: seed-|id: ref-)' "$EXAM_FILE"; then
     echo "bank questions are reference-only: found 'source: authored' / 'id: seed-*' in the exam"; return 1
   fi
-  if [[ "$qt" -eq 60 ]]; then
+  if [[ "$qt" -eq "$BLUEPRINT_TOTAL" ]]; then
     if ! reason="$(check_composition_questions "$EXAM_FILE")"; then echo "$reason"; return 1; fi
     if ! reason="$(check_key_spread "$ANSWERS_FILE" answers)"; then echo "$reason"; return 1; fi
   fi
@@ -323,11 +424,12 @@ cmd_record() {
     esac
   done
   [[ ${#qs[@]} -ge 1 && ${#qs[@]} -eq ${#answers[@]} ]] || die "record: provide matching --q/--answer pairs"
-  local i pairs=""
+  local i normalized pairs=""
   for ((i = 0; i < ${#qs[@]}; i++)); do
     [[ "${qs[$i]}" =~ ^[0-9]+$ ]] || die "record: --q must be a question number (got '${qs[$i]}')"
-    [[ "${answers[$i]}" =~ ^[A-D]$ ]] || die "record: --answer must be one of A B C D (got '${answers[$i]}')"
-    pairs+="${qs[$i]}=${answers[$i]},"
+    normalized="$(normalize_answer "${answers[$i]}")" ||
+      die "record: --answer must be one letter from A-D (got '${answers[$i]}')"
+    pairs+="${qs[$i]}=${normalized},"
   done
   acquire_lock
   local status
@@ -357,7 +459,7 @@ cmd_blanks() {
 
 cmd_audit() {
   require_attempt
-  local d letter reason
+  local d letter sel reason
   echo "total=$(read_field total)"
   echo "scenarios=$(read_field scenarios)"
   for d in D1 D2 D3 D4 D5; do
@@ -386,10 +488,26 @@ cmd_score() {
   if [[ "$partial" -eq 0 && "$blanks" -gt 0 ]]; then
     die "score: $blanks question(s) unanswered — use 'score --partial' to submit incomplete (blanks count as incorrect)"
   fi
+  # Reads both files: the questions file supplies each item's task statement (it
+  # is not in the answers file), so misses can be attributed to the specific
+  # objective a candidate should go study rather than only to its domain.
   awk '
+    FNR == NR {
+      if ($0 ~ /^\[\[Q[0-9]+\]\]$/) { q = $0; gsub(/[^0-9]/, "", q) }
+      else if ($0 ~ /^task: /)      { qtask[q + 0] = $2 }
+      next
+    }
     /^[0-9]+ / {
       total++; dtotal[$2]++
-      if ($4 != "-" && $4 == $3) { correct++; dcorrect[$2]++ }
+      t = qtask[$1 + 0]
+      if (t != "") {
+        if (!(t in seentask)) { seentask[t] = 1; taskorder[++ntask] = t }
+        ttotal[t]++
+      }
+      if ($4 != "-" && $4 == $3) {
+        correct++; dcorrect[$2]++
+        if (t != "") tcorrect[t]++
+      }
     }
     END {
       # scaled = 100 + round(correct/total * 900). For the production 60-question
@@ -402,10 +520,16 @@ cmd_score() {
       n = split("D1,D2,D3,D4,D5", doms, ",")
       for (i = 1; i <= n; i++) {
         d = doms[i]
-        printf "domain=%s correct=%d total=%d\n", d, dcorrect[d] + 0, dtotal[d] + 0
+        pct = (dtotal[d] > 0) ? int(dcorrect[d] * 100 / dtotal[d] + 0.5) : 0
+        printf "domain=%s correct=%d total=%d pct=%d\n", d, dcorrect[d] + 0, dtotal[d] + 0, pct
+      }
+      # Question order, so the report is stable across runs of the same attempt.
+      for (i = 1; i <= ntask; i++) {
+        t = taskorder[i]
+        printf "task=%s correct=%d total=%d\n", t, tcorrect[t] + 0, ttotal[t]
       }
     }
-  ' "$ANSWERS_FILE"
+  ' "$EXAM_FILE" "$ANSWERS_FILE"
   set_field status completed
 }
 

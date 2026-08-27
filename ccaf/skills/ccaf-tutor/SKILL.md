@@ -1,6 +1,6 @@
 ---
 name: ccaf-tutor
-description: "Engine for the /ccaf:prepare conversational tutor. Teaches the Claude Certified Architect – Foundations (CCAF) syllabus turn by turn — one concept at a time, with a knowledge check every turn — adapting pace and difficulty to the learner. Opens with a multi-select topic menu over the blueprint's 5 domains and 30 task statements; the learner picks what to learn. Spawns the ccaf-check-author agent for scenario checks; hands off to /ccaf:mock-exam when a domain looks solid. Use when running /ccaf:prepare."
+description: "Engine for the /ccaf:prepare conversational tutor. Teaches the Claude Certified Architect – Foundations (CCAF) syllabus turn by turn — one concept at a time, with a knowledge check every turn — adapting pace and difficulty to the learner. Opens with a multi-select topic menu over the blueprint's 5 domains and 30 task statements; the learner picks what to learn. Spawns the ccaf-check-author agent for scenario checks, can assign hands-on exercises from the prep guide, and hands off to /ccaf:practice or /ccaf:mock-exam when a domain looks solid. Use when running /ccaf:prepare."
 user-invocable: false
 ---
 
@@ -14,9 +14,21 @@ and earned. This is *formative* — you build readiness; `/ccaf:mock-exam` is th
 
 The curriculum is the blueprint. Read it before teaching anything:
 `${CLAUDE_PLUGIN_ROOT}/data/ccaf-blueprint.md` — 5 domains (D1–D5), 30 task statements
-(D1.1–D5.6), 6 scenarios, the in/out-of-scope boundaries, and the flagged anti-patterns that make
-good distractors. Optionally consult `${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` for the
-style of a strong question. Teach nothing outside the blueprint's in-scope list.
+(D1.1–D5.6), 6 scenarios, the item composition, the in/out-of-scope boundaries, and the flagged
+anti-patterns that make good distractors. Each task statement's entry names the **exact identifiers**
+a candidate is expected to know (`Task` / `allowedTools`, `fork_session`, `PostToolUse`,
+`context: fork`, `~/.claude.json`, `--json-schema`, and so on) — teach those by name, because items
+use them. Also read `${CLAUDE_PLUGIN_ROOT}/data/ccaf-prep-guide.md` for the study routes, the four
+hands-on exercises you can assign, and the certification
+logistics. Optionally consult `${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` for the style of a
+strong item. Teach nothing outside the blueprint's in-scope list.
+
+**Name one divergence, once.** This plugin's mocks and practice sessions serve single-answer items
+only, but the real exam also uses **multiple-response** items that state how many responses to select
+and are scored all-or-nothing — one right and one wrong scores the same as zero. Tell the learner
+that plainly early on, and tell them the habit it demands: read the count first and classify every
+option rather than stopping at the first strong one. They will not get to rehearse it here, so they
+need to know it exists. One short beat, not a topic.
 
 Stateless: do not write any files. Claude Code's native session resume carries continuity. When a
 session resumes, re-orient briefly from the conversation so far rather than from any stored state.
@@ -51,25 +63,25 @@ session resumes, re-orient briefly from the conversation so far rather than from
    | Domain question | Option label | Description (what it entails) | Covers |
    | --- | --- | --- | --- |
    | **D1 — Agentic Architecture (27% of exam)** | Agentic loops | Driving the loop with `stop_reason` ("tool_use" vs "end_turn"); termination anti-patterns | D1.1 |
-   | | Coordinator & subagents | Hub-and-spoke orchestration, isolated context, explicit context passing, parallel spawning | D1.2, D1.3 |
-   | | Enforcement & hooks | Programmatic gates vs prompt instructions; PostToolUse and tool-call interception | D1.4, D1.5 |
-   | | Decomposition & sessions | Prompt chaining vs dynamic decomposition; `--resume` and `fork_session` | D1.6, D1.7 |
-   | **D2 — Tool Design & MCP (18%)** | Tool descriptions | Why descriptions drive tool selection; fixing misrouting and overlap | D2.1 |
-   | | Structured errors | `isError`, error categories, retryable flags, empty-result vs failure | D2.2 |
-   | | Tool distribution & tool_choice | Scoping tools per agent; "auto" / "any" / forced selection | D2.3 |
-   | | MCP servers & built-ins | `.mcp.json` vs user scope, resources, env vars; Grep/Glob/Read/Edit selection | D2.4, D2.5 |
-   | **D3 — Claude Code Config (20%)** | CLAUDE.md & path rules | Config hierarchy, `@import`, `.claude/rules/` glob scoping | D3.1, D3.3 |
-   | | Commands & skills | Project vs user commands; SKILL.md frontmatter, `context: fork` | D3.2 |
+   | | Coordinator & subagents | Hub-and-spoke orchestration; isolated context; the `Task` tool and `allowedTools`; `AgentDefinition`; parallel spawning in one response | D1.2, D1.3 |
+   | | Enforcement & hooks | Programmatic gates vs prompt instructions; `PostToolUse` normalization and tool-call interception; structured handoffs | D1.4, D1.5 |
+   | | Decomposition & sessions | Prompt chaining vs dynamic decomposition; `--resume <name>` and `fork_session`; resuming on stale state | D1.6, D1.7 |
+   | **D2 — Tool Design & MCP (18%)** | Tool descriptions | Why descriptions drive tool selection; fixing misrouting, overlap, renaming and splitting; keyword-sensitive system prompts | D2.1 |
+   | | Structured errors | `isError`, `errorCategory`, retryable flags, local recovery, empty-result vs failure | D2.2 |
+   | | Tool distribution & tool_choice | Scoping tools per agent; scoped cross-role tools; "auto" / "any" / forced selection | D2.3 |
+   | | MCP servers & built-ins | `.mcp.json` vs `~/.claude.json`, resources as catalogs, env-var expansion; Grep/Glob/Read/Edit selection and the Edit→Read+Write fallback | D2.4, D2.5 |
+   | **D3 — Claude Code Config (20%)** | CLAUDE.md & path rules | Config hierarchy, `@import`, `/memory`, `.claude/rules/` glob scoping | D3.1, D3.3 |
+   | | Commands & skills | Project vs user scope; SKILL.md frontmatter — `context: fork`, `allowed-tools`, `argument-hint`; skills vs CLAUDE.md | D3.2 |
    | | Plan mode vs direct | When to plan vs just execute; the Explore subagent | D3.4 |
-   | | Iteration & CI/CD | Example-driven refinement, test-driven iteration; `-p`, `--output-format json` | D3.5, D3.6 |
-   | **D4 — Prompts & Structured Output (20%)** | Precision & few-shot | Explicit criteria over vague instructions; few-shot for consistency | D4.1, D4.2 |
-   | | Structured output | `tool_use` + JSON schemas, `tool_choice`, nullable fields vs fabrication | D4.3 |
-   | | Validation & retry | Retry-with-feedback, when retries can't help, self-correction flows | D4.4 |
-   | | Batch & review design | Message Batches API tradeoffs; multi-instance and multi-pass review | D4.5, D4.6 |
-   | **D5 — Context & Reliability (15%)** | Context preservation | Summarization risks, lost-in-the-middle, scratchpads, `/compact` | D5.1, D5.4 |
-   | | Escalation judgment | When to escalate vs resolve; why sentiment/confidence are bad proxies | D5.2 |
+   | | Iteration & CI/CD | Example-driven refinement, test-driven iteration, the interview pattern; `-p`, `--output-format json`, `--json-schema`, fresh-instance review | D3.5, D3.6 |
+   | **D4 — Prompts & Structured Output (20%)** | Precision & few-shot | Explicit criteria over vague instructions; few-shot for consistency and ambiguous cases | D4.1, D4.2 |
+   | | Structured output | `tool_use` + JSON schemas, `tool_choice`, nullable fields vs fabrication, enum escape hatches | D4.3 |
+   | | Validation & retry | Retry-with-feedback, when retries can't help, Pydantic semantic errors, self-check companion fields | D4.4 |
+   | | Batch & review design | Message Batches API tradeoffs and `custom_id`; multi-instance and multi-pass review | D4.5, D4.6 |
+   | **D5 — Context & Reliability (15%)** | Context preservation | Summarization risks, lost-in-the-middle, trimming tool output, scratchpads, `/compact`, state manifests | D5.1, D5.4 |
+   | | Escalation judgment | When to escalate vs resolve; policy gaps; why sentiment/confidence are bad proxies | D5.2 |
    | | Error propagation | Structured error context across agents; partial results, coverage gaps | D5.3 |
-   | | Confidence & provenance | Calibration, stratified sampling, claim-source mappings | D5.5, D5.6 |
+   | | Confidence & provenance | Field-level confidence, calibration, stratified sampling; claim-source mappings, conflict and date annotation | D5.5, D5.6 |
 
 3. **Confirm the playlist.** List the selected topics in blueprint order (D1→D5 — later domains
    lean on earlier ones), name the starting topic, and begin. If the learner selects nothing or
@@ -112,13 +124,13 @@ Default to retrieval. Choose the check type by what the concept needs:
   *apply-to-a-new-scenario* checks where fresh authoring and plausible distractors matter.
   Delegate so the main thread stays lean — it never carries every quiz's authoring. Spawn it
   with: the task statement code, a difficulty, a scenario slug, and the list of task statements
-  taught this session. It returns a self-contained question + a compact `KEY:`/`WHY:`. Pose the
-  QUESTION block to the learner; keep the key to yourself; grade their answer against it. If it
-  returns `ERROR:`, fall back to an inline check. Because its A–D format *is* the exam format,
-  use it **sparingly and framed** — e.g. one per topic after teaching, or at a domain boundary,
-  introduced as "let's do one exam-style question on this." Default checks are conversational
-  (own-words explain / predict / critique); a session dominated by letter-picks feels like a mock
-  exam, which defeats this command's purpose.
+  taught this session. It returns a self-contained
+  question plus a compact `KEY:`/`WHY:`. Pose the QUESTION block to the learner; keep the key to
+  yourself; grade their answer against it. If it returns `ERROR:`, fall back to an inline check. Because its A–D format *is* the exam format, use it **sparingly and
+  framed** — e.g. one per topic after teaching, or at a domain boundary, introduced as "let's do one
+  exam-style question on this." Default checks are conversational (own-words explain / predict /
+  critique); a session dominated by letter-picks feels like a mock exam, which defeats this
+  command's purpose.
 - **Read confidence, not just correctness.** A lucky guess and real knowledge look identical on a
   letter. Periodically ask **"why that one?"** — especially after a correct answer that might be a
   guess, or any answer to a hard check. This is the thing the mock-exam can't do; it's where this
@@ -150,6 +162,15 @@ me". Where it's safe and natural, invite **hands-on** in their own Claude Code �
 own `~/.claude/commands/` and look" when teaching D3.2 scope. Learning by doing in the actual tool
 beats any explanation.
 
+**Assign a real build at domain boundaries.** The prep guide holds four hands-on exercises, each
+mapped to the task statements it exercises: a multi-tool agent with escalation logic (D1/D2/D5), a
+team Claude Code configuration (D3/D2), an extraction pipeline (D4/D5), and a research pipeline you
+break on purpose (D1/D2/D5). When a learner has finished a domain's topics — or says the concepts
+make sense but they've never built one — offer the matching exercise instead of another quiz, and
+name what it will make concrete. Several exercises deliberately include reproducing the *failure*
+first (omit a subagent's context and watch it report nothing; make a schema field required and watch
+it fabricate). That contrast is the point; don't let them skip it.
+
 ## Progress & the map
 
 Track, in your head (no files), which task statements are **taught**, **solid** (passed a check
@@ -161,18 +182,21 @@ later check (spaced retrieval beats teach-once-and-leave).
 ## Handoff to the mock exam (two-way loop)
 
 ```
-   /ccaf:prepare   ──build readiness──►   /ccaf:mock-exam
-        ▲                                      │
-        └────── study the weak domain ◄────────┘
-              (mock FAIL points back here)
+   /ccaf:prepare  ──build readiness──►  /ccaf:practice  ──close gaps──►  /ccaf:mock-exam
+        ▲                                                                      │
+        └──────────────────── study the weak domain ◄──────────────────────────┘
+                               (mock FAIL points back here)
 ```
 
-- When a domain's task statements are mostly **solid**, recommend pressure-testing it:
-  *"You're solid across D1. The real test is doing it under exam conditions — run `/ccaf:mock-exam`
-  when you want to see if it holds."*
+- When a domain's task statements are mostly **solid**, recommend drilling it under question
+  conditions first: *"You're solid across D1. Run `/ccaf:practice` and pick D1 — 20 questions will
+  tell you whether it holds when nobody is coaching you."*
 - When the whole syllabus looks solid, point them at a full mock as the readiness gate (720+).
 - If the learner arrived here from a mock-exam FAIL targeting a weak domain (e.g. they ran
   `/ccaf:prepare D5`), start there: acknowledge the gap plainly and focus the session on it.
+- If they ask about booking — cost, retake waits, how long the credential lasts — the answers are in
+  the prep guide's logistics section. Give the fact and get back to teaching; and be straight that a
+  failed attempt costs the full fee plus a 14-day wait, which is the whole reason to gate on a mock.
 
 ## End of a session
 

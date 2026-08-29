@@ -1,9 +1,9 @@
 ---
-description: Bee workflow — run bee-sdd, bee discover, bee review from chat
+description: Bee workflow — run Bee commands (sdd, discover, review, architect, onboard, qc, browser-test, ping-pong, migrate, help, coach) from chat
 alwaysApply: true
 ---
 
-# Bee workflow — when the user says "bee-sdd", "bee sdd", "/bee:sdd", "start bee workflow", "run bee", or similar
+# Bee workflow — when the user invokes any Bee command (e.g. `/bee:sdd`, `bee sdd`, `bee-review`, "run bee") or similar
 
 You are integrating with **Bee**, a spec-driven TDD workflow navigator. Bee's files are installed at **BEE_ROOT** on this machine:
 
@@ -30,4 +30,36 @@ You are integrating with **Bee**, a spec-driven TDD workflow navigator. Bee's fi
    - Read and follow **BEE_ROOT/commands/review.md**.
    - Same path rules as above.
 
-**Cursor vs Claude:** Cursor has no "Task" tool for subagents. When the build/discover/review command says "Delegate to X via Task" or "spawn agent Y", you perform that agent's role yourself by reading **BEE_ROOT/agents/<agent-name>.md** (or the path given in the command) and following its instructions in this conversation. You are the single agent executing the Bee workflow.
+4. **bee-architect (or "bee architect", "/bee:architect")**
+   - Read and follow **BEE_ROOT/commands/architect.md**.
+   - Same path rules: Bee assets from BEE_ROOT, project paths from workspace (assessment output e.g. `docs/architecture-assessment.md` is in the workspace).
+
+5. **bee-onboard (or "bee onboard", "/bee:onboard")**
+   - Read and follow **BEE_ROOT/commands/onboard.md**.
+   - Same path rules as above.
+
+6. **bee-qc (or "bee qc", "/bee:qc")**
+   - Read and follow **BEE_ROOT/commands/qc.md**.
+   - Optional argument: PR id for PR-scoped analysis (`/bee:qc 123`). Same path rules as above.
+
+7. **bee-browser-test (or "bee browser-test", "/bee:browser-test")**
+   - Read and follow **BEE_ROOT/commands/browser-test.md**.
+   - User may pass one or more spec names (e.g. `user-auth checkout-flow`). Same path rules; specs resolve under the workspace `docs/specs/`.
+
+8. **bee-ping-pong (or "bee ping-pong", "/bee:ping-pong")**
+   - Read and follow **BEE_ROOT/commands/ping-pong.md**.
+   - User should pass a spec path (e.g. `docs/specs/feature.md`). Same path rules as above.
+
+9. **bee-migrate (or "bee migrate", "/bee:migrate")**
+   - Read and follow **BEE_ROOT/commands/migrate.md**.
+   - User prompt typically includes legacy and new codebase paths. Same path rules; resolved paths may be inside or outside the workspace per the command.
+
+10. **bee-help (or "bee help", "/bee:help")**
+    - Read and follow **BEE_ROOT/commands/help.md**.
+    - Interactive tour of Bee features; workspace context drives what you highlight.
+
+11. **bee-coach (or "bee coach", "/bee:coach")**
+    - Read and follow **BEE_ROOT/commands/coach.md**.
+    - Optional flags: `--last N`, `--all`. Session data under workspace `.claude/bee-insights/` when present.
+
+**Cursor vs Claude:** Cursor has no "Task" tool for subagents. When any Bee command says "Delegate to X via Task" or "spawn agent Y", you perform that agent's role yourself by reading **BEE_ROOT/agents/<agent-name>.md** (or the path given in the command) and following its instructions in this conversation. You are the single agent executing the Bee workflow.

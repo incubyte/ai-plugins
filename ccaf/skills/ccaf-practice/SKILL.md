@@ -1,6 +1,6 @@
 ---
 name: ccaf-practice
-description: "Engine for the /ccaf:practice command. Asks which specific CCAF domains to focus on and how many questions (10/20/30), assembles a proportionally-weighted partial exam anchored to the reference bank and independently verified, administers it 4 questions per screen with resumable progress, and scores it with a per-domain performance chart. Attempt state lives in ~/.claude/ccaf-practice.local.md — separate from /ccaf:mock-exam. Use when running or resuming /ccaf:practice."
+description: "Engine for the /ccaf:practice command. Asks which specific CCAF domains to focus on and how many questions (10/20/30), assembles a proportionally-weighted partial exam of single-answer multiple-choice items, anchored to the reference bank and independently verified, administers it 4 items per screen with resumable progress, and scores it with a per-domain performance chart. Attempt state lives in ~/.claude/ccaf-practice.local.md — separate from /ccaf:mock-exam. Use when running or resuming /ccaf:practice."
 user-invocable: false
 ---
 
@@ -28,10 +28,10 @@ CCAF_EXAM_FILE=~/.claude/ccaf-practice.local.md \
   "${CLAUDE_PLUGIN_ROOT}/scripts/ccaf-exam.sh" <init|get|record|blanks|audit|score|clear> [...]
 ```
 
-Read-only authority: `${CLAUDE_PLUGIN_ROOT}/data/ccaf-blueprint.md` (domains, weights,
-scenarios, in/out-of-scope, scoring) and `${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md`
-(12 self-authored **reference** questions — style/difficulty anchors only, never served).
-Read both before assembling.
+Read-only authority: `${CLAUDE_PLUGIN_ROOT}/data/ccaf-blueprint.md` (domains, weights, the 30 task
+statements, item composition, scenarios, in/out-of-scope, scoring) and
+`${CLAUDE_PLUGIN_ROOT}/data/ccaf-question-bank.md` (30 self-authored **reference** questions, one
+per task statement — style/difficulty/format anchors only, never served). Read both before assembling.
 
 ## On startup — resume / fresh / recover
 
@@ -105,43 +105,52 @@ Goal: a frozen, well-formed partial exam written to the attempt file.
    - quota(d) = floor(total × weight(d) / W) for each selected domain d
    - Assign any remainder (total − Σquotas) to the selected domain with the largest weight
    - Example: D2 + D4, total=20 → W=23, D2=floor(20×11/23)=9, D4=11
-3. **Reference anchors — never served.** Read the 12 bank questions as few-shot anchors for
-   style, difficulty, and distractor construction only. Do **not** copy any bank question — or
-   a near-verbatim variant of one — into the session: the bank ships in the repo with answers
-   and explanations, so candidates may have already read it. Every served question is freshly
+3. **Item format (hard constraint).** Every item is **single-answer**: four options A–D, exactly
+   one correct, three plausible distractors. `init` refuses any answer key that is not a single
+   letter. This diverges deliberately from the real exam, which also uses multiple-response items —
+   see the blueprint. Never write an item that asks for two or three responses.
+4. **Reference anchors — never served.** Read the 30 bank questions as few-shot anchors for style,
+   difficulty, and distractor construction only. Each task statement has
+   exactly one anchor — read the one matching the task statement you are writing against. Do **not** copy any bank
+   question — or a near-verbatim variant of one — into the session: the bank ships in the repo with
+   answers and explanations, so candidates may have already read it. Every served item is freshly
    generated (`init` rejects any `source: authored` / `id: seed-*` block).
-4. **Generate all `total` questions silently.** Honor the quotas, draw only from the selected
+5. **Generate all `total` items silently.** Honor the domain quotas, draw only from the selected
    domains, and spread across the chosen scenarios. Do **not** print stems, options, or running
-   commentary to the user — keep all question data in context and proceed directly to
-   verification. Each question:
+   commentary to the user — keep all item data in context and proceed directly to verification.
+   Each item:
    - is set inside its scenario's **case-study brief** (answerable from brief + stem; may add
      detail, must never contradict the brief);
-   - tests a task statement for its tagged domain (see blueprint), stays strictly **in-scope**,
-     and never touches an **out-of-scope** topic;
-   - has one clearly-correct option and three plausible-but-wrong distractors;
+   - tests one of the **30 task statements** for its tagged domain (see the blueprint syllabus) and
+     records it in the block's `task:` field, stays strictly **in-scope**, and never touches an
+     **out-of-scope** topic;
+   - spreads across the domain's task statements rather than clustering on one or two — with only a
+     handful of items per domain, prefer distinct task statements so the result names distinct gaps;
+   - has one clearly-correct option and three plausible-but-wrong distractors, built from the
+     domain's common-mistake list;
    - matches the bank questions' style and difficulty without reusing their stems or options.
-5. **Verify questions in one parallel batch.** Split the questions into groups of ~5. Then, in
+6. **Verify questions in one parallel batch.** Split the items into groups of ~5. Then, in
    a **single response**, call the Task tool once for every group simultaneously — all with
    `run_in_background: true`. Do **not** call Task, wait for the result, and call Task again;
    all launches must be in the same tool-call batch with no barrier between them. Each agent
-   receives only the stems + options for its group — no answer keys — and must return a
-   per-question verdict (`pass` or `fail`) with a brief issue note if failing. The agent must
-   not state which letter it chose; only whether the question is well-formed. Collect all
-   results, then reject and regenerate any failing question (budget ~3 tries; substitute a
-   fresh in-domain question if still failing after 3 tries).
-6. **Shuffle answer positions.** For every question, place the correct option at a varied A–D
-   position — aim for reasonable spread. (The strict 13–17 per-letter check is only enforced
-   by the helper for 60-question exams; it is not applied here.)
-7. **Group into case-study sections.** Order the questions so each scenario's questions are
-   **contiguous**, domains mixed within each section. Each section opens with its
-   `[[CASE:<slug>]]` block — placed **directly before its first question**, not gathered at
-   the top — whose `title:` and `brief:` are copied **verbatim** from the blueprint's
-   case-study briefs. `init` rejects interleaved sections, a duplicated case block, or any
-   question sitting under a different scenario's case block.
-8. **Write the attempt** by piping the assembled body to `ccaf-exam.sh init` (one call, via
+   receives only the stems and options for its group — no answer keys — and must return a per-item
+   verdict (`pass` or `fail`) with a brief issue note if failing. The agent must not state which
+   option it chose; only whether the item is well-formed and has exactly one defensible option. Collect all results, then reject and
+   regenerate any failing item (budget ~3 tries; substitute a fresh in-domain item if still failing
+   after 3 tries).
+7. **Shuffle answer positions.** For every item, place correct options at varied A–D positions —
+   aim for a reasonable spread. The reference bank's own keys lean heavily on A; that is an artefact
+   of how the anchors were written, not a pattern to copy. (The helper's per-letter spread check only runs for 60-item exams; it is not applied here.)
+8. **Group into case-study sections.** Order the items so each scenario's items are
+   **contiguous**, with domains mixed within each section. Each section opens
+   with its `[[CASE:<slug>]]` block — placed **directly before its first item**, not gathered at the
+   top — whose `title:` and `brief:` are copied **verbatim** from the blueprint's case-study briefs.
+   `init` rejects interleaved sections, a duplicated case block, or any item sitting under a
+   different scenario's case block.
+9. **Write the attempt** by piping the assembled body to `ccaf-exam.sh init` (one call, via
    stdin — never the Write/Edit tools). `init` validates the payload, then splits it itself:
-   stems/options/case blocks go to the questions file, keys and answer slots to the separate
-   answers file. Use exactly this payload schema:
+   stems, options, and `task:` tags go to the questions file; keys and answer slots go to the
+   separate answers file. Use exactly this payload schema:
 
 ```
 ---
@@ -155,10 +164,11 @@ title: Customer Support Resolution Agent
 brief: <copied verbatim from the blueprint — one logical line>
 [[Q1]]
 domain: D2
+task: D2.2
 scenario: customer-support
 source: generated
 id: gen-01
-stem: <question text — keep to one logical line; no blank lines inside the block>
+stem: <item text — keep to one logical line; no blank lines inside the block>
 A) <option>
 B) <option>
 C) <option>
@@ -169,18 +179,20 @@ user_answer:
 ...
 ```
 
-Rules for the body: one `[[CASE:<slug>]]` block (with `title:` + `brief:`) before each
-scenario section; one `[[Q<n>]]` block per question numbered 1..total in order; each question
-block has `domain:`, `scenario:`, `source: generated` (always — bank questions are never
-served), a fresh `id:` (`gen-<n>`), `stem:`, the four options, `answer_key:` (the correct
-letter after shuffling), and an empty `user_answer:`. Keep every block free of blank lines —
-the helper parses `user_answer:` as the question-block terminator.
+Rules for the body: one `[[CASE:<slug>]]` block (with `title:` + `brief:`) before each scenario
+section; one `[[Q<n>]]` block per item numbered 1..total in order; each item block has `domain:`,
+`task:`, `scenario:`, `source: generated` (always — bank questions are never served), a fresh `id:`
+(`gen-<n>`), `stem:`, the four options, `answer_key:` (one letter A–D), and an empty
+`user_answer:`. `task:` is the task statement tested (`D1.1`–`D5.6`); it must exist and belong to the
+item's own `domain:` — D1 has seven task statements, D2 five, D3–D5 six each — and `init` rejects a
+tag that is malformed, out of range, or in a different domain. Keep every block free of blank
+lines — the helper parses `user_answer:` as the item-block terminator.
 
-After writing, run `ccaf-exam.sh audit` (for non-60-question exams the helper prints domain
-counts without enforcing blueprint quotas — manually confirm per-domain counts match your
-computed quotas; if they don't, fix the body and re-pipe; never fall back to Write/Edit).
-Then tell the candidate their session's composition in one short block: the selected domains,
-the scenario(s) chosen, and the domain distribution.
+After writing, run `ccaf-exam.sh audit`. For non-60-item exams the helper prints the domain and
+histogram without enforcing blueprint quotas — manually confirm the per-domain counts match your
+computed quotas. If they don't, fix the body and re-pipe; never fall back to Write/Edit. Then tell the
+candidate their session's composition in one short block: the selected domains, the scenario(s)
+chosen, and the domain distribution.
 
 ## Administer
 
@@ -208,17 +220,25 @@ crash/resume, or if a helper call errors.) Then loop:
    *"Case study 2 of N — <title>"*. (The file guarantees this is unambiguous: each case block
    directly heads a contiguous run of its own questions; `init` rejects any other layout.)
 4. Present the questions in **one AskUserQuestion call** (up to 4 per screen), each as a
-   single-select with the four options A–D. Show the stem and options **only** — never the
-   `answer_key`, never an explanation, never whether a prior answer was right.
+   single-select with the four options A–D.
+
+   **Map the option fields this way, every time:** each option's `label` is the bare letter —
+   `"A"`, `"B"`, `"C"`, `"D"` — and the option's full text goes in its `description`. AskUserQuestion
+   expects a label of a few words and an exam option is a whole sentence, so putting the text in
+   `label` renders badly and truncates. Put the item's stem in `question` and use the item number as
+   the `header` (`"Q7"`).
+
+   Show the stem and options **only** — never the `answer_key`, never an explanation, never whether
+   a prior answer was right.
 5. When the candidate submits the screen, **persist and advance in the same response** so the
    next questions appear without waiting on the save:
    - launch the screen's batched record **in the background** (Bash `run_in_background: true`):
      `ccaf-exam.sh record --q 5 --answer A --q 6 --answer C --q 7 --answer B --q 8 --answer D`
    - and, in that same response, print the next screen's case block (step 3) and issue its
      AskUserQuestion (step 4).
-   The helper serializes concurrent writes through a lock, so back-to-back screens cannot
-   corrupt the file. If a background record reports failure, stop presenting, re-run that exact
-   record in the foreground (the answers are still in your context), then continue.
+   The helper serializes concurrent writes through a lock, so back-to-back screens cannot corrupt
+   the file. If a background record reports failure, stop presenting, re-run that exact record in
+   the foreground (the answers are still in your context), then continue.
 6. Repeat.
 
 **Finish line (before Score).** Record the **final** screen in the *foreground* (no background),
@@ -229,14 +249,15 @@ re-present only the genuinely unanswered ones — or apply the submit-incomplete
 Never score while an in-flight record could still land.
 
 **Free-text ("Other") responses.** AskUserQuestion adds an automatic *Other* field. If the text
-unambiguously names one option (a letter A–D, or a near-verbatim match of one option's text),
-record that letter. Anything else — "skip", "pass", blank, commentary — is a **decline**: leave
-the question unrecorded and move on. Never answer questions about the material, never explain,
-never confirm or deny a guess; reply only "noted" and continue the session.
+unambiguously names the option(s) — letters A–D in any form (`B`, `b`, `A and C`, `AC`, `A, C`), or a
+near-verbatim match of an option's text — record those letters. Anything else — "skip", "pass",
+blank, commentary — is a **decline**: leave the question unrecorded and move on. Never answer
+questions about the material, never explain, never confirm or deny a guess; reply only "noted" and
+continue the session.
 
 **Changing an answer.** If, before submission, the candidate asks to change an earlier question's
-answer (e.g. "change Q3 to B"), re-record it with `ccaf-exam.sh record --q 3 --answer B` — the
-helper overwrites in place.
+answer (e.g. "change Q3 to B", or "make Q7 A and D"), re-record it with
+`ccaf-exam.sh record --q 3 --answer B` / `--q 7 --answer AD` — the helper overwrites in place.
 
 **Declined questions & submitting incomplete.** A declined question stays blank in the file;
 continue forward through the remaining screens rather than bouncing back mid-session. At the
@@ -257,14 +278,16 @@ Do not capture or report time at any point.
    correct=<n>/<total>
    scaled=<100..1000>
    verdict=<PASS|FAIL>
-   domain=D1 correct=.. total=..   (one line per D1..D5)
+   domain=D1 correct=.. total=.. pct=..   (one line per D1..D5)
+   task=D2.3 correct=.. total=..          (one line per task statement the session tested)
    ```
    and marks the file `completed`. Use only the per-domain lines — do not display a scaled
-   /1000 score or a PASS/FAIL verdict.
-2. For each domain where `total > 0`, compute `pct = correct / total` and assign a flag:
-   - **pct ≥ 0.80** → `Perfect`
-   - **0.60 ≤ pct < 0.80** → `Needs some prep`
-   - **pct < 0.60** → `Needs work`
+   /1000 score or a PASS/FAIL verdict. A practice session is not weighted like a real form, so a
+   scaled number from it would be misleading.
+2. For each domain where `total > 0`, read its `pct` from the helper's output and assign a flag:
+   - **pct ≥ 80** → `Perfect`
+   - **60 ≤ pct < 80** → `Needs some prep`
+   - **pct < 60** → `Needs work`
 
    Render a bar chart using `█` (filled) and `░` (empty) scaled to 10 chars, one domain per
    line. Only show domains where `total > 0`. Example:
@@ -272,11 +295,22 @@ Do not capture or report time at any point.
    ```
    CCAF Practice — Domain Performance
 
-   D2  Tool Design & MCP Integration           ████████░░  8/11   Needs some prep
-   D4  Prompt Engineering & Structured Output  ██████████  12/12  Perfect
+   D2  Tool Design & MCP Integration           ████████░░  8/11   73%   Needs some prep
+   D4  Prompt Engineering & Structured Output  ██████████  12/12  100%  Perfect
    ```
 
-3. Below the chart, print one recommendation line per domain that is not `Perfect`:
+3. **Name the objectives, not just the domains.** From the `task=` lines, list every task statement
+   the candidate missed at least once, worst first, with its short title from the blueprint
+   syllabus. In a 10–30 item session this is usually two to five lines, and it is the whole point of
+   drilling a domain — it turns "D2 needs work" into a reading list:
+
+   ```
+   Objectives to revisit:
+     D2.1  Tool descriptions as the selection interface   0/2
+     D2.4  MCP server configuration and scope             1/2
+   ```
+
+4. Below the chart, print one recommendation line per domain that is not `Perfect`:
    - `Needs some prep` → *"Run `/ccaf:prepare D<n>` for a focused coaching session on
      <domain name>."*
    - `Needs work` → *"Run `/ccaf:prepare D<n>` to rebuild your understanding of <domain name>
